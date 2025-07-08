@@ -38,10 +38,13 @@ st.set_page_config(
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
 # --- Data cleaning and renaming ---
-df_expected.drop(columns=[c for c in df_expected.columns if str(c).strip()==""], inplace=True, errors='ignore')
+# Drop empty helper columns
+empty_cols = [c for c in df_expected.columns if str(c).strip() == ""]
+df_expected.drop(columns=empty_cols, inplace=True, errors='ignore')
 for col in ["Column1", "Column3"]:
     df_expected.drop(columns=col, inplace=True, errors='ignore')
-rename_map = {
+# Rename columns
+enable_map = {
     "Column18": "Power Rating",
     "Projected Overall Record": "Projected Overall Wins",
     "Column2": "Projected Overall Losses",
@@ -52,15 +55,14 @@ rename_map = {
     "xWins for Playoff Team": "Schedule Difficulty Rating",
     "Winless Probability": "Average Game Quality",
 }
-df_expected.rename(columns=rename_map, inplace=True)
-
-# Add Preseason Rank and format probabilities
-df_expected.insert(0, "Preseason Rank", range(1, len(df_expected) + 1))
+df_expected.rename(columns=enable_map, inplace=True)
+# Add Preseason Rank if not exists, then format probabilities
+if "Preseason Rank" not in df_expected.columns:
+    df_expected.insert(0, "Preseason Rank", list(range(1, len(df_expected) + 1)))
 if "Undefeated Probability" in df_expected.columns:
     df_expected["Undefeated Probability"] = df_expected["Undefeated Probability"].apply(
         lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
     )
-
 # Round numeric columns except ranks
 numeric_cols = df_expected.select_dtypes(include=["number"]).columns.tolist()
 numeric_cols = [c for c in numeric_cols if c not in ["Preseason Rank", "Schedule Difficulty Rank"]]
@@ -78,13 +80,10 @@ tab = st.sidebar.radio(
 # ------ Rankings ------
 if tab == "Rankings":
     st.header("📋 Rankings")
-    # Sidebar filters
     team_search = st.sidebar.text_input("Search team...", "")
     conf_search = st.sidebar.text_input("Filter by conference...", "")
     sort_col = st.sidebar.selectbox("Sort by column", df_expected.columns.tolist(), index=0)
     asc = st.sidebar.checkbox("Ascending order", True)
-
-    # Filter and sort data
     df = df_expected.copy()
     if team_search and "Team" in df.columns:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
@@ -92,18 +91,12 @@ if tab == "Rankings":
         df = df[df["Conference"].str.contains(conf_search, case=False, na=False)]
     if sort_col in df.columns:
         df = df.sort_values(by=sort_col, ascending=asc)
-
-    # Compute color bounds
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
-
-    # Merge logos_df if available
     if {"Team", "Image URL"}.issubset(logos_df.columns):
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
         df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-
-    # Build HTML table (same as original)
     html_rank = [
         '<div style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
@@ -111,18 +104,17 @@ if tab == "Rankings":
     ]
     cols_rank = [c for c in df.columns if c != "Logo URL"]
     for c in cols_rank:
-        th = (
+        th_style = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         ) + (" white-space:nowrap; min-width:200px;" if c == "Team" else "")
-        html_rank.append(f"<th style='{th}'>{c}</th>")
+        html_rank.append(f"<th style='{th_style}'>{c}</th>")
     html_rank.append('</tr></thead><tbody>')
-
     for _, row in df.iterrows():
         html_rank.append('<tr>')
         for c in cols_rank:
             v = row[c]
-            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td_style = 'border:1px solid #ddd; padding:8px; text-align:center;'
             if c == "Team":
                 logo = row.get("Logo URL")
                 cell = (
@@ -131,29 +123,29 @@ if tab == "Rankings":
                 )
             elif c == "OVER/UNDER Pick":
                 if isinstance(v, str) and v.upper().startswith("OVER"):
-                    td += " background-color:#28a745; color:white;"
+                    td_style += " background-color:#28a745; color:white;"
                 elif isinstance(v, str) and v.upper().startswith("UNDER"):
-                    td += " background-color:#dc3545; color:white;"
+                    td_style += " background-color:#dc3545; color:white;"
                 cell = v
             elif c == "Power Rating":
                 t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
                 r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                td_style += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                 cell = f"{v:.1f}"
             elif c == "Average Game Quality":
                 t2 = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
                 r2, g2, b2 = [int(255 + (x - 255) * t2) for x in (0, 32, 96)]
-                td += f" background-color:#{r2:02x}{g2:02x}{b2:02x}; color:{'black' if t2<0.5 else 'white'};"
+                td_style += f" background-color:#{r2:02x}{g2:02x}{b2:02x}; color:{'black' if t2<0.5 else 'white'};"
                 cell = f"{v:.1f}"
             elif c == "Schedule Difficulty Rating":
                 t3 = (v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0
                 inv = 1 - t3
                 ri, gi, bi = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                td += f" background-color:#{ri:02x}{gi:02x}{bi:02x}; color:{'black' if inv<0.5 else 'white'};"
+                td_style += f" background-color:#{ri:02x}{gi:02x}{bi:02x}; color:{'black' if inv<0.5 else 'white'};"
                 cell = f"{v:.1f}"
             else:
                 cell = v
-            html_rank.append(f"<td style='{td}'>{cell}</td>")
+            html_rank.append(f"<td style='{td_style}'>{cell}</td>")
         html_rank.append('</tr>')
     html_rank.append('</tbody></table></div>')
     st.markdown(''.join(html_rank), unsafe_allow_html=True)
@@ -161,7 +153,6 @@ if tab == "Rankings":
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
-
     summary = (
         df_expected.groupby("Conference").agg(
             **{
@@ -176,17 +167,15 @@ elif tab == "Conference Overviews":
     summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]] = (
         summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
     )
-
     if {"Conference", "Image URL"}.issubset(logos_df.columns):
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
         summary = summary.merge(
             logos_df[["Conference", "Logo URL"]], on="Conference", how="left"
         )
-
     pr_min, pr_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
     agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
     sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
-
+    # Table
     html_conv = [
         '<div style="overflow-x:auto; max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse; margin-bottom:2rem;">',
@@ -197,11 +186,9 @@ elif tab == "Conference Overviews":
         th_style = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-        )
-        if c == "Conference": th_style += ' white-space:nowrap; min-width:150px;'
+        ) + (" white-space:nowrap; min-width:150px;" if c == "Conference" else "")
         html_conv.append(f"<th style='{th_style}'>{c}</th>")
     html_conv.append('</tr></thead><tbody>')
-
     for _, row in summary.iterrows():
         html_conv.append('<tr>')
         for c in conv_cols:
@@ -233,7 +220,6 @@ elif tab == "Conference Overviews":
             html_conv.append(f"<td style='{td_style}'>{cell}</td>")
         html_conv.append('</tr>')
     html_conv.append('</tbody></table></div>')
-
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(''.join(html_conv), unsafe_allow_html=True)
@@ -249,7 +235,6 @@ elif tab == "Conference Overviews":
                .interactive(),
             use_container_width=True
         )
-
     st.markdown("---")
     sel_conf = st.selectbox(
         "Select conference for details",
@@ -261,8 +246,7 @@ elif tab == "Conference Overviews":
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
         df_conf = df_conf.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
     df_conf = df_conf.sort_values("Projected Conference Wins", ascending=False)
-    df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
-
+    df_conf.insert(0, "Projected Conference Finish", list(range(1, len(df_conf) + 1)))
     html_conf = [
         '<div style="max-height:500px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
@@ -285,17 +269,17 @@ elif tab == "Conference Overviews":
     agq_min_c, agq_max_c = df_conf["Average Game Quality"].min(), df_conf["Average Game Quality"].max()
     sdr_min_c, sdr_max_c = df_conf["Schedule Difficulty Rating"].min(), df_conf["Schedule Difficulty Rating"].max()
     for c in cols_conf:
-        th = (
+        th_style = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         ) + (" white-space:nowrap; min-width:200px;" if c == "Team" else "")
-        html_conf.append(f"<th style='{th}'>{c}</th>")
+        html_conf.append(f"<th style='{th_style}'>{c}</th>")
     html_conf.append('</tr></thead><tbody>')
     for _, row in df_conf.iterrows():
         html_conf.append('<tr>')
         for c in cols_conf:
             v = row[c]
-            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td_style = 'border:1px solid #ddd; padding:8px; text-align:center;'
             if c == "Team":
                 logo = row.get("Logo URL")
                 cell = (
@@ -308,21 +292,21 @@ elif tab == "Conference Overviews":
             elif c == "Power Rating":
                 t = (v - pr_min_c) / (pr_max_c - pr_min_c) if pr_max_c > pr_min_c else 0
                 r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
+                td_style += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
                 cell = f"{v:.1f}"
             elif c == "Average Game Quality":
                 t2 = (v - agq_min_c) / (agq_max_c - agq_min_c) if agq_max_c > agq_min_c else 0
                 r2, g2, b2 = [int(255 + (x - 255) * t2) for x in (0, 32, 96)]
-                td += f" background-color:#{r2:02x}{g2:02x}{b2:02x}; color:{'white' if t2>0.5 else 'black'};"
+                td_style += f" background-color:#{r2:02x}{g2:02x}{b2:02x}; color:{'white' if t2>0.5 else 'black'};"
                 cell = f"{v:.1f}"
             elif c == "Schedule Difficulty Rank":
                 cell = int(v)
             else:
                 inv = 1 - (v - sdr_min_c) / (sdr_max_c - sdr_min_c) if sdr_max_c > sdr_min_c else 1
                 ri, gi, bi = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                td += f" background-color:#{ri:02x}{gi:02x}{bi:02x}; color:{'white' if inv>0.5 else 'black'};"
+                td_style += f" background-color:#{ri:02x}{gi:02x}{bi:02x}; color:{'white' if inv>0.5 else 'black'};"
                 cell = f"{v:.1f}"
-            html_conf.append(f"<td style='{td}'>{cell}</td>")
+            html_conf.append(f"<td style='{td_style}'>{cell}</td>")
         html_conf.append('</tr>')
     html_conf.append('</tbody></table></div>')
     st.markdown(''.join(html_conf), unsafe_allow_html=True)
