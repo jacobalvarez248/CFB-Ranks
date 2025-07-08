@@ -282,35 +282,36 @@ elif tab == "Conference Overviews":
         st.markdown(''.join(html), unsafe_allow_html=True)
     with right:
         # Scatterplot with team logo markers
-        # Ensure df_expected has Logo URL
         chart_df = df_expected.copy()
+        # If Logo URL present, use images
         if {"Team","Logo URL"}.issubset(chart_df.columns):
-            st.altair_chart(
-                alt.Chart(chart_df).mark_image(width=24, height=24).encode(
-                    x=alt.X("Average Game Quality:Q"),
-                    y=alt.Y("Power Rating:Q"),
-                    url="Logo URL:N",
-                    tooltip=["Team","Power Rating","Average Game Quality"]
-                )
-                .interactive()
-                .properties(title="Teams: Power vs Game Quality", height=600),
-                use_container_width=True
+            scatter = (
+                alt.Chart(chart_df)
+                   .mark_image(width=24, height=24)
+                   .encode(
+                       x=alt.X("Average Game Quality:Q"),
+                       y=alt.Y("Power Rating:Q"),
+                       url="Logo URL:N",
+                       tooltip=["Team","Power Rating","Average Game Quality"]
+                   )
+                   .properties(height=600)
             )
         else:
-            # Fallback to circles if no logos
-            st.altair_chart(
-                alt.Chart(chart_df).mark_circle(size=60, opacity=0.7).encode(
-                    x="Average Game Quality:Q",
-                    y="Power Rating:Q",
-                    color="Conference:N",
-                    tooltip=["Team","Power Rating","Average Game Quality"]
-                )
-                .interactive()
-                .properties(title="Power Rating vs Game Quality", height=600),
-                use_container_width=True
+            # Fallback
+            scatter = (
+                alt.Chart(chart_df)
+                   .mark_circle(size=60, opacity=0.7)
+                   .encode(
+                       x=alt.X("Average Game Quality:Q"),
+                       y=alt.Y("Power Rating:Q"),
+                       color="Conference:N",
+                       tooltip=["Team","Power Rating","Average Game Quality"]
+                   )
+                   .properties(height=600)
             )
+        st.altair_chart(scatter.interactive(), use_container_width=True)
 
-        # 5) Detailed standings below
+    # 5) Detailed standings below
     st.markdown("---")
     sel = st.selectbox("Select conference for details", summary["Conference"].tolist())
     df_conf = df_expected[df_expected["Conference"]==sel].copy()
