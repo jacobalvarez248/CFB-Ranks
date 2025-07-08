@@ -358,30 +358,4 @@ elif tab == "Conference Overviews":
                 cell = f"{v:.1f}"
             html_conf.append(f"<td style='{td_style}'>{cell}</td>")
         html_conf.append('</tr>')
-    html_conf.append('</tbody></table></div>')</table></div>')
-    st.markdown(''.join(html_conf), unsafe_allow_html=True)
-
-elif tab == "Team Dashboards":
-    st.header("📊 Team Dashboards")
-    # Let user select team
-    team = st.sidebar.selectbox(
-        "Select Team",
-        options=df_expected["Team"].tolist()
-    )
-    df_team = df_expected[df_expected["Team"] == team].copy()
-    # Display team summary
-    st.subheader(f"Preseason Data for {team}")
-    st.table(df_team)
-
-# ------ Charts & Graphs ------
-elif tab == "Charts & Graphs":
-    st.header("📈 Charts & Graphs")
-    # Power Rating distribution
-    chart_df = df_expected[["Team","Power Rating"]].dropna()
-    bar = alt.Chart(chart_df).mark_bar().encode(
-        x=alt.X('Power Rating:Q', bin=True),
-        y='count()',
-        tooltip=['count()']
-    ).properties(title="Power Rating Distribution")
-    st.altair_chart(bar, use_container_width=True)
-    # (Scatter plot removed as requested)
+    html_conf.append('</tbody></table></div>')
