@@ -35,7 +35,9 @@ except NameError:
     df_expected = load_sheet(data_path, "Expected Wins", header=1)
 
 logos_df = load_sheet(data_path, "Logos", header=1)  # header in row 2
-logos_df = load_sheet(data_path, "Logos", header=1)  # header in row 2
+# Rename Image URL -> Logo URL for consistency
+if "Image URL" in logos_df.columns:
+    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
 
 # Merge logo URLs into main DataFrame for use in charts
 if {"Team","Image URL"}.issubset(logos_df.columns):
