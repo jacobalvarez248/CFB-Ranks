@@ -47,7 +47,9 @@ rename_map = {
     "Winless Probability": "Average Game Quality",
 }
 df_expected.rename(columns=rename_map, inplace=True)
-# Preseason Rank index
+# Preseason Rank index: remove if exists then insert
+if "Preseason Rank" in df_expected.columns:
+    df_expected.drop(columns=["Preseason Rank"], inplace=True)
 df_expected.insert(0, "Preseason Rank", range(1, len(df_expected) + 1))
 # Format percentages and roundings
 if "Undefeated Probability" in df_expected.columns:
