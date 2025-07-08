@@ -277,14 +277,34 @@ elif tab == "Conference Overviews":
         html.append('</tbody></table></div>')
         st.markdown(''.join(html), unsafe_allow_html=True)
     with right:
-        # Scatterplot
-        st.altair_chart(
-            alt.Chart(df_expected).mark_circle(size=60,opacity=0.7).encode(
-                x="Average Game Quality:Q", y="Power Rating:Q", color="Conference:N",
-                tooltip=["Team","Power Rating","Average Game Quality"]
-            ).interactive().properties(height=600),
-            use_container_width=True
-        )
+        # Scatterplot with team logo markers
+        # Ensure df_expected has Logo URL
+        chart_df = df_expected.copy()
+        if {"Team","Logo URL"}.issubset(chart_df.columns):
+            st.altair_chart(
+                alt.Chart(chart_df).mark_image(width=24, height=24).encode(
+                    x=alt.X("Average Game Quality:Q"),
+                    y=alt.Y("Power Rating:Q"),
+                    url="Logo URL:N",
+                    tooltip=["Team","Power Rating","Average Game Quality"]
+                )
+                .interactive()
+                .properties(title="Teams: Power vs Game Quality", height=600),
+                use_container_width=True
+            )
+        else:
+            # Fallback to circles if no logos
+            st.altair_chart(
+                alt.Chart(chart_df).mark_circle(size=60, opacity=0.7).encode(
+                    x="Average Game Quality:Q",
+                    y="Power Rating:Q",
+                    color="Conference:N",
+                    tooltip=["Team","Power Rating","Average Game Quality"]
+                )
+                .interactive()
+                .properties(title="Power Rating vs Game Quality", height=600),
+                use_container_width=True
+            )
 
         # 5) Detailed standings below
     st.markdown("---")
