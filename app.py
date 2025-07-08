@@ -258,16 +258,17 @@ elif tab == "Conference Overviews":
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(''.join(html_conv), unsafe_allow_html=True)
-    with col2:
+        with col2:
+        # Replace summary scatter with overall Power vs Game Quality scatter
         st.altair_chart(
-            alt.Chart(summary)
-               .mark_circle(size=60, opacity=0.7)
-               .encode(
-                   x=alt.X("Avg. Game Quality", type="quantitative"),
-                   y=alt.Y("Avg. Power Rating", type="quantitative"),
-                   tooltip=[alt.Tooltip("Conference", type="nominal")]
-               )
-               .interactive(),
+            alt.Chart(df_expected).mark_circle(size=60, opacity=0.7).encode(
+                x=alt.X("Average Game Quality", type="quantitative"),
+                y=alt.Y("Power Rating", type="quantitative"),
+                color="Conference:N",
+                tooltip=["Team","Power Rating","Average Game Quality"]
+            )
+            .interactive()
+            .properties(title="Power Rating vs Game Quality (All Teams)"),
             use_container_width=True
         )
 
