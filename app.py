@@ -213,9 +213,9 @@ elif tab == "Conference Overviews":
         summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
     )
 
-                                # Merge conference logos
+                                        # Merge conference logos
     try:
-        # Map Team->Conference if needed, and rename URL
+        # Map Team->Conference if needed
         if "Conference" not in logos_df.columns and "Team" in logos_df.columns:
             logos_conf = logos_df.rename(columns={"Team": "Conference", "Image URL": "Logo URL"})
         else:
@@ -226,6 +226,8 @@ elif tab == "Conference Overviews":
             )
     except Exception:
         pass
+
+    # Compute gradient bounds
 
     # Compute gradient bounds(
                 logos_df[["Conference", "Logo URL"]], on="Conference", how="left"
