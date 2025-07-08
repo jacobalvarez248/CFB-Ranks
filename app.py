@@ -137,11 +137,10 @@ if tab == "Rankings":
     else:
         cols_rank = all_cols.copy()
 
-    # Merge logos
+    # Merge team logos into rankings table
+    # logos_df already has "Logo URL"
     if {"Team","Logo URL"}.issubset(logos_df.columns):
         df = df.merge(logos_df[["Team","Logo URL"]], on="Team", how="left")
-        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-        df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
 
     # Compute color bounds
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
