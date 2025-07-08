@@ -12,10 +12,18 @@ st.set_page_config(
 
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
-# Path to the Excel file inside the Preseason folder
-DATA_FILE = Path(__file__).parent / "Preseason" / "Preseason 2025.xlsm"
-if not DATA_FILE.exists():
-    st.error(f"Data file not found: {DATA_FILE}")
+# Path to the Excel file (try a couple of common locations)
+base = Path(__file__).parent
+candidates = [
+    base / "Preseason" / "Preseason 2025.xlsm",  # if file lives in Preseason/ folder
+    base / "Preseason 2025.xlsm"                    # if file lives at repo root
+]
+for path in candidates:
+    if path.exists():
+        DATA_FILE = path
+        break
+else:
+    st.error("Data file not found. Make sure 'Preseason 2025.xlsm' is committed in either the root or the Preseason/ folder of your repo.")
     st.stop()
 
 # --- Load and clean Expected Wins ---
