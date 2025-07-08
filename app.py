@@ -12,8 +12,11 @@ st.set_page_config(
 
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
-# Path to the Excel file
-DATA_FILE = Path(__file__).parent / "Preseason 2025.xlsm"
+# Path to the Excel file inside the Preseason folder
+DATA_FILE = Path(__file__).parent / "Preseason" / "Preseason 2025.xlsm"
+if not DATA_FILE.exists():
+    st.error(f"Data file not found: {DATA_FILE}")
+    st.stop()
 
 # --- Load and clean Expected Wins ---
 # Read with pandas + openpyxl (no COM needed)
