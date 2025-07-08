@@ -6,11 +6,11 @@ def load_expected(data_path: Path) -> pd.DataFrame:
     """Load the ‘Expected Wins’ sheet via xlwings locally, or pandas on Cloud."""
     try:
         import xlwings as xw
-        wb = xw.Book(data_path)
+        wb  = xw.Book(data_path)
         sht = wb.sheets["Expected Wins"]
-        df = sht.range("C2") \
-                .options(pd.DataFrame, header=1, index=False, expand="table") \
-                .value
+        df  = (sht.range("C2")
+                  .options(pd.DataFrame, header=1, index=False, expand="table")
+                  .value)
     except ImportError:
         df = pd.read_excel(
             data_path,
@@ -21,14 +21,14 @@ def load_expected(data_path: Path) -> pd.DataFrame:
     return df
 
 def load_logos(data_path: Path) -> pd.DataFrame:
-    """Same pattern for the Logos sheet."""
+    """Load the ‘Logos’ sheet via xlwings locally, or pandas on Cloud."""
     try:
         import xlwings as xw
-        wb = xw.Book(data_path)
+        wb  = xw.Book(data_path)
         sht = wb.sheets["Logos"]
-        df = sht.range("A1") \
-                .options(pd.DataFrame, header=1, index=False, expand="table") \
-                .value
+        df  = (sht.range("A1")
+                  .options(pd.DataFrame, header=1, index=False, expand="table")
+                  .value)
     except ImportError:
         df = pd.read_excel(
             data_path,
@@ -38,12 +38,12 @@ def load_logos(data_path: Path) -> pd.DataFrame:
         )
     return df
 
-# ───────────────────────────────────────────────────────────
-# RIGHT HERE: only calls to your loader functions—no xw at top level
-DATA_FILE = Path(__file__).parent / "Preseason 2025.xlsm"
+# ───────────────────────────────────────────────
+# ONLY here do we call xlwings-guarded loaders—no stray xw.Book anywhere else
+DATA_FILE   = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_expected(DATA_FILE)
-logos_df   = load_logos(DATA_FILE)
-# ───────────────────────────────────────────────────────────
+logos_df    = load_logos(DATA_FILE)
+# ───────────────────────────────────────────────
 
 st.set_page_config(
     page_title="CFB 2025 Preview",
@@ -57,8 +57,6 @@ st.title("🎯 College Football 2025 Pre-Season Preview")
 
 # Load workbook and data
 DATA_FILE = Path(__file__).parent / "Preseason 2025.xlsm"
-wb = xw.Book(DATA_FILE)
-expected = wb.sheets["Expected Wins"]
 df_expected = expected.range("C2").options(
     pd.DataFrame, header=1, index=False, expand="table"
 ).value
@@ -126,7 +124,6 @@ if tab == "Rankings":
 
     # Load team logos
     try:
-        logos = wb.sheets["Logos"].range("A1").options(pd.DataFrame, header=1, index=False, expand="table").value
         if "Team" in logos.columns and "Image URL" in logos.columns:
             logos.rename(columns={"Image URL": "Logo URL"}, inplace=True)
             df = df.merge(logos[["Team", "Logo URL"]], on="Team", how="left")
@@ -210,9 +207,6 @@ elif tab == "Conference Overviews":
 
     # Merge conference logos
     try:
-        logos_df = wb.sheets["Logos"].range("A1").options(
-            pd.DataFrame, header=1, index=False, expand="table"
-        ).value
         if "Conference" not in logos_df.columns and "Team" in logos_df.columns:
             logos_df.rename(columns={"Team": "Conference"}, inplace=True)
         if {"Conference", "Image URL"}.issubset(logos_df.columns):
