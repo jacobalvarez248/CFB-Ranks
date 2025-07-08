@@ -336,11 +336,4 @@ elif tab == "Charts & Graphs":
         tooltip=['count()']
     ).properties(title="Power Rating Distribution")
     st.altair_chart(bar, use_container_width=True)
-    # Scatter: Power vs Game Quality
-    scatter = alt.Chart(df_expected).mark_circle(size=60, opacity=0.7).encode(
-        x=alt.X("Average Game Quality", type="quantitative"),
-        y=alt.Y("Power Rating", type="quantitative"),
-        color="Conference:N",
-        tooltip=["Team","Power Rating","Average Game Quality"]
-    ).interactive().properties(title="Power Rating vs Game Quality")
-    st.altair_chart(scatter, use_container_width=True)
+    # (Scatter plot removed as requested)
