@@ -314,6 +314,11 @@ elif tab == "Conference Overviews":
     html_conf.append('</tr></thead><tbody>')
     for _, row in df_conf.iterrows():
         html_conf.append('<tr>')
+        # Precompute gradient bounds for this conference
+        qr_min, qr_max = df_conf["Projected Conference Wins"].min(), df_conf["Projected Conference Wins"].max()
+        pr_min_c, pr_max_c = df_conf["Power Rating"].min(), df_conf["Power Rating"].max()
+        agq_min_c, agq_max_c = df_conf["Average Game Quality"].min(), df_conf["Average Game Quality"].max()
+        sdr_min_c, sdr_max_c = df_conf["Schedule Difficulty Rating"].min(), df_conf["Schedule Difficulty Rating"].max()
         for c in cols_conf:
             v = row[c]
             td_style = 'border:1px solid #ddd; padding:8px; text-align:center;'
@@ -328,16 +333,32 @@ elif tab == "Conference Overviews":
             elif c in ["Projected Conference Wins", "Projected Conference Losses"]:
                 cell = f"{v:.1f}"
             elif c == "Power Rating":
+                # unchanged
                 cell = f"{v:.1f}"
             elif c == "Average Game Quality":
-                cell = f"{v:.1f}"
-            elif c == "Schedule Difficulty Rank":
-                cell = int(v)
+                # conditional formatting gradient
+                if pd.notnull(v):
+                    t_agq = (v - agq_min_c) / (agq_max_c - agq_min_c) if agq_max_c > agq_min_c else 0
+                    r2, g2, b2 = [int(255 + (x - 255) * t_agq) for x in (0, 32, 96)]
+                    td_style += f" background-color:#{r2:02x}{g2:02x}{b2:02x}; color:{'black' if t_agq<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                else:
+                    cell = ""
+            elif c == "Schedule Difficulty Rating":
+                # conditional formatting inverse gradient
+                if pd.notnull(v):
+                    t_sdr = (v - sdr_min_c) / (sdr_max_c - sdr_min_c) if sdr_max_c > sdr_min_c else 0
+                    inv = 1 - t_sdr
+                    ri, gi, bi = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                    td_style += f" background-color:#{ri:02x}{gi:02x}{bi:02x}; color:{'black' if inv<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                else:
+                    cell = ""
             else:
                 cell = f"{v:.1f}"
             html_conf.append(f"<td style='{td_style}'>{cell}</td>")
         html_conf.append('</tr>')
-    html_conf.append('</tbody></table></div>')
+    html_conf.append('</tbody></table></div>')</table></div>')
     st.markdown(''.join(html_conf), unsafe_allow_html=True)
 
 elif tab == "Team Dashboards":
