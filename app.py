@@ -12,22 +12,14 @@ st.set_page_config(
 
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
-# Path to the Excel file (try a couple of common locations)
-base = Path(__file__).parent
-candidates = [
-    base / "Preseason" / "Preseason 2025.xlsm",  # if file lives in Preseason/ folder
-    base / "Preseason 2025.xlsm"                    # if file lives at repo root
-]
-for path in candidates:
-    if path.exists():
-        DATA_FILE = path
-        break
-else:
-    st.error("Data file not found. Make sure 'Preseason 2025.xlsm' is committed in either the root or the Preseason/ folder of your repo.")
+# Path to the Excel file at the repo root
+DATA_FILE = Path(__file__).parent / "Preseason 2025.xlsm"
+if not DATA_FILE.exists():
+    st.error(f"Data file not found: {DATA_FILE}")
     st.stop()
 
 # --- Load and clean Expected Wins ---
-# Read with pandas + openpyxl (no COM needed)
+# Read with pandas + openpyxl
 df_expected = pd.read_excel(
     DATA_FILE,
     sheet_name="Expected Wins",
@@ -59,10 +51,8 @@ df_expected.rename(columns=rename_map, inplace=True)
 df_expected.insert(0, "Preseason Rank", range(1, len(df_expected) + 1))
 # Format percentages and roundings
 if "Undefeated Probability" in df_expected.columns:
-    df_expected["Undefeated Probability"] = (
-        df_expected["Undefeated Probability"].apply(
-            lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
-        )
+    df_expected["Undefeated Probability"] = df_expected["Undefeated Probability"].apply(
+        lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
     )
 num_cols = df_expected.select_dtypes(include=["number"]).columns.tolist()
 num_cols = [c for c in num_cols if c not in ["Preseason Rank", "Schedule Difficulty Rank"]]
