@@ -337,7 +337,7 @@ elif tab == "Conference Overviews":
     tmp["Team"] = tmp["Team"].str.strip()
     df_conf["Team"] = df_conf["Team"].str.strip()
     if {"Team","Logo URL"}.issubset(tmp.columns):
-        df_conf = df_conf.merge(tmp[["Team","Logo URL"]], on="Team", how="left")(tmp[["Team","Logo URL"]], on="Team", how="left")
+        df_conf = df_conf.merge(tmp[["Team","Logo URL"]], on="Team", how="left")
 
     # Build and render detailed table
     html_conf = [
