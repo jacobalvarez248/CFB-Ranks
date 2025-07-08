@@ -338,4 +338,4 @@ elif tab == "Conference Overviews":
                 html_conf.append(f"<td style='{td}'>{cell}</td>")
             html_conf.append('</tr>')
         html_conf.append('</tbody></table></div>')
-        st.markdown(''.join(html_conf), unsafe_allow_html=True)(html_conf), unsafe_allow_html=True)
+        st.markdown(''.join(html_conf), unsafe_allow_html=True)
