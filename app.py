@@ -286,56 +286,56 @@ elif tab == "Conference Overviews":
     if {"Team","Image URL"}.issubset(logos_df.columns):
         tmp=logos_df.rename(columns={"Image URL":"Logo URL","Team":"Team"})
         df_conf=df_conf.merge(tmp[["Team","Logo URL"]],on="Team",how="left")
-        # Build and render detailed table
-    html_conf = [
-        '<div style="max-height:500px; overflow-y:auto;">',
-        '<table style="width:100%; border-collapse:collapse;">',
-        '<thead><tr>'
-    ]
-    cols_d = [
-        "Projected Conference Finish","Preseason Rank","Team","Power Rating",
-        "Projected Conference Wins","Projected Conference Losses",
-        "Average Game Quality","Schedule Difficulty Rank","Schedule Difficulty Rating"
-    ]
-    for c in cols_d:
-        th = (
-            'border:1px solid #ddd; padding:8px; text-align:center; '
-            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-        ) + (" white-space:nowrap; min-width:200px;" if c=="Team" else "")
-        html_conf.append(f"<th style='{th}'>{c}</th>")
-    html_conf.append('</tr></thead><tbody>')
-    bounds = {
-        "Power Rating": (df_conf["Power Rating"].min(), df_conf["Power Rating"].max()),
-        "Average Game Quality": (df_conf["Average Game Quality"].min(), df_conf["Average Game Quality"].max()),
-        "Schedule Difficulty Rating": (df_conf["Schedule Difficulty Rating"].min(), df_conf["Schedule Difficulty Rating"].max())
-    }
-    for _, row in df_conf.iterrows():
-        html_conf.append('<tr>')
+                # Build and render detailed table
+        html_conf = [
+            '<div style="max-height:500px; overflow-y:auto;">',
+            '<table style="width:100%; border-collapse:collapse;">',
+            '<thead><tr>'
+        ]
+        cols_d = [
+            "Projected Conference Finish","Preseason Rank","Team","Power Rating",
+            "Projected Conference Wins","Projected Conference Losses",
+            "Average Game Quality","Schedule Difficulty Rank","Schedule Difficulty Rating"
+        ]
         for c in cols_d:
-            v = row[c]
-            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-            if c=="Team":
-                logo = row.get("Logo URL")
-                if pd.notnull(logo) and str(logo).startswith("http"):
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                    )
+            th = (
+                'border:1px solid #ddd; padding:8px; text-align:center; '
+                'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+            ) + (" white-space:nowrap; min-width:200px;" if c=="Team" else "")
+            html_conf.append(f"<th style='{th}'>{c}</th>")
+        html_conf.append('</tr></thead><tbody>')
+        bounds = {
+            "Power Rating": (df_conf["Power Rating"].min(), df_conf["Power Rating"].max()),
+            "Average Game Quality": (df_conf["Average Game Quality"].min(), df_conf["Average Game Quality"].max()),
+            "Schedule Difficulty Rating": (df_conf["Schedule Difficulty Rating"].min(), df_conf["Schedule Difficulty Rating"].max())
+        }
+        for _, row in df_conf.iterrows():
+            html_conf.append('<tr>')
+            for c in cols_d:
+                v = row[c]
+                td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+                if c=="Team":
+                    logo = row.get("Logo URL")
+                    if pd.notnull(logo) and logo.startswith("http"):
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                        )
+                    else:
+                        cell = v
+                elif c in ["Projected Conference Finish","Preseason Rank","Schedule Difficulty Rank"]:
+                    cell = int(v)
+                elif c in ["Projected Conference Wins","Projected Conference Losses"]:
+                    cell = f"{v:.1f}"
                 else:
-                    cell = v
-            elif c in ["Projected Conference Finish","Preseason Rank","Schedule Difficulty Rank"]:
-                cell = int(v)
-            elif c in ["Projected Conference Wins","Projected Conference Losses"]:
-                cell = f"{v:.1f}"
-            else:
-                mn, mx = bounds[c]
-                t = (v-mn)/(mx-mn) if mx>mn else 0
-                if c=="Schedule Difficulty Rating":
-                    t = 1-t
-                rgb = [int(255 + (x-255)*t) for x in (0,32,96)]
-                td += f" background-color:#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}; color:{'white' if t>0.5 else 'black'};"
-                cell = f"{v:.1f}"
-            html_conf.append(f"<td style='{td}'>{cell}</td>")
-        html_conf.append('</tr>')
-    html_conf.append('</tbody></table></div>')
-    st.markdown(''.join(html_conf), unsafe_allow_html=True)
+                    mn, mx = bounds[c]
+                    t = (v-mn)/(mx-mn) if mx>mn else 0
+                    if c=="Schedule Difficulty Rating":
+                        t = 1-t
+                    rgb = [int(255 + (x-255)*t) for x in (0,32,96)]
+                    td += f" background-color:#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}; color:{'white' if t>0.5 else 'black'};"
+                    cell = f"{v:.1f}"
+                html_conf.append(f"<td style='{td}'>{cell}</td>")
+            html_conf.append('</tr>')
+        html_conf.append('</tbody></table></div>')
+        st.markdown(''.join(html_conf), unsafe_allow_html=True)(html_conf), unsafe_allow_html=True)
