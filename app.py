@@ -249,10 +249,13 @@ elif tab == "Conference Overviews":
             td_style = 'border:1px solid #ddd; padding:8px; text-align:center;'
             if c == "Conference":
                 logo = row.get("Logo URL")
-                cell = (
-                    f'<img src="{logo}" width="24" style="vertical-align:middle; margin-right:8px;">{v}'
-                    if pd.notnull(logo) and str(logo).startswith("http") else v
-                )
+                if pd.notnull(logo) and str(logo).startswith("http"):
+                    cell = (
+                        f'<div style="display:flex; align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                    )
+                else:
+                    cell = v
             elif c == "# Teams":
                 cell = int(v)
             elif c in ["Avg. Power Rating", "Avg. Game Quality"]:
@@ -265,7 +268,7 @@ elif tab == "Conference Overviews":
                 rgb = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
                 td_style += f" background-color:#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}; color:{'black' if inv<0.5 else 'white'};"
                 cell = f"{v:.1f}"
-            html_conv.append(f"<td style='{td_style}'>{cell}</td>")
+            html_conv.append(f"<td style='{td_style}'>{cell}</td>")(f"<td style='{td_style}'>{cell}</td>")
         html_conv.append('</tr>')
     html_conv.append('</tbody></table></div>')
 
