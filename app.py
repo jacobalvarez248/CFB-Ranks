@@ -273,8 +273,6 @@ elif tab == "Conference Overviews":
                 height=600
             ),
             use_container_width=True
-        )"),
-            use_container_width=True
         )
 
     # Table underneath
