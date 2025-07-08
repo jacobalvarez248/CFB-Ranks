@@ -90,7 +90,11 @@ if tab == "Rankings":
     if conf_search and "Conference" in df.columns:
         df = df[df["Conference"].str.contains(conf_search, case=False, na=False)]
     if sort_col in df.columns:
-        df = df.sort_values(by=sort_col, ascending=asc)
+        try:
+            df = df.sort_values(by=sort_col, ascending=asc)
+        except TypeError:
+            # Fallback for mixed types: sort by string representation
+            df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
