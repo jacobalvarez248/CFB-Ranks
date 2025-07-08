@@ -212,23 +212,21 @@ elif tab == "Conference Overviews":
         summary[["Avg. Power Rating","Avg. Game Quality","Avg. Schedule Difficulty"]].round(1)
     )
 
-    # 2) Merge conference logos
-logos_conf = logos_df.copy()
-# Rename to match
-if "Image URL" in logos_conf.columns:
-    logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
-    logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
-# Strip whitespace
-logos_conf["Conference"] = logos_conf["Conference"].str.strip()
-summary["Conference"] = summary["Conference"].str.strip()
-# Single merge
-if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
-    summary = summary.merge(
-        logos_conf[["Conference", "Logo URL"]],
-        on="Conference",
-        how="left"
-    )
+        # 2) Merge conference logos
+    logos_conf = logos_df.copy()
+    if "Image URL" in logos_conf.columns:
+        logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+    if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
+        logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
+    logos_conf["Conference"] = logos_conf["Conference"].str.strip()
+    summary["Conference"] = summary["Conference"].str.strip()
+    if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
+        summary = summary.merge(
+            logos_conf[["Conference", "Logo URL"]],
+            on="Conference",
+            how="left"
+        )
+
 
 
     # 3) Compute bounds
