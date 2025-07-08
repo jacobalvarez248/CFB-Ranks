@@ -30,7 +30,7 @@ logos_df = load_sheet(data_path, "Logos", header=1)  # header in row 2
 if {"Team","Image URL"}.issubset(logos_df.columns):
     temp = logos_df.rename(columns={"Image URL":"Logo URL"})[["Team","Logo URL"]]
     df_expected = df_expected.merge(temp, on="Team", how="left")
-(data_path, "Logos", header=1)  # header in row 2  # assume logos sheet header is in row 1
+
 
 # Streamlit app configuration and title
 st.set_page_config(
