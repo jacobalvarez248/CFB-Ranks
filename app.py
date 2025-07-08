@@ -24,9 +24,13 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
     return df
 
 # Load data once at the top
-data_path = Path(__file__).parent / "Preseason 2025.xlsm"
-df_expected = load_sheet(data_path, "Expected Wins", header=1)
-logos_df = load_sheet(data_path, "Logos", header=1)  # header in row 2  # assume logos sheet header is in row 1
+logos_df = load_sheet(data_path, "Logos", header=1)  # header in row 2
+
+# Merge logo URLs into main DataFrame for use in charts
+if {"Team","Image URL"}.issubset(logos_df.columns):
+    temp = logos_df.rename(columns={"Image URL":"Logo URL"})[["Team","Logo URL"]]
+    df_expected = df_expected.merge(temp, on="Team", how="left")
+(data_path, "Logos", header=1)  # header in row 2  # assume logos sheet header is in row 1
 
 # Streamlit app configuration and title
 st.set_page_config(
