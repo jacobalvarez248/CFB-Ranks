@@ -117,6 +117,10 @@ if tab == "Rankings":
 
     # Prepare DataFrame
     df = df_expected.copy()
+    # Merge team logos early so they persist in the table
+    if {"Team","Logo URL"}.issubset(logos_df.columns):
+        df = df.merge(logos_df[["Team","Logo URL"]], on="Team", how="left")
+
     # Filter
     if team_search and "Team" in df.columns:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
@@ -129,7 +133,7 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
-    # Define columns up to Schedule Difficulty Rating
+    # Define columns up to Schedule Difficulty Rating"
     all_cols = df.columns.tolist()
     if "Schedule Difficulty Rating" in all_cols:
         end_idx = all_cols.index("Schedule Difficulty Rating")
@@ -137,17 +141,7 @@ if tab == "Rankings":
     else:
         cols_rank = all_cols.copy()
 
-        # Merge team logos into rankings table
-    tmp_logos = logos_df.copy()
-    # Ensure correct naming
-    if "Image URL" in tmp_logos.columns:
-        tmp_logos.rename(columns={"Image URL":"Logo URL"}, inplace=True)
-    tmp_logos["Team"] = tmp_logos["Team"].str.strip()
-    df["Team"] = df["Team"].str.strip()
-    if {"Team","Logo URL"}.issubset(tmp_logos.columns):
-        df = df.merge(tmp_logos[["Team","Logo URL"]], on="Team", how="left")
-
-    # Compute color bounds
+        # Compute color bounds
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
