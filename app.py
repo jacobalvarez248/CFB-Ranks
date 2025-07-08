@@ -331,12 +331,11 @@ elif tab == "Conference Overviews":
     df_conf.insert(0,"Projected Conference Finish",range(1,len(df_conf)+1))
     # Merge team logos if present
     tmp = logos_df.copy()
-    if "Image URL" in tmp.columns:
-        tmp.rename(columns={"Image URL":"Logo URL"}, inplace=True)
-    # Strip whitespace on team names
+    # Ensure column is named Logo URL (global rename done earlier)
     tmp["Team"] = tmp["Team"].str.strip()
     df_conf["Team"] = df_conf["Team"].str.strip()
     if {"Team","Logo URL"}.issubset(tmp.columns):
+        df_conf = df_conf.merge(tmp[["Team","Logo URL"]], on="Team", how="left")"Team","Logo URL"}.issubset(tmp.columns):
         df_conf = df_conf.merge(tmp[["Team","Logo URL"]], on="Team", how="left")
 
     # Build and render detailed table
