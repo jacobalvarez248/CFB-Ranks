@@ -337,7 +337,7 @@ elif tab == "Conference Overviews":
     html_conf.append('</tbody></table></div>')
     st.markdown(''.join(html_conf), unsafe_allow_html=True)
 
-elif tab == "Team Dashboards":"
+elif tab == "Team Dashboards":
     st.header("📊 Team Dashboards")
     # Let user select team
     team = st.sidebar.selectbox(
