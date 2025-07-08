@@ -3,9 +3,7 @@ import streamlit as st
 from pathlib import Path
 
 def load_expected(data_path: Path) -> pd.DataFrame:
-    """
-    Try xlwings locally, otherwise fall back to pandas+openpyxl on Streamlit Cloud.
-    """
+    """Load the ‘Expected Wins’ sheet via xlwings locally, or pandas on Cloud."""
     try:
         import xlwings as xw
         wb = xw.Book(data_path)
@@ -18,15 +16,34 @@ def load_expected(data_path: Path) -> pd.DataFrame:
             data_path,
             sheet_name="Expected Wins",
             engine="openpyxl",
-            header=1,
+            header=1
         )
     return df
 
-# ───────────────────────────────────────────────
-# RIGHT HERE: load your data exactly once
+def load_logos(data_path: Path) -> pd.DataFrame:
+    """Same pattern for the Logos sheet."""
+    try:
+        import xlwings as xw
+        wb = xw.Book(data_path)
+        sht = wb.sheets["Logos"]
+        df = sht.range("A1") \
+                .options(pd.DataFrame, header=1, index=False, expand="table") \
+                .value
+    except ImportError:
+        df = pd.read_excel(
+            data_path,
+            sheet_name="Logos",
+            engine="openpyxl",
+            header=1
+        )
+    return df
+
+# ───────────────────────────────────────────────────────────
+# RIGHT HERE: only calls to your loader functions—no xw at top level
 DATA_FILE = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_expected(DATA_FILE)
-# ───────────────────────────────────────────────
+logos_df   = load_logos(DATA_FILE)
+# ───────────────────────────────────────────────────────────
 
 st.set_page_config(
     page_title="CFB 2025 Preview",
