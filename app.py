@@ -215,9 +215,19 @@ elif tab == "Conference Overviews":
 
     # Merge conference logos
     try:
-        if {"Conference", "Image URL"}.issubset(logos_df.columns):
-            logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+        # If logos_df maps teams, not conferences, convert
+        if "Conference" not in logos_df.columns and "Team" in logos_df.columns:
+            logos_conf = logos_df.rename(columns={"Team": "Conference", "Image URL": "Logo URL"})
+        else:
+            logos_conf = logos_df.rename(columns={"Image URL": "Logo URL"})
+        if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
             summary = summary.merge(
+                logos_conf[["Conference", "Logo URL"]], on="Conference", how="left"
+            )
+    except Exception:
+        pass
+    
+    # Compute gradient bounds(
                 logos_df[["Conference", "Logo URL"]], on="Conference", how="left"
             )
     except Exception:
