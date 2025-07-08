@@ -84,7 +84,7 @@ if tab == "Rankings":
     sort_col = st.sidebar.selectbox("Sort by column", df_expected.columns.tolist(), index=0)
     asc = st.sidebar.checkbox("Ascending order", value=True)
     # Prepare DataFrame copy
-df = df_expected.copy()
+    df = df_expected.copy()
     if team_search and "Team" in df.columns:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
     if conf_search and "Conference" in df.columns:
@@ -104,7 +104,7 @@ df = df_expected.copy()
             ), axis=1
         )
         display_df.drop(columns="Image URL", inplace=True, errors='ignore')
-    # Use st.dataframe for simplicity (fallback)
+    # Render table
     st.dataframe(display_df)
 
 elif tab == "Conference Overviews":
