@@ -329,13 +329,11 @@ elif tab == "Conference Overviews":
     sel = st.selectbox("Select conference for details", summary["Conference"].tolist())
     df_conf = df_expected[df_expected["Conference"]==sel].copy()
     df_conf.insert(0,"Projected Conference Finish",range(1,len(df_conf)+1))
-    # Merge team logos if present
+        # Merge team logos if present
     tmp = logos_df.copy()
-    # Ensure column is named Logo URL (global rename done earlier)
     tmp["Team"] = tmp["Team"].str.strip()
     df_conf["Team"] = df_conf["Team"].str.strip()
     if {"Team","Logo URL"}.issubset(tmp.columns):
-        df_conf = df_conf.merge(tmp[["Team","Logo URL"]], on="Team", how="left")"Team","Logo URL"}.issubset(tmp.columns):
         df_conf = df_conf.merge(tmp[["Team","Logo URL"]], on="Team", how="left")
 
     # Build and render detailed table
