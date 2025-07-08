@@ -2,46 +2,33 @@ import pandas as pd
 import streamlit as st
 from pathlib import Path
 
-def load_expected(data_path: Path) -> pd.DataFrame:
+# Helper to load Excel sheets, using xlwings locally or pandas/openpyxl on Cloud
+
+def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
     try:
         import xlwings as xw
-        wb  = xw.Book(data_path)
-        sht = wb.sheets["Expected Wins"]
-        df  = (sht.range("C2")
-                  .options(pd.DataFrame, header=1, index=False, expand="table")
-                  .value)
+        wb = xw.Book(data_path)
+        sht = wb.sheets[sheet_name]
+        df = (
+            sht.range(f"A1")
+               .options(pd.DataFrame, header=header, index=False, expand="table")
+               .value
+        )
     except ImportError:
         df = pd.read_excel(
             data_path,
-            sheet_name="Expected Wins",
+            sheet_name=sheet_name,
             engine="openpyxl",
-            header=1
+            header=header
         )
     return df
 
-def load_logos(data_path: Path) -> pd.DataFrame:
-    try:
-        import xlwings as xw
-        wb  = xw.Book(data_path)
-        sht = wb.sheets["Logos"]
-        df  = (sht.range("A1")
-                  .options(pd.DataFrame, header=1, index=False, expand="table")
-                  .value)
-    except ImportError:
-        df = pd.read_excel(
-            data_path,
-            sheet_name="Logos",
-            engine="openpyxl",
-            header=1
-        )
-    return df
+# Load data once at the top
+DATA_FILE = Path(__file__).parent / "Preseason 2025.xlsm"
+df_expected = load_sheet(DATA_FILE, "Expected Wins", header=1)
+logos_df    = load_sheet(DATA_FILE, "Logos", header=1)
 
-# ─── right here, only loader calls ──────────────────────────────────────────
-DATA_FILE   = Path(__file__).parent / "Preseason 2025.xlsm"
-df_expected = load_expected(DATA_FILE)
-logos_df    = load_logos(DATA_FILE)
-# ──────────────────────────────────────────────────────────────────────────
-
+# Streamlit configuration
 st.set_page_config(
     page_title="CFB 2025 Preview",
     page_icon="🏈",
