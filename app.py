@@ -71,6 +71,12 @@ if numeric_cols:
 if "Schedule Difficulty Rating" in df_expected.columns:
     df_expected["Schedule Difficulty Rating"] = df_expected["Schedule Difficulty Rating"].round(1)
 
+# Ensure key numeric columns are numeric types
+for col in ["Power Rating", "Average Game Quality", "Schedule Difficulty Rating"]:
+    if col in df_expected.columns:
+        df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce')
+    df_expected["Schedule Difficulty Rating"] = df_expected["Schedule Difficulty Rating"].round(1)
+
 # Sidebar navigation
 tab = st.sidebar.radio(
     "Navigation",
@@ -85,6 +91,9 @@ if tab == "Rankings":
     sort_col = st.sidebar.selectbox("Sort by column", df_expected.columns.tolist(), index=0)
     asc = st.sidebar.checkbox("Ascending order", True)
     df = df_expected.copy()
+    # Default sort by Preseason Rank
+    if "Preseason Rank" in df.columns:
+        df = df.sort_values(by="Preseason Rank", ascending=True)
     if team_search and "Team" in df.columns:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
     if conf_search and "Conference" in df.columns:
@@ -106,7 +115,13 @@ if tab == "Rankings":
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
     ]
-    cols_rank = [c for c in df.columns if c != "Logo URL"]
+    # Select columns up to Schedule Difficulty Rating
+    all_cols = df.columns.tolist()
+    if "Schedule Difficulty Rating" in all_cols:
+        end_idx = all_cols.index("Schedule Difficulty Rating")
+        cols_rank = all_cols[:end_idx+1]
+    else:
+        cols_rank = [c for c in all_cols if c != "Logo URL"]
     for c in cols_rank:
         th_style = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
