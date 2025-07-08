@@ -1,16 +1,16 @@
 import pandas as pd
 import streamlit as st
 from pathlib import Path
+import altair as alt
 
-# Helper to load Excel sheets, using xlwings locally or pandas/openpyxl on Cloud
-
+# Helper to load Excel sheets via xlwings locally, or pandas/openpyxl on Cloud
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
     try:
         import xlwings as xw
         wb = xw.Book(data_path)
         sht = wb.sheets[sheet_name]
         df = (
-            sht.range(f"A1")
+            sht.range("A1")
                .options(pd.DataFrame, header=header, index=False, expand="table")
                .value
         )
@@ -24,32 +24,20 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
     return df
 
 # Load data once at the top
-DATA_FILE = Path(__file__).parent / "Preseason 2025.xlsm"
-df_expected = load_sheet(DATA_FILE, "Expected Wins", header=1)
-logos_df    = load_sheet(DATA_FILE, "Logos", header=1)
+data_path = Path(__file__).parent / "Preseason 2025.xlsm"
+df_expected = load_sheet(data_path, "Expected Wins", header=1)
+logos_df = load_sheet(data_path, "Logos", header=1)
 
-# Streamlit configuration
+# Streamlit app configuration and title
 st.set_page_config(
     page_title="CFB 2025 Preview",
     page_icon="🏈",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
-# …now reference ONLY df_expected (not `expected.range`) in all of the cleaning,
-# filtering, table-building and chart code below…
-
-
-# …the rest of your cleaning, sidebar, tabs, etc., all using df_expected…
-
-
-# Load workbook and data
-DATA_FILE = Path(__file__).parent / "Preseason 2025.xlsm"
-df_expected = expected.range("C2").options(
-    pd.DataFrame, header=1, index=False, expand="table"
-).value
-
-# Clean and rename columns
+# --- Data cleaning and renaming ---
 df_expected.drop(columns=[c for c in df_expected.columns if str(c).strip()==""], inplace=True, errors='ignore')
 for col in ["Column1", "Column3"]:
     df_expected.drop(columns=col, inplace=True, errors='ignore')
@@ -110,15 +98,12 @@ if tab == "Rankings":
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
-    # Load team logos
-    try:
-        if "Team" in logos.columns and "Image URL" in logos.columns:
-            logos.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-            df = df.merge(logos[["Team", "Logo URL"]], on="Team", how="left")
-    except Exception:
-        pass
+    # Merge logos_df if available
+    if {"Team", "Image URL"}.issubset(logos_df.columns):
+        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+        df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
 
-    # Build HTML table
+    # Build HTML table (same as original)
     html_rank = [
         '<div style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
@@ -177,7 +162,6 @@ if tab == "Rankings":
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
 
-    # Summary metrics with schedule difficulty
     summary = (
         df_expected.groupby("Conference").agg(
             **{
@@ -193,19 +177,12 @@ elif tab == "Conference Overviews":
         summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
     )
 
-    # Merge conference logos
-    try:
-        if "Conference" not in logos_df.columns and "Team" in logos_df.columns:
-            logos_df.rename(columns={"Team": "Conference"}, inplace=True)
-        if {"Conference", "Image URL"}.issubset(logos_df.columns):
-            logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-            summary = summary.merge(
-                logos_df[["Conference", "Logo URL"]], on="Conference", how="left"
-            )
-    except Exception:
-        pass
+    if {"Conference", "Image URL"}.issubset(logos_df.columns):
+        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+        summary = summary.merge(
+            logos_df[["Conference", "Logo URL"]], on="Conference", how="left"
+        )
 
-    # Compute gradient bounds and build HTML table
     pr_min, pr_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
     agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
     sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
@@ -232,10 +209,10 @@ elif tab == "Conference Overviews":
             td_style = 'border:1px solid #ddd; padding:8px; text-align:center;'
             if c == "Conference":
                 logo = row.get("Logo URL")
-                if pd.notnull(logo) and str(logo).startswith("http"):
-                    cell = f'<img src="{logo}" width="24" style="vertical-align:middle; margin-right:8px;">{v}'
-                else:
-                    cell = v
+                cell = (
+                    f'<img src="{logo}" width="24" style="vertical-align:middle; margin-right:8px;">{v}'
+                    if pd.notnull(logo) and str(logo).startswith("http") else v
+                )
             elif c == "# Teams":
                 cell = int(v)
             elif c == "Avg. Power Rating":
@@ -257,24 +234,22 @@ elif tab == "Conference Overviews":
         html_conv.append('</tr>')
     html_conv.append('</tbody></table></div>')
 
-    # Display summary table and scatterplot
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(''.join(html_conv), unsafe_allow_html=True)
     with col2:
         st.altair_chart(
-    alt.Chart(summary)
-       .mark_circle(size=60, opacity=0.7)
-       .encode(
-           x=alt.X("Avg. Game Quality", type="quantitative"),
-           y=alt.Y("Avg. Power Rating", type="quantitative"),
-           tooltip=[alt.Tooltip("Conference", type="nominal")]
-       )
-       .interactive(),
-    use_container_width=True
-)
+            alt.Chart(summary)
+               .mark_circle(size=60, opacity=0.7)
+               .encode(
+                   x=alt.X("Avg. Game Quality", type="quantitative"),
+                   y=alt.Y("Avg. Power Rating", type="quantitative"),
+                   tooltip=[alt.Tooltip("Conference", type="nominal")]
+               )
+               .interactive(),
+            use_container_width=True
+        )
 
-    # Conference-specific “Projected Conference Wins” table
     st.markdown("---")
     sel_conf = st.selectbox(
         "Select conference for details",
@@ -282,13 +257,9 @@ elif tab == "Conference Overviews":
         index=0,
     )
     df_conf = df_expected[df_expected["Conference"] == sel_conf].copy()
-    try:
-        logos = wb.sheets["Logos"].range("A1").options(pd.DataFrame, header=1, index=False, expand="table").value
-        if "Team" in logos.columns and "Image URL" in logos.columns:
-            logos.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-            df_conf = df_conf.merge(logos[["Team", "Logo URL"]], on="Team", how="left")
-    except Exception:
-        pass
+    if {"Team", "Image URL"}.issubset(logos_df.columns):
+        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+        df_conf = df_conf.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
     df_conf = df_conf.sort_values("Projected Conference Wins", ascending=False)
     df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
 
