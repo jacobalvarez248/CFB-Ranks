@@ -1,8 +1,27 @@
-import xlwings as xw
+import os
 import pandas as pd
 import streamlit as st
 from pathlib import Path
-import altair as alt  # add Altair for charts
+
+# 1) Detect environment
+ON_CLOUD = os.environ.get("STREAMLIT_RUNTIME") == "streamlit.cloud"
+
+# 2) Define your loader helper
+def load_expected(data_path: Path) -> pd.DataFrame:
+    """Read the ‘Expected Wins’ sheet, using xlwings locally and pandas on Cloud."""
+    if not ON_CLOUD:
+        import xlwings as xw
+        wb = xw.Book(data_path)
+        sht = wb.sheets["Expected Wins"]
+        df = sht.range("C2").options(pd.DataFrame, header=1, index=False, expand="table").value
+    else:
+        df = pd.read_excel(data_path, sheet_name="Expected Wins", engine="openpyxl", header=1)
+    return df
+
+# ───────────────────────────────────────────────
+# 3) RIGHT HERE: load your data once up top
+DATA_FILE = Path(__file__).parent / "Preseason 2025.xlsm"
+df_expected = load_expected(DATA_FILE)
 
 # Page configuration
 st.set_page_config(
