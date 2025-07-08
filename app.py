@@ -258,7 +258,7 @@ elif tab == "Conference Overviews":
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(''.join(html_conv), unsafe_allow_html=True)
-        with col2:
+    with col2:
         # Replace summary scatter with overall Power vs Game Quality scatter
         st.altair_chart(
             alt.Chart(df_expected).mark_circle(size=60, opacity=0.7).encode(
