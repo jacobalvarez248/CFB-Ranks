@@ -268,7 +268,7 @@ elif tab == "Conference Overviews":
                 rgb = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
                 td_style += f" background-color:#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}; color:{'black' if inv<0.5 else 'white'};"
                 cell = f"{v:.1f}"
-            html_conv.append(f"<td style='{td_style}'>{cell}</td>")(f"<td style='{td_style}'>{cell}</td>")
+            html_conv.append(f"<td style='{td_style}'>{cell}</td>")
         html_conv.append('</tr>')
     html_conv.append('</tbody></table></div>')
 
