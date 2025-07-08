@@ -90,9 +90,29 @@ tab = st.sidebar.radio(
 # ------ Rankings ------
 if tab == "Rankings":
     st.header("📋 Rankings")
+    # Sidebar filters
+    team_search = st.sidebar.text_input("Search team...", "")
+    conf_search = st.sidebar.text_input("Filter by conference...", "")
+    sort_col = st.sidebar.selectbox(
+        "Sort by column", df_expected.columns.tolist(), index=df_expected.columns.tolist().index("Preseason Rank")
+    )
+    asc = st.sidebar.checkbox("Ascending order", True)
 
-    # 1) Copy the master DataFrame and define the columns up through SDR
+    # Prepare DataFrame
     df = df_expected.copy()
+    # Filter
+    if team_search and "Team" in df.columns:
+        df = df[df["Team"].str.contains(team_search, case=False, na=False)]
+    if conf_search and "Conference" in df.columns:
+        df = df[df["Conference"].str.contains(conf_search, case=False, na=False)]
+    # Sort default then override
+    df = df.sort_values("Preseason Rank", ascending=True)
+    try:
+        df = df.sort_values(by=sort_col, ascending=asc)
+    except TypeError:
+        df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
+
+    # Define columns up to Schedule Difficulty Rating
     all_cols = df.columns.tolist()
     if "Schedule Difficulty Rating" in all_cols:
         end_idx = all_cols.index("Schedule Difficulty Rating")
@@ -100,54 +120,79 @@ if tab == "Rankings":
     else:
         cols_rank = all_cols.copy()
 
-    # 2) Merge in logos if available
+    # Merge logos
     if {"Team", "Image URL"}.issubset(logos_df.columns):
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
         df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
 
-    # 3) Default sort and any user sorting/filtering here…
-    df = df.sort_values("Preseason Rank", ascending=True)
-    # (Your existing sidebar filters & sort override go here)
+    # Compute color bounds
+    pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
+    agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
+    sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
-    # 4) Build and render the HTML table
+    # Build table
     html_rank = [
         '<div style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
-        '<thead><tr>',
+        '<thead><tr>'
     ]
     for c in cols_rank:
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-        )
-        if c == "Team":
-            th += " white-space:nowrap; min-width:200px;"
+        ) + (" white-space:nowrap; min-width:200px;" if c == "Team" else "")
         html_rank.append(f"<th style='{th}'>{c}</th>")
-    html_rank.append("</tr></thead><tbody>")
+    html_rank.append('</tr></thead><tbody>')
 
     for _, row in df.iterrows():
-        html_rank.append("<tr>")
+        html_rank.append('<tr>')
         for c in cols_rank:
             v = row[c]
-            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td_style = 'border:1px solid #ddd; padding:8px; text-align:center;'
             if c == "Team":
                 logo = row.get("Logo URL")
                 if pd.notnull(logo) and str(logo).startswith("http"):
                     cell = (
                         f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}'
-                        f"</div>"
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
                     )
                 else:
                     cell = v
+            elif c == "OVER/UNDER Pick":
+                cell = v
+                if isinstance(v, str):
+                    if v.upper().startswith("OVER"):
+                        td_style += " background-color:#28a745; color:white;"
+                    elif v.upper().startswith("UNDER"):
+                        td_style += " background-color:#dc3545; color:white;"
+            elif c == "Power Rating":
+                t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td_style += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}" if pd.notnull(v) else ""
+            elif c == "Average Game Quality":
+                if pd.notnull(v):
+                    t2 = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
+                    r2, g2, b2 = [int(255 + (x - 255) * t2) for x in (0, 32, 96)]
+                    td_style += f" background-color:#{r2:02x}{g2:02x}{b2:02x}; color:{'black' if t2<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                else:
+                    cell = ""
+            elif c == "Schedule Difficulty Rating":
+                if pd.notnull(v):
+                    t3 = (v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0
+                    inv = 1 - t3
+                    ri, gi, bi = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                    td_style += f" background-color:#{ri:02x}{gi:02x}{bi:02x}; color:{'black' if inv<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                else:
+                    cell = ""
             else:
                 cell = v
-            html_rank.append(f"<td style='{td}'>{cell}</td>")
-        html_rank.append("</tr>")
-    html_rank.append("</tbody></table></div>")
-    st.markdown("".join(html_rank), unsafe_allow_html=True)
-
-
+            html_rank.append(f"<td style='{td_style}'>{cell}</td>")
+        html_rank.append('</tr>')
+    html_rank.append('</tbody></table></div>')
+    st.markdown(''.join(html_rank), unsafe_allow_html=True)
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
