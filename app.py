@@ -42,7 +42,7 @@ if "Image URL" in logos_df.columns:
 # Merge logo URLs into main DataFrame for use in charts
 if {"Team","Logo URL"}.issubset(logos_df.columns):
     temp = logos_df[["Team","Logo URL"]]
-    df_expected = df_expected.merge(temp, on="Team", how="left")(temp, on="Team", how="left")
+    df_expected = df_expected.merge(temp, on="Team", how="left")
 
 
 # Streamlit app configuration and title
@@ -139,7 +139,7 @@ if tab == "Rankings":
 
     # Merge logos
     if {"Team","Logo URL"}.issubset(logos_df.columns):
-        df = df.merge(logos_df[["Team","Logo URL"]], on="Team", how="left")(logos_df.columns):
+        df = df.merge(logos_df[["Team","Logo URL"]], on="Team", how="left")
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
         df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
 
