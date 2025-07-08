@@ -333,8 +333,11 @@ elif tab == "Conference Overviews":
     tmp = logos_df.copy()
     if "Image URL" in tmp.columns:
         tmp.rename(columns={"Image URL":"Logo URL"}, inplace=True)
-    if "Team" in tmp.columns:
-        df_conf = df_conf.merge(tmp[["Team","Logo URL"]], on="Team", how="left")
+    # Strip whitespace on team names
+    tmp["Team"] = tmp["Team"].str.strip()
+    df_conf["Team"] = df_conf["Team"].str.strip()
+    if {"Team","Logo URL"}.issubset(tmp.columns):
+        df_conf = df_conf.merge(tmp[["Team","Logo URL"]], on="Team", how="left")(tmp[["Team","Logo URL"]], on="Team", how="left")
 
     # Build and render detailed table
     html_conf = [
