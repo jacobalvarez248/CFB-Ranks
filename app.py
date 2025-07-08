@@ -278,7 +278,7 @@ elif tab == "Conference Overviews":
             html_conv.append(f"<td style='{td_style}'>{cell}</td>")
         html_conv.append('</tr>')
     html_conv.append('</tbody></table></div>')
-    st.markdown(''.join(html_conv), unsafe_allow_html=True), unsafe_allow_html=True)
+    st.markdown(''.join(html_conv), unsafe_allow_html=True)
     with col2:
         # Replace summary scatter with overall Power vs Game Quality scatter
         st.altair_chart(
