@@ -311,7 +311,7 @@ elif tab == "Conference Overviews":
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         ) + (" white-space:nowrap; min-width:200px;" if c == "Team" else "")
-        html_conf.append(f"<th style='{th_style}'>{
+        html_conf.append(f"<th style='{th_style}'>{c}</th>")
 elif tab == "Team Dashboards":
     st.header("📊 Team Dashboards")
     # Let user select team
