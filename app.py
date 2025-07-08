@@ -268,7 +268,12 @@ elif tab == "Conference Overviews":
                 tooltip=["Team","Power Rating","Average Game Quality"]
             )
             .interactive()
-            .properties(title="Power Rating vs Game Quality (All Teams)"),
+            .properties(
+                title="Power Rating vs Game Quality (All Teams)",
+                height=600
+            ),
+            use_container_width=True
+        )"),
             use_container_width=True
         )
 
