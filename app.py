@@ -197,7 +197,7 @@ if tab == "Rankings":
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
 
-    # 1) Compute summary metrics
+    # Compute summary metrics and merge logos (as before)
     summary = (
         df_expected.groupby("Conference").agg(
             **{
@@ -212,16 +212,13 @@ elif tab == "Conference Overviews":
     summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]] = (
         summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
     )
-
-    # 2) Merge in conference logos
+    # Merge conference logos
     try:
         logos_conf = logos_df.copy()
-        # Rename columns for merging
-        if "Image URL" in logos_conf:
+        if "Image URL" in logos_conf.columns:
             logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-        if "Team" in logos_conf and "Conference" not in logos_conf:
+        if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
             logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
-        # Perform the merge
         if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
             summary = summary.merge(
                 logos_conf[["Conference", "Logo URL"]], on="Conference", how="left"
@@ -229,65 +226,79 @@ elif tab == "Conference Overviews":
     except Exception:
         pass
 
-    # 3) Get gradient bounds
+    # Gradient bounds
     pr_min, pr_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
     agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
     sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
 
-    # 4) Build summary table HTML
-    html_conv = [
-        '<div style="display:flex; gap:1rem;">',
-        # Left: the table
-        '<div style="flex:1; overflow-x:auto; max-height:600px; overflow-y:auto;">',
-        '<table style="width:100%; border-collapse:collapse; margin-bottom:1rem;">',
-        '<thead><tr>'
-    ]
+    # Build the combined flex container: table left, chart right
+    # Start flex container
+    st.markdown(
+        '<div style="display:flex; gap:1rem; align-items:flex-start;">',
+        unsafe_allow_html=True
+    )
+    # Left: summary table
+    html_table = ['<div style="flex:1; overflow-x:auto; max-height:600px; overflow-y:auto;">',
+        '<table style="width:100%; border-collapse:collapse;">',
+        '<thead><tr>']
     cols = ["Conference", "# Teams", "Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]
     for c in cols:
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-        )
-        if c == "Conference":
-            th += " white-space:nowrap; min-width:150px;"
-        html_conv.append(f"<th style='{th}'>{c}</th>")
-    html_conv.append("</tr></thead><tbody>")
-
+        ) + (" white-space:nowrap; min-width:150px;" if c=="Conference" else "")
+        html_table.append(f"<th style='{th}'>{c}</th>")
+    html_table.append('</tr></thead><tbody>')
     for _, row in summary.iterrows():
-        html_conv.append("<tr>")
+        html_table.append('<tr>')
         for c in cols:
             v = row[c]
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-            # Logos in the Conference column
-            if c == "Conference":
+            if c=="Conference":
                 logo = row.get("Logo URL")
                 if pd.notnull(logo) and str(logo).startswith("http"):
                     cell = (
-                        f'<div style="display:flex; align-items:center;">'
+                        f'<div style="display:flex;align-items:center;">'
                         f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
                     )
                 else:
                     cell = v
-            elif c == "# Teams":
-                cell = int(v)
-            elif c in ["Avg. Power Rating", "Avg. Game Quality"]:
-                rmin, rmax = (pr_min, pr_max) if c == "Avg. Power Rating" else (agq_min, agq_max)
-                t = (v - rmin) / (rmax - rmin) if rmax > rmin else 0
-                rgb = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}; color:{'black' if t<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            else:  # Avg. Schedule Difficulty (inverse gradient)
-                inv = 1 - (v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 1
-                rgb = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                td += f" background-color:#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}; color:{'black' if inv<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            html_conv.append(f"<td style='{td}'>{cell}</td>")
-        html_conv.append("</tr>")
-    html_conv.append("</tbody></table></div>")
+            elif c=="# Teams": cell=int(v)
+            elif c in ["Avg. Power Rating","Avg. Game Quality"]:
+                ref_min, ref_max = (pr_min, pr_max) if c=="Avg. Power Rating" else (agq_min, agq_max)
+                t=(v-ref_min)/(ref_max-ref_min) if ref_max>ref_min else 0
+                rgb=[int(255+(x-255)*t) for x in (0,32,96)]
+                td+=f" background-color:#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell=f"{v:.1f}"
+            else:
+                inv=1-(v-sdr_min)/(sdr_max-sdr_min) if sdr_max>sdr_min else 1
+                rgb=[int(255+(x-255)*inv) for x in (0,32,96)]
+                td+=f" background-color:#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}; color:{'black' if inv<0.5 else 'white'};"
+                cell=f"{v:.1f}"
+            html_table.append(f"<td style='{td}'>{cell}</td>")
+        html_table.append('</tr>')
+    html_table.append('</tbody></table></div>')
+    st.markdown(''.join(html_table), unsafe_allow_html=True)
 
-    # 5) Add the scatter to the right
-    html_conv.append('<div style="flex:1;">')
-    st.markdown("".join(html_conv), unsafe_allow_html=True)
+    # Right: scatter chart
+    st.altair_chart(
+        alt.Chart(df_expected).mark_circle(size=60, opacity=0.7).encode(
+            x=alt.X("Average Game Quality", type="quantitative"),
+            y=alt.Y("Power Rating", type="quantitative"),
+            color="Conference:N",
+            tooltip=["Team","Power Rating","Average Game Quality"]
+        )
+        .interactive()
+        .properties(title="Power Rating vs Game Quality", height=600),
+        use_container_width=True
+    )
+    # Close flex container
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # Detailed conference table below
+    st.markdown("---")
+    sel_conf = st.selectbox("Select conference for details", summary["Conference"].tolist())
+    ...
     st.altair_chart(
         alt.Chart(df_expected).mark_circle(size=60, opacity=0.7).encode(
             x="Average Game Quality:Q",
