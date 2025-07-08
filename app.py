@@ -214,11 +214,18 @@ elif tab == "Conference Overviews":
 
     # 2) Merge logos
     logos_conf = logos_df.copy()
+    # Clean and rename
     if "Image URL" in logos_conf.columns:
-        logos_conf.rename(columns={"Image URL":"Logo URL"}, inplace=True)
+        logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
     if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
-        logos_conf.rename(columns={"Team":"Conference"}, inplace=True)
-    if {"Conference","Logo URL"}.issubset(logos_conf.columns):
+        logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
+    # Strip whitespace to ensure exact matches
+    logos_conf["Conference"] = logos_conf["Conference"].str.strip()
+    summary["Conference"] = summary["Conference"].str.strip()
+    if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
+        summary = summary.merge(
+            logos_conf[["Conference", "Logo URL"]], on="Conference", how="left"
+        )"Conference","Logo URL"}.issubset(logos_conf.columns):
         summary = summary.merge(logos_conf[["Conference","Logo URL"]], on="Conference", how="left")
 
     # 3) Compute bounds
