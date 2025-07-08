@@ -213,24 +213,17 @@ elif tab == "Conference Overviews":
         summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
     )
 
-                                        # Merge conference logos
+    # Merge conference logos
     try:
-        # Map Team->Conference if needed
-        if "Conference" not in logos_df.columns and "Team" in logos_df.columns:
-            logos_conf = logos_df.rename(columns={"Team": "Conference", "Image URL": "Logo URL"})
-        else:
-            logos_conf = logos_df.rename(columns={"Image URL": "Logo URL"})
+        # Prepare logo mapping
+        logos_conf = logos_df.copy()
+        if "Image URL" in logos_conf.columns:
+            logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+        if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
+            logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
         if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
             summary = summary.merge(
                 logos_conf[["Conference", "Logo URL"]], on="Conference", how="left"
-            )
-    except Exception:
-        pass
-
-    # Compute gradient bounds
-
-    # Compute gradient bounds(
-                logos_df[["Conference", "Logo URL"]], on="Conference", how="left"
             )
     except Exception:
         pass
@@ -271,23 +264,21 @@ elif tab == "Conference Overviews":
             elif c == "# Teams":
                 cell = int(v)
             elif c in ["Avg. Power Rating", "Avg. Game Quality"]:
-                t = (v - (pr_min if c == "Avg. Power Rating" else agq_min)) / ((pr_max if c == "Avg. Power Rating" else agq_max) - (pr_min if c == "Avg. Power Rating" else agq_min)) if ((pr_max if c == "Avg. Power Rating" else agq_max) > (pr_min if c == "Avg. Power Rating" else agq_min)) else 0
-                rgb = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td_style += f" background-color:#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}; color:{'black' if t<0.5 else 'white'};"
+                ref_min = pr_min if c == "Avg. Power Rating" else agq_min
+                ref_max = pr_max if c == "Avg. Power Rating" else agq_max
+                t = (v - ref_min) / (ref_max - ref_min) if ref_max > ref_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td_style += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                 cell = f"{v:.1f}"
             else:
                 inv = 1 - (v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 1
-                rgb = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                td_style += f" background-color:#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}; color:{'black' if inv<0.5 else 'white'};"
+                r2, g2, b2 = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                td_style += f" background-color:#{r2:02x}{g2:02x}{b2:02x}; color:{'black' if inv<0.5 else 'white'};"
                 cell = f"{v:.1f}"
             html_conv.append(f"<td style='{td_style}'>{cell}</td>")
         html_conv.append('</tr>')
     html_conv.append('</tbody></table></div>')
-
-    # Scatterplot aside
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(''.join(html_conv), unsafe_allow_html=True)
+    st.markdown(''.join(html_conv), unsafe_allow_html=True), unsafe_allow_html=True)
     with col2:
         # Replace summary scatter with overall Power vs Game Quality scatter
         st.altair_chart(
