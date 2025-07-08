@@ -24,6 +24,17 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
     return df
 
 # Load data once at the top
+from pathlib import Path
+# Path to the workbook
+data_path = Path(__file__).parent / "Preseason 2025.xlsm"
+# Ensure df_expected is loaded before using data_path
+try:
+    df_expected
+except NameError:
+    # If df_expected is not yet defined, load it from Excel
+    df_expected = load_sheet(data_path, "Expected Wins", header=1)
+
+logos_df = load_sheet(data_path, "Logos", header=1)  # header in row 2
 logos_df = load_sheet(data_path, "Logos", header=1)  # header in row 2
 
 # Merge logo URLs into main DataFrame for use in charts
