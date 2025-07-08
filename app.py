@@ -26,7 +26,7 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
 # Load data once at the top
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
-logos_df = load_sheet(data_path, "Logos", header=0)  # assume logos sheet header is in row 1
+logos_df = load_sheet(data_path, "Logos", header=1)  # header in row 2  # assume logos sheet header is in row 1
 
 # Streamlit app configuration and title
 st.set_page_config(
