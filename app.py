@@ -3,7 +3,6 @@ import streamlit as st
 from pathlib import Path
 
 def load_expected(data_path: Path) -> pd.DataFrame:
-    """Load the ‘Expected Wins’ sheet via xlwings locally, or pandas on Cloud."""
     try:
         import xlwings as xw
         wb  = xw.Book(data_path)
@@ -21,7 +20,6 @@ def load_expected(data_path: Path) -> pd.DataFrame:
     return df
 
 def load_logos(data_path: Path) -> pd.DataFrame:
-    """Load the ‘Logos’ sheet via xlwings locally, or pandas on Cloud."""
     try:
         import xlwings as xw
         wb  = xw.Book(data_path)
@@ -38,12 +36,11 @@ def load_logos(data_path: Path) -> pd.DataFrame:
         )
     return df
 
-# ───────────────────────────────────────────────
-# ONLY here do we call xlwings-guarded loaders—no stray xw.Book anywhere else
+# ─── right here, only loader calls ──────────────────────────────────────────
 DATA_FILE   = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_expected(DATA_FILE)
 logos_df    = load_logos(DATA_FILE)
-# ───────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────
 
 st.set_page_config(
     page_title="CFB 2025 Preview",
@@ -51,6 +48,10 @@ st.set_page_config(
     layout="wide",
 )
 st.title("🎯 College Football 2025 Pre-Season Preview")
+
+# …now reference ONLY df_expected (not `expected.range`) in all of the cleaning,
+# filtering, table-building and chart code below…
+
 
 # …the rest of your cleaning, sidebar, tabs, etc., all using df_expected…
 
