@@ -4,18 +4,16 @@ from pathlib import Path
 
 def load_expected(data_path: Path) -> pd.DataFrame:
     """
-    Try to use xlwings if it’s available (i.e. locally),
-    otherwise fall back to pandas+openpyxl on Cloud.
+    Try xlwings locally, otherwise fall back to pandas+openpyxl on Streamlit Cloud.
     """
     try:
         import xlwings as xw
         wb = xw.Book(data_path)
         sht = wb.sheets["Expected Wins"]
-        df = sht.range("C2")\
-                .options(pd.DataFrame, header=1, index=False, expand="table")\
+        df = sht.range("C2") \
+                .options(pd.DataFrame, header=1, index=False, expand="table") \
                 .value
     except ImportError:
-        # xlwings isn’t available (e.g. on Streamlit Cloud), so use pandas
         df = pd.read_excel(
             data_path,
             sheet_name="Expected Wins",
@@ -24,11 +22,11 @@ def load_expected(data_path: Path) -> pd.DataFrame:
         )
     return df
 
-# —————————————
-# RIGHT HERE AT THE TOP of your script, *after* imports & helper:
+# ───────────────────────────────────────────────
+# RIGHT HERE: load your data exactly once
 DATA_FILE = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_expected(DATA_FILE)
-# —————————————
+# ───────────────────────────────────────────────
 
 st.set_page_config(
     page_title="CFB 2025 Preview",
