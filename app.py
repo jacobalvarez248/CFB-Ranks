@@ -90,35 +90,63 @@ tab = st.sidebar.radio(
 # ------ Rankings ------
 if tab == "Rankings":
     st.header("📋 Rankings")
-    # ... existing code above remains
-    # Ensure logo merge:
+
+    # 1) Copy the master DataFrame and define the columns up through SDR
+    df = df_expected.copy()
+    all_cols = df.columns.tolist()
+    if "Schedule Difficulty Rating" in all_cols:
+        end_idx = all_cols.index("Schedule Difficulty Rating")
+        cols_rank = all_cols[: end_idx + 1]
+    else:
+        cols_rank = all_cols.copy()
+
+    # 2) Merge in logos if available
     if {"Team", "Image URL"}.issubset(logos_df.columns):
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
         df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-    # Build HTML table
+
+    # 3) Default sort and any user sorting/filtering here…
+    df = df.sort_values("Preseason Rank", ascending=True)
+    # (Your existing sidebar filters & sort override go here)
+
+    # 4) Build and render the HTML table
     html_rank = [
         '<div style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
-        '<thead><tr>'
+        '<thead><tr>',
     ]
-    # ... header construction
-    html_rank.append('</tr></thead><tbody>')
+    for c in cols_rank:
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; '
+            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+        )
+        if c == "Team":
+            th += " white-space:nowrap; min-width:200px;"
+        html_rank.append(f"<th style='{th}'>{c}</th>")
+    html_rank.append("</tr></thead><tbody>")
+
     for _, row in df.iterrows():
-        html_rank.append('<tr>')
+        html_rank.append("<tr>")
         for c in cols_rank:
             v = row[c]
-            td_style = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
             if c == "Team":
                 logo = row.get("Logo URL")
                 if pd.notnull(logo) and str(logo).startswith("http"):
-                    cell = f'<div style="display:flex; align-items:center;"><img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}'
+                        f"</div>"
+                    )
                 else:
                     cell = v
-            # ... other cases unchanged
-            html_rank.append(f"<td style='{td_style}'>{cell}</td>")
-        html_rank.append('</tr>')
-    html_rank.append('</tbody></table></div>')
-    st.markdown(''.join(html_rank), unsafe_allow_html=True)
+            else:
+                cell = v
+            html_rank.append(f"<td style='{td}'>{cell}</td>")
+        html_rank.append("</tr>")
+    html_rank.append("</tbody></table></div>")
+    st.markdown("".join(html_rank), unsafe_allow_html=True)
+
 
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
