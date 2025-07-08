@@ -225,6 +225,8 @@ elif tab == "Conference Overviews":
     if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
         summary = summary.merge(
             logos_conf[["Conference", "Logo URL"]], on="Conference", how="left"
+        )(
+            logos_conf[["Conference", "Logo URL"]], on="Conference", how="left"
         )(logos_conf[["Conference","Logo URL"]], on="Conference", how="left")
 
     # 3) Compute bounds
