@@ -213,9 +213,9 @@ elif tab == "Conference Overviews":
         summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
     )
 
-        # Merge conference logos
+            # Merge conference logos
     try:
-        # If logos_df maps teams, not conferences, convert
+        # Prepare conference logo mapping
         if "Conference" not in logos_df.columns and "Team" in logos_df.columns:
             logos_conf = logos_df.rename(columns={"Team": "Conference", "Image URL": "Logo URL"})
         else:
