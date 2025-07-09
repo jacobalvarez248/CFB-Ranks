@@ -199,154 +199,36 @@ if tab == "Rankings":
                 th += " left:0; z-index:3; background:#002060;" # First frozen col
             elif c == "Team":
                 th += " left:60px; z-index:3; background:#002060;" # Adjust pixel value if needed
-            # To freeze more, add more elifs with left: value
-        if c == "Team":
-            if is_mobile():
-                th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
-            else:
-                th += " white-space:nowrap; min-width:180px; max-width:280px;"  # much wider for desktop, no wrap
-        else:
-            th += " white-space:nowrap;"
-        th += header_font
-        html.append(f"<th style='{th}'>{disp_col}</th>")
-    html.append("</tr></thead><tbody>")
+            # To freeze more, add more elifs with left:
+    html_sum = [
+        '<div style="overflow-x:auto;">',
+        '<table style="width:100%; border-collapse:collapse;">',
+        '<thead><tr>'
+    ]
+    cols_sum = ["Conference", "# Teams", "Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]
+    for c in cols_sum:
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; '
+            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+        )
+        html_sum.append(f"<th style='{th}'>{c}</th>")
+    html_sum.append("</tr></thead><tbody>")
 
-    # For coloring (same as before)
-    pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
-    agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
-    sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
-
-    for _, row in df.iterrows():
-        html.append("<tr>")
-        for j, c in enumerate(cols_rank):
-            v = row[c]
+    for _, row in summary.iterrows():
+        html_sum.append("<tr>")
+        for c in cols_sum:
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-            td += cell_font
-            # --- Freeze left columns for desktop body ---
-            if not is_mobile():
-                if c == "Preseason Rank":
-                    td += " position:sticky; left:0; z-index:2; background:white;"
-                elif c == "Team":
-                    td += " position:sticky; left:60px; z-index:2; background:white;"
-            cell = v
-            if c == "Team":
+            val = row[c]
+            if c == "Conference":
                 logo = row.get("Logo URL")
                 if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    if is_mobile():
-                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
-                    else:
-                        cell = (
-                            f'<div style="display:flex;align-items:center;">'
-                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                        )
+                    cell = f'<div style="display:flex;align-items:center;"><img src="{logo}" width="24" style="margin-right:8px;"/>{val}</div>'
                 else:
-                    cell = "" if is_mobile() else v
+                    cell = val
             else:
-                # (conditional formatting as before)
-                if c == "OVER/UNDER Pick" and isinstance(v, str):
-                    if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
-                    elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
-                elif c == "Power Rating" and pd.notnull(v):
-                    t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
-                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                elif c == "Average Game Quality" and pd.notnull(v):
-                    t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
-                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                elif c == "Schedule Difficulty Rating" and pd.notnull(v):
-                    inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
-                    r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                else:
-                    cell = v
+                cell = f"{val:.1f}" if isinstance(val, float) else val
+            html_sum.append(f"<td style='{td}'>{cell}</td>")
+        html_sum.append("</tr>")
+    html_sum.append("</tbody></table></div>")
+    st.markdown("".join(html_sum), unsafe_allow_html=True)
 
-            html.append(f"<td style='{td}'>{cell}</td>")
-        html.append("</tr>")
-    html.append("</tbody></table></div>")
-    st.markdown("".join(html), unsafe_allow_html=True)
-
-
-# ------ Conference Overviews ------
-elif tab == "Conference Overviews":
-    st.header("🏟️ Conference Overviews")
-
-    # --- Data Prep for Table and Scatter ---
-    summary = (
-        df_expected.groupby("Conference").agg(
-            **{
-                "# Teams": ("Preseason Rank", "count"),
-                "Avg. Power Rating": ("Power Rating", "mean"),
-                "Avg. Game Quality": ("Average Game Quality", "mean"),
-                "Avg. Schedule Difficulty": ("Schedule Difficulty Rating", "mean"),
-            }
-        ).reset_index()
-    )
-    summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]] = (
-        summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
-    )
-    logos_conf = logos_df.copy()
-    if "Image URL" in logos_conf.columns:
-        logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-    if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
-        logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
-    logos_conf["Conference"] = (
-        logos_conf["Conference"]
-        .str.strip()
-        .str.replace("-", "", regex=False)
-        .str.upper()
-    )
-    summary["Conference"] = (
-        summary["Conference"]
-        .str.strip()
-        .str.replace("-", "", regex=False)
-        .str.upper()
-    )
-    if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
-        summary = summary.merge(
-            logos_conf[["Conference", "Logo URL"]],
-            on="Conference",
-            how="left"
-        )
-    pr_min, pr_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
-    agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
-    sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
-
-    # --- Side-by-side Table and Scatterplot ---
-    left, right = st.columns([1, 1])
-
-    with left:
-        html_sum = [
-    '<div style="overflow-x:auto;">',
-            '<table style="width:100%; border-collapse:collapse;">',
-            '<thead><tr>'
-        ]
-        cols_sum = ["Conference", "# Teams", "Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]
-        for c in cols_sum:
-    th = (
-        'border:1px solid #ddd; padding:8px; text-align:center; '
-        'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-    )
-    html_sum.append(f"<th style='{th}'>{c}</th>")
-html_sum.append("</tr></thead><tbody>")
-
-for _, row in summary.iterrows():
-    html_sum.append("<tr>")
-    for c in cols_sum:
-        td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-        val = row[c]
-        if c == "Conference":
-            logo = row.get("Logo URL")
-            if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                cell = f'<div style="display:flex;align-items:center;"><img src="{logo}" width="24" style="margin-right:8px;"/>{val}</div>'
-            else:
-                cell = val
-        else:
-            cell = f"{val:.1f}" if isinstance(val, float) else val
-        html_sum.append(f"<td style='{td}'>{cell}</td>")
-    html_sum.append("</tr>")
-html_sum.append("</tbody></table></div>")
-st.markdown("".join(html_sum), unsafe_allow_html=True)
