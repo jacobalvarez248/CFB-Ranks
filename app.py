@@ -55,6 +55,24 @@ st.title("🎯 College Football 2025 Pre-Season Preview")
 # --- Responsive mobile CSS ---
 st.markdown("""
 <style>
+  /* Desktop vs Mobile tables */
+  .desktop-table { display: block; }
+  .mobile-table { display: none; }
+  @media (max-width: 600px) {
+    .desktop-table { display: none !important; }
+    .mobile-table { display: block !important; }
+    /* Adjust table layout */
+    .scrollable-table { overflow-x: hidden !important; }
+    .scrollable-table table { table-layout: fixed !important; width: 100% !important; }
+    .scrollable-table th, .scrollable-table td { font-size: 12px !important; padding: 4px !important; }
+    /* Hide less-important desktop columns: PC Wins (6), PC Losses (7), Final Rank (9) */
+    .scrollable-table table th:nth-child(6), .scrollable-table table td:nth-child(6),
+    .scrollable-table table th:nth-child(7), .scrollable-table table td:nth-child(7),
+    .scrollable-table table th:nth-child(9), .scrollable-table table td:nth-child(9) { display: none !important; }
+  }
+</style>
+""", unsafe_allow_html=True)"""
+<style>
   /* Hide less-important columns and adjust table layout on narrow screens */
   @media (max-width: 600px) {
     /* Lock table width and text size */
@@ -161,6 +179,7 @@ if tab == "Rankings":
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
     html = [
+        '<div class="desktop-table scrollable-table" style="max-height:600px; overflow-y:auto;">',
         '<div class="scrollable-table" style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
