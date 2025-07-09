@@ -192,12 +192,12 @@ if tab == "Rankings":
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         )
         if c == "Team":
-            if is_mobile():
-                th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
-            else:
-                th += " white-space:nowrap; min-width:180px; max-width:280px;"  # much wider for desktop, no wrap
-        else:
-            th += " white-space:nowrap;"
+    if is_mobile():
+        th += " white-space:nowrap; min-width:48px; max-width:48px;"
+    else:
+        th += " white-space:nowrap; min-width:180px; max-width:280px; position:sticky; left:0; z-index:3; background-color:#002060;"
+else:
+    th += " white-space:nowrap;"
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
@@ -216,17 +216,20 @@ if tab == "Rankings":
             td += cell_font
             cell = v
             if c == "Team":
-                logo = row.get("Logo URL")
-                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    if is_mobile():
-                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
-                    else:
-                        cell = (
-                            f'<div style="display:flex;align-items:center;">'
-                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                        )
-                else:
-                    cell = "" if is_mobile() else v
+    logo = row.get("Logo URL")
+    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+        if is_mobile():
+            cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+        else:
+            cell = (
+                f'<div style="display:flex;align-items:center;">'
+                f'<img src="{logo}" width="24" style="margin-right:8px;"/>' + str(v) + '</div>'
+            )
+    else:
+        cell = "" if is_mobile() else v
+    if not is_mobile():
+        td += " position:sticky; left:0; z-index:1; background-color:white;"
+
             else:
                 # (conditional formatting as before)
                 if c == "OVER/UNDER Pick" and isinstance(v, str):
