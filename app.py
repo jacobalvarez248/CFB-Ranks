@@ -60,6 +60,19 @@ st.title("🎯 College Football 2025 Pre-Season Preview")
 # --- Responsive CSS for single table ---
 st.markdown("""
 <style>
+  /* Single-table responsive adjustments */
+  .responsive-table { width: 100%; table-layout: fixed; border-collapse: collapse; overflow-x: hidden; }
+  .responsive-table th, .responsive-table td {
+    padding: 4px;
+    font-size: 12px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>
+""", unsafe_allow_html=True)
+<style>
   .responsive-table { overflow-x: hidden; width: 100%; table-layout: fixed; border-collapse: collapse; }
   .responsive-table th, .responsive-table td { padding: 8px; }
   @media (max-width: 600px) {
