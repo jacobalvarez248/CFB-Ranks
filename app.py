@@ -53,6 +53,14 @@ st.set_page_config(
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
 # --- Data Cleaning & Renaming ---
+# Normalize Conference names in df_expected to match logo sheet (drop hyphens & uppercase)
+df_expected["Conference"] = (
+    df_expected["Conference"].astype(str)
+    .str.strip()
+    .str.replace("-", "", regex=False)
+    .str.upper()
+)
+
 empty_cols = [c for c in df_expected.columns if str(c).strip() == ""]
 df_expected.drop(columns=empty_cols, inplace=True, errors='ignore')
 df_expected.drop(columns=["Column1", "Column3"], inplace=True, errors='ignore')
@@ -226,13 +234,19 @@ elif tab == "Conference Overviews":
         .str.replace("-", "", regex=False)
         .str.upper()
     )
-    # merge in logo URLs
+        # merge in logo URLs
     if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
         summary = summary.merge(
             logos_conf[["Conference", "Logo URL"]],
             on="Conference",
             how="left"
         )
+    # DEBUG: show which conferences failed to merge a logo
+    missing = summary[summary["Logo URL"].isnull()]["Conference"].tolist()
+    st.write("Conferences missing logo URL after merge:", missing)
+    # DEBUG: inspect CUSA row
+    cusa_row = summary[summary["Conference"] == "CUSA"]
+    st.write("CUSA row after merge:", cusa_row)
 
     # 3) Compute bounds
     pr_min, pr_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
