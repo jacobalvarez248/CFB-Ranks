@@ -59,47 +59,15 @@ st.title("🎯 College Football 2025 Pre-Season Preview")
 
 st.markdown("""
 <style>
-  /* Base responsive table */
-  .responsive-table {
-    width: 100%;
-    table-layout: fixed;
-    border-collapse: collapse;
-    overflow-x: hidden;      /* no side scroll */
-    -webkit-overflow-scrolling: touch;
-  }
-  .responsive-table th,
-  .responsive-table td {
-    padding: 4px;             /* shrink padding */
-    font-size: 12px;          /* shrink text */
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
+  .desktop-table { display: block; }
+  .mobile-table  { display: none; }
   @media (max-width: 600px) {
-    /* hide these columns by their position in the table */
-    .responsive-table th:nth-child(3),
-    .responsive-table td:nth-child(3),  /* Vegas Win Total? adjust index if needed */
-    .responsive-table th:nth-child(5),
-    .responsive-table td:nth-child(5),  /* Undefeated Probability */
-    .responsive-table th:nth-child(7),
-    .responsive-table td:nth-child(7),  /* Projected Conference Losses */
-    .responsive-table th:nth-child(8),
-    .responsive-table td:nth-child(8),  /* Schedule Difficulty Rank */
-    .responsive-table th:nth-child(9),
-    .responsive-table td:nth-child(9)   /* Final 2024 Rank */
-    {
-      display: none;
-    }
-    /* you said you *do* want Projected Overall Wins (index 4) to show, so ensure it stays visible */
-    .responsive-table th:nth-child(4),
-    .responsive-table td:nth-child(4) {
-      display: table-cell;
-    }
+    .desktop-table { display: none !important; }
+    .mobile-table  { display: block !important; }
   }
 </style>
 """, unsafe_allow_html=True)
+
 
 # --- Responsive CSS for single table ---
 st.markdown("""
@@ -149,8 +117,8 @@ if tab == "Rankings":
         "Schedule Difficulty Rating"
     ]
     html = [
-        '<div style="max-height:600px; overflow-y:auto;">',
-        '<table class="responsive-table" style="width:100%; table-layout: fixed;">',
+        '<div class="desktop-table" style="max-height:600px; overflow-y:auto;">',
+        '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>' + ''.join(
             f"<th style='border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white;'>{c}</th>"
             for c in cols
@@ -190,6 +158,46 @@ if tab == "Rankings":
         html.append('</tr>')
     html.append('</tbody></table></div>')
     st.markdown(''.join(html), unsafe_allow_html=True)
+
+# --- Mobile portrait view table ---
+html_mobile = [
+    '<div class="mobile-table" style="width:100%; table-layout:fixed; border-collapse:collapse;">',
+    '<table>',
+    '<thead><tr>',
+    '<th>Preseason Rank</th>',
+    '<th>Team</th>',
+    '<th>Vegas Win Total</th>',
+    '<th>Projected Overall Wins</th>',
+    '<th>Projected Overall Losses</th>',
+    '<th>OVER/UNDER Pick</th>',
+    '<th>Average Game Quality</th>',
+    '<th>Schedule Difficulty Rating</th>',
+    '</tr></thead><tbody>'
+]
+for _, row in df.iterrows():
+    html_mobile.append("<tr>")
+    # integer rank
+    html_mobile.append(f"<td>{int(row['Preseason Rank'])}</td>")
+    # logo only
+    logo = row.get("Logo URL","")
+    html_mobile.append(f"<td><img src=\"{logo}\" width=\"24\"/></td>")
+    # other cols, one decimal where needed
+    html_mobile.append(f"<td>{row['Vegas Win Total']:.1f}</td>")
+    html_mobile.append(f"<td>{row['Projected Overall Wins']:.1f}</td>")
+    html_mobile.append(f"<td>{row['Projected Overall Losses']:.1f}</td>")
+    # OVER/UNDER Pick with color
+    pick = row['OVER/UNDER Pick']
+    color = '#28a745' if pick.upper().startswith("OVER") else '#dc3545'
+    html_mobile.append(f"<td style='background-color:{color};color:#fff'>{pick}</td>")
+    # AGQ
+    agq = row['Average Game Quality']
+    html_mobile.append(f"<td>{agq:.1f}</td>")
+    # SDR
+    sdr = row['Schedule Difficulty Rating']
+    html_mobile.append(f"<td>{sdr:.1f}</td>")
+    html_mobile.append("</tr>")
+html_mobile.append("</tbody></table></div>")
+st.markdown("".join(html_mobile), unsafe_allow_html=True)
 
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
