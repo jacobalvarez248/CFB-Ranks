@@ -190,7 +190,9 @@ if tab == "Rankings":
         html_mobile.append(f"<td>{row['Schedule Difficulty Rating']:.1f}</td>")
         html_mobile.append('</tr>')
     html_mobile.append('</tbody></table></div>')
-    st.markdown(''.join(html_mobile), unsafe_allow_html=True)elif tab == "Conference Overviews":
+    st.markdown(''.join(html_mobile), unsafe_allow_html=True)
+
+elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
 
     # 1) Summary metrics
