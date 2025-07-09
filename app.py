@@ -305,8 +305,14 @@ elif tab == "Conference Overviews":
     # 5) Detailed conference table
     st.markdown("---")
     sel = st.selectbox("Select conference for details", summary["Conference"].tolist())
-    df_conf = df_expected[df_expected["Conference"] == sel].copy()
-    df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
+df_conf = df_expected[df_expected["Conference"] == sel].copy()
+
+# Sort by Projected Conference Wins, descending
+if "Projected Conference Wins" in df_conf.columns:
+    df_conf = df_conf.sort_values(by="Projected Conference Wins", ascending=False).reset_index(drop=True)
+
+df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
+
         # (team logos already in df_expected via initial merge)
     cols_conf = [
         "Projected Conference Finish", "Preseason Rank", "Team", "Power Rating",
