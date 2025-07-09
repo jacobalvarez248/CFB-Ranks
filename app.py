@@ -188,7 +188,9 @@ if tab == "Rankings":
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
 
-    html = [
+        # Simplified table display to ensure rendering
+    st.dataframe(df[cols_rank], use_container_width=True)
+
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
         '<thead><tr>'
