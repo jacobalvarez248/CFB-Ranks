@@ -246,7 +246,7 @@ elif tab == "Conference Overviews":
 
     with left:
         html_sum = [
-            '<div style="overflow-x:auto; max-height:400px; overflow-y:auto;">',
+    '<div style="overflow-x:auto;">',
             '<table style="width:100%; border-collapse:collapse;">',
             '<thead><tr>'
         ]
@@ -300,8 +300,8 @@ elif tab == "Conference Overviews":
         import streamlit.components.v1 as components
         plot_df = summary.dropna(subset=["Logo URL"]).copy()
         scatter_html = """
-        <div style='width:100%; max-width:600px; height:400px; position:relative;'>
-            <svg width='100%' height='100%' viewBox='0 0 600 400'>
+        <div style='width:100%; max-width:700px; height:700px; position:relative;'>
+            <svg width='100%' height='100%' viewBox='0 0 700 700'>
         """
         x_min, x_max = plot_df["Avg. Game Quality"].min(), plot_df["Avg. Game Quality"].max()
         y_min, y_max = plot_df["Avg. Power Rating"].min(), plot_df["Avg. Power Rating"].max()
@@ -311,14 +311,14 @@ elif tab == "Conference Overviews":
         y_min, y_max = y_min - pad_y, y_max + pad_y
         grid_fracs = [0, 0.2, 0.4, 0.6, 0.8, 1]
         for frac in grid_fracs:
-            xpos = int(50 + 500 * frac)
-            ypos = int(350 - 300 * frac)
+            xpos = int(50 + 600 * frac)
+            ypos = int(650 - 600 * frac)
             if frac not in [0, 1]:
-                scatter_html += f'<line x1="{xpos}" y1="50" x2="{xpos}" y2="350" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
-                scatter_html += f'<line x1="50" y1="{ypos}" x2="550" y2="{ypos}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
+                scatter_html += f'<line x1="{xpos}" y1="50" x2="{xpos}" y2="650" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
+                scatter_html += f'<line x1="50" y1="{ypos}" x2="650" y2="{ypos}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
         for _, row in plot_df.iterrows():
-            x = int(50 + 500 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
-            y = int(350 - 300 * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
+            x = int(50 + 600 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
+            y = int(650 - 600 * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
             logo_url = row["Logo URL"]
         if not (isinstance(logo_url, str) and logo_url.startswith("http")) or logo_url.strip() == "":
             logo_url = "https://png.pngtree.com/png-vector/20230115/ourmid/pngtree-american-football-nfl-rugby-ball-illustration-clipart-design-png-image_6564471.png"
@@ -330,27 +330,29 @@ elif tab == "Conference Overviews":
         '''
         scatter_html += '''
             <!-- X axis -->
-            <line x1="50" y1="350" x2="550" y2="350" stroke="#888" stroke-width="2"/>
-            <text x="300" y="390" font-size="16" fill="#222" text-anchor="middle">Avg. Game Quality</text>
+            <line x1="50" y1="650" x2="650" y2="650" stroke="#002060" stroke-width="2"/>
+            <rect x="240" y="660" width="220" height="30" fill="#002060"/>
+            <text x="350" y="680" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle">Avg. Game Quality</text>
             <!-- Y axis -->
-            <line x1="50" y1="50" x2="50" y2="350" stroke="#888" stroke-width="2"/>
-            <text x="10" y="200" font-size="16" fill="#222" text-anchor="middle" transform="rotate(-90,10,200)">Avg. Power Rating</text>
+            <line x1="50" y1="50" x2="50" y2="650" stroke="#002060" stroke-width="2"/>
+            <rect x="-20" y="335" width="110" height="30" fill="#002060"/>
+            <text x="10" y="355" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle" transform="rotate(-90,10,355)">Avg. Power Rating</text>
         '''
         for frac in grid_fracs:
             xv = x_min + (x_max - x_min) * frac
-            xpos = int(50 + 500 * frac)
-            scatter_html += f'<text x="{xpos}" y="370" font-size="12" fill="#444" text-anchor="middle">{xv:.1f}</text>'
-            scatter_html += f'<line x1="{xpos}" y1="345" x2="{xpos}" y2="355" stroke="#888" stroke-width="1"/>'
+            xpos = int(50 + 600 * frac)
+            scatter_html += f'<text x="{xpos}" y="670" font-size="16" fill="#fff" font-weight="bold" text-anchor="middle">{xv:.1f}</text>'
+            scatter_html += f'<line x1="{xpos}" y1="645" x2="{xpos}" y2="655" stroke="#002060" stroke-width="2"/>'
         for frac in grid_fracs:
             yv = y_min + (y_max - y_min) * frac
-            ypos = int(350 - 300 * frac)
-            scatter_html += f'<text x="30" y="{ypos+4}" font-size="12" fill="#444" text-anchor="end">{yv:.1f}</text>'
-            scatter_html += f'<line x1="45" y1="{ypos}" x2="55" y2="{ypos}" stroke="#888" stroke-width="1"/>'
+            ypos = int(650 - 600 * frac)
+            scatter_html += f'<text x="30" y="{ypos+8}" font-size="16" fill="#fff" font-weight="bold" text-anchor="end">{yv:.1f}</text>'
+            scatter_html += f'<line x1="45" y1="{ypos}" x2="55" y2="{ypos}" stroke="#002060" stroke-width="2"/>'
         scatter_html += """
             </svg>
         </div>
         """
-        components.html(scatter_html, height=400)
+        components.html(scatter_html, height=700)
 
     # --- Full-width detailed table below ---
     st.markdown("---")
