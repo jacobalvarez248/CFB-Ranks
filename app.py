@@ -59,31 +59,18 @@ st.title("🎯 College Football 2025 Pre-Season Preview")
 
 st.markdown("""
 <style>
-  .desktop-table { display: block; }
-  .mobile-table  { display: none; }
+  .desktop-only { display: block; }
+  .mobile-only  { display: none; }
   @media (max-width: 600px) {
-    .desktop-table { display: none !important; }
-    .mobile-table  { display: block !important; }
+    .desktop-only { display: none !important; }
+    .mobile-only  { display: block !important; }
   }
 </style>
 """, unsafe_allow_html=True)
 
 
-# --- Desktop/Mobile Toggle CSS applied above. Responsive single-table CSS removed to preserve desktop styling
-("""
-<style>
-  /* Single-table responsive adjustments */
-  .responsive-table { width: 100%; table-layout: fixed; border-collapse: collapse; overflow-x: hidden; }
-  .responsive-table th, .responsive-table td {
-    padding: 4px;
-    font-size: 12px;
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-</style>
-""", unsafe_allow_html==True)
+
+
 
 # --- Sidebar & Navigation ---
 tab = st.sidebar.radio("Navigation", ["Rankings", "Conference Overviews", "Team Dashboards", "Charts & Graphs"])
@@ -119,10 +106,11 @@ if tab == "Rankings":
 
     # --- Desktop table (full) ---
     html_desktop = [
-        '<div class="desktop-table" style="max-height:600px; overflow-y:auto;">',
-        '<table style="width:100%; border-collapse:collapse;">',
-        '<thead><tr>'
-    ]
+    '<div class="desktop-only" style="max-height:600px; overflow-y:auto;">',
+    '<table style="width:100%; border-collapse:collapse;">',
+    … 
+    '</table></div>'
+]
     for c in cols:
         th_style = ('border:1px solid #ddd; padding:8px; text-align:center; ' 
                     'background-color:#002060; color:white; position:sticky; top:0; z-index:2;')
@@ -165,10 +153,11 @@ if tab == "Rankings":
 
     # --- Mobile table (simplified) ---
     html_mobile = [
-        '<div class="mobile-table" style="width:100%;">',
-        '<table class="responsive-table" style="border-collapse:collapse; width:100%;">',
-        '<thead><tr>'
-    ]
+    '<div class="mobile-only" style="width:100%; table-layout:fixed; border-collapse:collapse;">',
+    '<table>',
+    …
+    '</table></div>'
+]
     for c in cols:
         if c == "Team": continue  # logo only on mobile header
         html_mobile.append(f"<th>{c}</th>")
