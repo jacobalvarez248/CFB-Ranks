@@ -137,7 +137,17 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
-    # --- Rankings Table Setup ---
+        # --- Rankings Table Setup ---
+    desktop_cols = [
+        "Preseason Rank",
+        "Team",
+        "Power Rating",
+        "Projected Overall Wins",
+        "Projected Overall Losses",
+        "OVER/UNDER Pick",
+        "Average Game Quality",
+        "Schedule Difficulty Rating"
+    ]
     mobile_header_map = {
         "Preseason Rank": "Rank",
         "Team": "Team",
@@ -151,7 +161,11 @@ if tab == "Rankings":
     mobile_cols = list(mobile_header_map.keys())
 
     if is_mobile():
-        cols_rank = [c for c in mobile_cols if c in df.columns]
+        if "Schedule Difficulty Rating" in df.columns:
+            last_idx = df.columns.get_loc("Schedule Difficulty Rating") + 1
+            cols_rank = [c for c in df.columns[:last_idx] if c in mobile_cols]
+        else:
+            cols_rank = [c for c in df.columns if c in mobile_cols]
         display_headers = [mobile_header_map[c] for c in cols_rank]
         table_style = (
             "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
@@ -159,16 +173,16 @@ if tab == "Rankings":
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
     else:
-        cols_rank = df.columns.tolist()
+        if "Schedule Difficulty Rating" in df.columns:
+            last_idx = df.columns.get_loc("Schedule Difficulty Rating") + 1
+            cols_rank = [c for c in df.columns[:last_idx] if c in desktop_cols]
+        else:
+            cols_rank = [c for c in df.columns if c in desktop_cols]
         display_headers = [c if c != "Team" else "Team" for c in cols_rank]
         table_style = "width:100%; border-collapse:collapse;"
-        wrapper_style = (
-            "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
-        )
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
 
-        # Responsive: allow horizontal scroll on desktop, not mobile
     if is_mobile():
         wrapper_style = (
             "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
@@ -179,6 +193,7 @@ if tab == "Rankings":
         )
 
     html = [
+
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
         '<thead><tr>'
