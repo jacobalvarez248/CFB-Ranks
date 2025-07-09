@@ -177,9 +177,15 @@ if tab == "Rankings":
         for c in cols:
             v = row[c]
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-            if c == "Team":
+            if c == "Preseason Rank":
+                cell = f"{int(v)}"
+            elif c == "Team":
                 logo = row.get("Logo URL", "")
                 cell = f'<img src="{logo}" width="24" />' if isinstance(logo, str) else ""
+            elif c == "Projected Overall Wins" and pd.notnull(v):
+                cell = f"{v:.1f}"
+            elif c == "Projected Overall Losses" and pd.notnull(v):
+                cell = f"{v:.1f}"
             elif c == "OVER/UNDER Pick":
                 cell = v
                 if isinstance(v, str) and v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
