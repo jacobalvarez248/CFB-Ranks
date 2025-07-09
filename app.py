@@ -113,11 +113,11 @@ if tab == "Rankings":
     # Responsive CSS
     st.markdown("""
         <style>
-        @media only screen and (max-width: 1000px) {
+        @media only screen and (max-width: 768px) {
           .desktop-only { display: none !important; }
           .mobile-only { display: block !important; overflow-x:hidden; }
         }
-        @media only screen and (min-width: 1001px) {
+        @media only screen and (min-width: 769px) {
           .desktop-only { display: block !important; }
           .mobile-only { display: none !important; }
         }
@@ -173,6 +173,11 @@ if tab == "Rankings":
                     )
                 else:
                     cell = v
+            elif c == "Power Rating" and pd.notnull(v):
+                t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td_style += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}"
             elif c == "OVER/UNDER Pick" and isinstance(v, str):
                 cell = v
                 if v.upper().startswith("OVER"):
