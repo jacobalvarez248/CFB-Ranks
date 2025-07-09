@@ -107,8 +107,7 @@ if tab == "Rankings":
     # --- Desktop table (full) ---
     html_desktop = [
     '<div class="desktop-only" style="max-height:600px; overflow-y:auto;">',
-    '<table style="width:100%; border-collapse:collapse;">',
-    … 
+    '<table style="width:100%; border-collapse:collapse;">', 
     '</table></div>'
 ]
     for c in cols:
@@ -155,7 +154,6 @@ if tab == "Rankings":
     html_mobile = [
     '<div class="mobile-only" style="width:100%; table-layout:fixed; border-collapse:collapse;">',
     '<table>',
-    …
     '</table></div>'
 ]
     for c in cols:
