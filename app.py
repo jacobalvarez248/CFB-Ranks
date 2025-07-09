@@ -253,10 +253,9 @@ elif tab == "Conference Overviews":
     agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
     sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
 
-    # 4) Summary table & scatter
+        # 4) Summary table (no logos here)
     left, right = st.columns([1,1])
     with left:
-        # Summary table
         html_sum = [
             '<div style="overflow-x:auto; max-height:600px; overflow-y:auto;">',
             '<table style="width:100%; border-collapse:collapse;">',
@@ -264,37 +263,38 @@ elif tab == "Conference Overviews":
         ]
         cols_sum = ["Conference", "# Teams", "Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]
         for c in cols_sum:
-            th = ('border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; '
-                  'position:sticky; top:0; z-index:2;')
-                            if c == "Conference":
-                    logo = row.get("Logo URL")
-                    # normalize protocol if necessary
-                    if isinstance(logo, str) and logo.startswith("https://content.sportslogos.net"):
-                        logo = logo.replace("https://", "http://")
-                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                        cell = (
-                            f'<div style="display:flex;align-items:center;">'
-                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                        )
-                    else:
-                        cell = v
-                elif c == "# Teams":"
-                    cell = int(v)
-                elif c in ["Avg. Power Rating", "Avg. Game Quality"]:
-                    mn, mx = (pr_min, pr_max) if c == "Avg. Power Rating" else (agq_min, agq_max)
+            th = (
+                'border:1px solid #ddd; padding:8px; text-align:center; '
+                'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+            )
+            if c == "Conference":
+                th += " white-space:nowrap; min-width:150px;"
+            html_sum.append(f"<th style='{th}'>{c}</th>")
+        html_sum.append("</tr></thead><tbody>")
+
+        for _, row in summary.iterrows():
+            html_sum.append("<tr>")
+            for c in cols_sum:
+                v = row[c]
+                td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+                if c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
+                    mn, mx = (
+                        (pr_min, pr_max) if c == "Avg. Power Rating" else
+                        (agq_min, agq_max) if c == "Avg. Game Quality" else
+                        (sdr_min, sdr_max)
+                    )
                     t = (v - mn) / (mx - mn) if mx > mn else 0
+                    if c == "Avg. Schedule Difficulty":
+                        t = 1 - t
                     r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
                     cell = f"{v:.1f}"
                 else:
-                    inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
-                    r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
+                    cell = v
                 html_sum.append(f"<td style='{td}'>{cell}</td>")
-            html_sum.append('</tr>')
-        html_sum.append('</tbody></table></div>')
-        st.markdown(''.join(html_sum), unsafe_allow_html=True)
+            html_sum.append("</tr>")
+        html_sum.append("</tbody></table></div>")
+        st.markdown("".join(html_sum), unsafe_allow_html=True)
     # No scatterplot on the right
     # (scatter removed per request)
     # 5) Detailed conference table
