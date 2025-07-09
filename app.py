@@ -1,4 +1,4 @@
-import pandas as pd
+# import pandas as pd
 import streamlit as st
 from pathlib import Path
 import altair as alt
@@ -143,12 +143,13 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
-            # --- Rankings Table Setup ---
+    # --- Rankings Table Setup ---
     # Short column headers for mobile
     mobile_header_map = {
         "Preseason Rank": "Rank",
         "Team": "Team",
-        "Vegas Win Total": "Win Total",
+        # "Vegas Win Total": "Win Total",  # REMOVED
+        "Power Rating": "Pwr. Rtg.",      # ADDED
         "Projected Overall Wins": "Proj. Wins",
         "Projected Overall Losses": "Proj. Losses",
         "OVER/UNDER Pick": "OVER/UNDER",
@@ -186,11 +187,19 @@ if tab == "Rankings":
         '<thead><tr>'
     ]
     # Use display_headers for headers, always "Team" for the team column
-    for disp_col, c in zip(display_headers, cols_rank):
+    for idx, (disp_col, c) in enumerate(zip(display_headers, cols_rank)):
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         )
+        # --- Freeze left columns for desktop ---
+        if not is_mobile():
+            # You can freeze as many columns as you want here by extending the pattern
+            if c == "Preseason Rank":
+                th += " left:0; z-index:3; background:#002060;" # First frozen col
+            elif c == "Team":
+                th += " left:60px; z-index:3; background:#002060;" # Adjust pixel value if needed
+            # To freeze more, add more elifs with left: value
         if c == "Team":
             if is_mobile():
                 th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
@@ -202,7 +211,6 @@ if tab == "Rankings":
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
 
-
     # For coloring (same as before)
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
@@ -210,10 +218,16 @@ if tab == "Rankings":
 
     for _, row in df.iterrows():
         html.append("<tr>")
-        for c in cols_rank:
+        for j, c in enumerate(cols_rank):
             v = row[c]
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
             td += cell_font
+            # --- Freeze left columns for desktop body ---
+            if not is_mobile():
+                if c == "Preseason Rank":
+                    td += " position:sticky; left:0; z-index:2; background:white;"
+                elif c == "Team":
+                    td += " position:sticky; left:60px; z-index:2; background:white;"
             cell = v
             if c == "Team":
                 logo = row.get("Logo URL")
@@ -316,47 +330,4 @@ elif tab == "Conference Overviews":
                 'border:1px solid #ddd; padding:8px; text-align:center; '
                 'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
             )
-            if c == "Conference":
-                th += " white-space:nowrap; min-width:150px;"
-            html_sum.append(f"<th style='{th}'>{c}</th>")
-        html_sum.append("</tr></thead><tbody>")
-
-        for _, row in summary.iterrows():
-            html_sum.append("<tr>")
-            for c in cols_sum:
-                v = row[c]
-                td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-                if c == "Conference":
-                    logo = row.get("Logo URL")
-                    if not (isinstance(logo, str) and logo.startswith("http")) or logo.strip() == "":
-                        logo = "https://png.pngtree.com/png-vector/20230115/ourmid/pngtree-american-football-nfl-rugby-ball-illustration-clipart-design-png-image_6564471.png"
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                    )
-
-
-                elif c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
-                    mn, mx = (
-                        (pr_min, pr_max) if c == "Avg. Power Rating" else
-                        (agq_min, agq_max) if c == "Avg. Game Quality" else
-                        (sdr_min, sdr_max)
-                    )
-                    t = (v - mn) / (mx - mn) if mx > mn else 0
-                    if c == "Avg. Schedule Difficulty":
-                        t = 1 - t
-                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
-                    cell = f"{v:.1f}"
-                else:
-                    cell = v
-                html_sum.append(f"<td style='{td}'>{cell}</td>")
-            html_sum.append("</tr>")
-        html_sum.append("</tbody></table></div>")
-        st.markdown("".join(html_sum), unsafe_allow_html=True)
-
-    with right:
-        st.markdown("#### Conference Overview Chart Placeholder")
-        # (Add chart/plot code here as needed)
-
-
+            if c == "
