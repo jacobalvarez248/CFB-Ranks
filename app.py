@@ -145,13 +145,14 @@ if tab == "Rankings":
 
             # --- Rankings Table Setup ---
     # Short column headers for mobile
+        # --- Rankings Table Setup ---
     mobile_header_map = {
         "Preseason Rank": "Rank",
         "Team": "Team",
-        "Vegas Win Total": "Win Total",
+        "Power Rating": "Pwr. Rtg.",
         "Projected Overall Wins": "Proj. Wins",
         "Projected Overall Losses": "Proj. Losses",
-        "OVER/UNDER Pick": "OVER/UNDER",
+        "OVER/UNDER Pick": "OVER/ UNDER",
         "Average Game Quality": "Avg. Game Qty",
         "Schedule Difficulty Rating": "Sched. Diff.",
     }
@@ -161,11 +162,7 @@ if tab == "Rankings":
         cols_rank = [c for c in mobile_cols if c in df.columns]
         display_headers = [mobile_header_map[c] for c in cols_rank]
         table_style = (
-            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; "
-            "font-size:13px;"
-        )
-        wrapper_style = (
-            "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
         )
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
@@ -176,9 +173,13 @@ if tab == "Rankings":
         )
         display_headers = [c if c != "Team" else "Team" for c in cols_rank]
         table_style = "width:100%; border-collapse:collapse;"
-        wrapper_style = "max-width:100%; overflow-x:auto;"
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
+
+    # Edge-to-edge, no horizontal scroll for BOTH views
+    wrapper_style = (
+        "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
+    )
 
     html = [
         f'<div style="{wrapper_style}">',
