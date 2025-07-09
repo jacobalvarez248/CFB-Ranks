@@ -103,7 +103,7 @@ tab = st.sidebar.radio(
 if tab == "Rankings":
     st.header("📋 Rankings")
     # Hide sidebar and switch tables in portrait mode
-        st.markdown(
+    st.markdown(
         """
         <style>
         /* Default: show desktop, hide mobile */
@@ -147,12 +147,14 @@ if tab == "Rankings":
     mobile_cols = ["Preseason Rank", "Team", "Vegas Win Total", "Projected Overall Wins",
                    "Projected Overall Losses", "OVER/UNDER Pick",
                    "Average Game Quality", "Schedule Difficulty Rating"]
-    mobile_html = ['<div class="mobile-table" style="max-height:600px;overflow-y:auto;">',
-                   '<table style="border-collapse:collapse;width:100%;">', '<thead><tr>']
+    mobile_html = [
+        '<div class="mobile-table" style="max-height:600px;overflow-y:auto;">',
+        '<table style="border-collapse:collapse;width:100%;">',
+        '<thead><tr>'
+    ]
     for c in mobile_cols:
         mobile_html.append(
-            f"<th style='border:1px solid #ddd;padding:8px;text-align:center;" +
-            f"background-color:#002060;color:white;position:sticky;top:0;z-index:2;'>{c}</th>"
+            f"<th style='border:1px solid #ddd;padding:8px;text-align:center;background-color:#002060;color:white;position:sticky;top:0;z-index:2;'>{c}</th>"
         )
     mobile_html.append('</tr></thead><tbody>')
     for _, row in df.iterrows():
@@ -172,75 +174,3 @@ if tab == "Rankings":
                     t = (v - agq_min) / (agq_max - agq_min) if agq_max>agq_min else 0
                     r,g,b = [int(255+(x-255)*t) for x in (0,32,96)]
                     td += f"background-color:#{r:02x}{g:02x}{b:02x};color:{'black' if t<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                elif c == "Schedule Difficulty Rating" and pd.notnull(v):
-                    inv = 1-((v-sdr_min)/(sdr_max-sdr_min) if sdr_max>sdr_min else 0)
-                    r,g,b = [int(255+(x-255)*inv) for x in (0,32,96)]
-                    td += f"background-color:#{r:02x}{g:02x}{b:02x};color:{'black' if inv<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                else:
-                    cell = v if pd.notnull(v) else ''
-            mobile_html.append(f"<td style='{td}'>{cell}</td>")
-        mobile_html.append('</tr>')
-    mobile_html.append('</tbody></table></div>')
-    st.markdown(''.join(mobile_html), unsafe_allow_html=True)
-
-    # Desktop view
-    cols_rank = (
-        df.columns.tolist()[:df.columns.tolist().index("Schedule Difficulty Rating")+1]
-        if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
-    )
-    desktop_html = [
-        '<div class="desktop-table" style="max-height:600px;overflow-y:auto;">',
-        '<table style="width:100%;border-collapse:collapse;">',
-        '<thead><tr>'
-    ]
-    for c in cols_rank:
-        th = ('border:1px solid #ddd;padding:8px;text-align:center;'
-              'background-color:#002060;color:white;position:sticky;top:0;z-index:2;')
-        if c == "Team":
-            th += " white-space:nowrap;min-width:200px;"
-        desktop_html.append(f"<th style='{th}'>{c}</th>")
-    desktop_html.append("</tr></thead><tbody>")
-    for _, row in df.iterrows():
-        desktop_html.append("<tr>")
-        for c in cols_rank:
-            v = row[c]
-            td = 'border:1px solid #ddd;padding:8px;text-align:center;'
-            if c == "Team":
-                logo = row.get("Logo URL")
-                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    cell = f'<div style="display:flex;align-items:center;"><img src="{logo}" width="24" style="margin-right:8px;"/>{row["Team"]}</div>'
-                else:
-                    cell = row["Team"]
-            elif c == "Power Rating" and pd.notnull(v):
-                t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
-                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f"background-color:#{r:02x}{g:02x}{b:02x};color:{'black' if t<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            elif c == "OVER/UNDER Pick" and isinstance(v, str):
-                cell = v
-                if v.upper().startswith("OVER"):
-                    td += "background-color:#28a745;color:white;"
-                elif v.upper().startswith("UNDER"):
-                    td += "background-color:#dc3545;color:white;"
-            elif c == "Average Game Quality" and pd.notnull(v):
-                t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
-                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f"background-color:#{r:02x}{g:02x}{b:02x};color:{'black' if t<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            elif c == "Schedule Difficulty Rating" and pd.notnull(v):
-                inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
-                r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                td += f"background-color:#{r:02x}{g:02x}{b:02x};color:{'black' if inv<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            else:
-                cell = v if pd.notnull(v) else ""
-            desktop_html.append(f"<td style='{td}'>{cell}</td>")
-        desktop_html.append("</tr>")
-    desktop_html.append("</tbody></table></div>")
-    st.markdown("".join(desktop_html), unsafe_allow_html=True)
-
-elif tab == "Conference Overviews":
-    # existing code unchanged
-    pass
