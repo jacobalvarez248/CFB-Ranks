@@ -93,7 +93,7 @@ rename_map = {
     "Column17": "Schedule Difficulty Rank",
     "xWins for Playoff Team": "Schedule Difficulty Rating",
     "Winless Probability": "Average Game Quality",
-    "Final 2024 Rank": "Final 2024 Rank",
+    "Final 2024 Rank": "Final 2024 Rank"  # (renamed from Final 2022 Rank to Final 2024 Rank),
 }
 df_expected.rename(columns=rename_map, inplace=True)
 # Add Preseason Rank if missing
