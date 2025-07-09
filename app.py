@@ -241,19 +241,15 @@ elif tab == "Conference Overviews":
             on="Conference",
             how="left"
         )
-    # DEBUG: show which conferences failed to merge a logo
-    missing = summary[summary["Logo URL"].isnull()]["Conference"].tolist()
-    st.write("Conferences missing logo URL after merge:", missing)
-    # DEBUG: inspect CUSA row
-    cusa_row = summary[summary["Conference"] == "CUSA"]
-    st.write("CUSA row after merge:", cusa_row)
-
     # 3) Compute bounds
     pr_min, pr_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
     agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
     sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
+    pr_min, pr_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
+    agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
+    sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
 
-        # 4) Summary table (no logos here)
+            # 4) Summary table with conference logos
     left, right = st.columns([1,1])
     with left:
         html_sum = [
@@ -277,7 +273,16 @@ elif tab == "Conference Overviews":
             for c in cols_sum:
                 v = row[c]
                 td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-                if c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
+                if c == "Conference":
+                    logo = row.get("Logo URL")
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                        )
+                    else:
+                        cell = v
+                elif c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
                     mn, mx = (
                         (pr_min, pr_max) if c == "Avg. Power Rating" else
                         (agq_min, agq_max) if c == "Avg. Game Quality" else
