@@ -57,6 +57,50 @@ df_expected.rename(columns=rename_map, inplace=True)
 st.set_page_config(page_title="CFB 2025 Preview", page_icon="🏈", layout="wide")
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
+st.markdown("""
+<style>
+  /* Base responsive table */
+  .responsive-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    overflow-x: hidden;      /* no side scroll */
+    -webkit-overflow-scrolling: touch;
+  }
+  .responsive-table th,
+  .responsive-table td {
+    padding: 4px;             /* shrink padding */
+    font-size: 12px;          /* shrink text */
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 600px) {
+    /* hide these columns by their position in the table */
+    .responsive-table th:nth-child(3),
+    .responsive-table td:nth-child(3),  /* Vegas Win Total? adjust index if needed */
+    .responsive-table th:nth-child(5),
+    .responsive-table td:nth-child(5),  /* Undefeated Probability */
+    .responsive-table th:nth-child(7),
+    .responsive-table td:nth-child(7),  /* Projected Conference Losses */
+    .responsive-table th:nth-child(8),
+    .responsive-table td:nth-child(8),  /* Schedule Difficulty Rank */
+    .responsive-table th:nth-child(9),
+    .responsive-table td:nth-child(9)   /* Final 2024 Rank */
+    {
+      display: none;
+    }
+    /* you said you *do* want Projected Overall Wins (index 4) to show, so ensure it stays visible */
+    .responsive-table th:nth-child(4),
+    .responsive-table td:nth-child(4) {
+      display: table-cell;
+    }
+  }
+</style>
+""", unsafe_allow_html=True)
+
 # --- Responsive CSS for single table ---
 st.markdown("""
 <style>
@@ -122,7 +166,7 @@ if tab == "Rankings":
     ]
     html = [
         '<div style="max-height:600px; overflow-y:auto;">',
-        '<table class="responsive-table">',
+        '<table class="responsive-table" style="width:100%; table-layout: fixed;">',
         '<thead><tr>' + ''.join(
             f"<th style='border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white;'>{c}</th>"
             for c in cols
