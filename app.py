@@ -318,47 +318,46 @@ elif tab == "Conference Overviews":
         y_min, y_max = y_min - pad_y, y_max + pad_y
         # Draw more gridlines
         grid_fracs = [0, 0.2, 0.4, 0.6, 0.8, 1]
-        for frac in grid_fracs:
-            xpos = int(50 + 500 * frac)
-            ypos = int(550 - 500 * frac)
-            if frac not in [0,1]:
-                # Vertical gridlines
-                scatter_html += f'<line x1="{xpos}" y1="50" x2="{xpos}" y2="550" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
-                # Horizontal gridlines
-                scatter_html += f'<line x1="50" y1="{ypos}" x2="550" y2="{ypos}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
-        for _, row in plot_df.iterrows():
-            x = int(50 + 500 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
-            y = int(550 - 500 * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
-            logo_url = row["Logo URL"]
-            conf_name = row["Conference"]
-            scatter_html += f'''
-            <image href="{logo_url}" x="{x-14}" y="{y-14}" width="28" height="28">
-                <title>{conf_name}</title>
-            </image>
-            '''
-        scatter_html += '''
-            <!-- X axis -->
-            <line x1="50" y1="550" x2="550" y2="550" stroke="#888" stroke-width="2"/>
-            <text x="300" y="590" font-size="16" fill="#222" text-anchor="middle">Avg. Game Quality</text>
-            <!-- Y axis -->
-            <line x1="50" y1="50" x2="50" y2="550" stroke="#888" stroke-width="2"/>
-            <text x="10" y="300" font-size="16" fill="#222" text-anchor="middle" transform="rotate(-90,10,300)">Avg. Power Rating</text>
-        '''
-        for frac in grid_fracs:
-            xv = x_min + (x_max - x_min) * frac
-            xpos = int(50 + 500 * frac)
-            scatter_html += f'<text x="{xpos}" y="570" font-size="12" fill="#444" text-anchor="middle">{xv:.1f}</text>'
-            scatter_html += f'<line x1="{xpos}" y1="545" x2="{xpos}" y2="555" stroke="#888" stroke-width="1"/>'
-        for frac in grid_fracs:
-            yv = y_min + (y_max - y_min) * frac
-            ypos = int(550 - 500 * frac)
-            scatter_html += f'<text x="30" y="{ypos+4}" font-size="12" fill="#444" text-anchor="end">{yv:.1f}</text>'
-            scatter_html += f'<line x1="45" y1="{ypos}" x2="55" y2="{ypos}" stroke="#888" stroke-width="1"/>'
-        scatter_html += """
-            </svg>
-        </div>
-        """
-        components.html(scatter_html, height=600)
+for frac in grid_fracs:
+    xpos = int(50 + 500 * frac)
+    ypos = int(350 - 300 * frac)
+    if frac not in [0,1]:
+        scatter_html += f'<line x1="{xpos}" y1="50" x2="{xpos}" y2="350" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
+        scatter_html += f'<line x1="50" y1="{ypos}" x2="550" y2="{ypos}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
+for _, row in plot_df.iterrows():
+    x = int(50 + 500 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
+    y = int(350 - 300 * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
+    logo_url = row["Logo URL"]
+    conf_name = row["Conference"]
+    scatter_html += f'''
+    <image href="{logo_url}" x="{x-14}" y="{y-14}" width="28" height="28">
+        <title>{conf_name}</title>
+    </image>
+    '''
+scatter_html += '''
+    <!-- X axis -->
+    <line x1="50" y1="350" x2="550" y2="350" stroke="#888" stroke-width="2"/>
+    <text x="300" y="390" font-size="16" fill="#222" text-anchor="middle">Avg. Game Quality</text>
+    <!-- Y axis -->
+    <line x1="50" y1="50" x2="50" y2="350" stroke="#888" stroke-width="2"/>
+    <text x="10" y="200" font-size="16" fill="#222" text-anchor="middle" transform="rotate(-90,10,200)">Avg. Power Rating</text>
+'''
+for frac in grid_fracs:
+    xv = x_min + (x_max - x_min) * frac
+    xpos = int(50 + 500 * frac)
+    scatter_html += f'<text x="{xpos}" y="370" font-size="12" fill="#444" text-anchor="middle">{xv:.1f}</text>'
+    scatter_html += f'<line x1="{xpos}" y1="345" x2="{xpos}" y2="355" stroke="#888" stroke-width="1"/>'
+for frac in grid_fracs:
+    yv = y_min + (y_max - y_min) * frac
+    ypos = int(350 - 300 * frac)
+    scatter_html += f'<text x="30" y="{ypos+4}" font-size="12" fill="#444" text-anchor="end">{yv:.1f}</text>'
+    scatter_html += f'<line x1="45" y1="{ypos}" x2="55" y2="{ypos}" stroke="#888" stroke-width="1"/>'
+scatter_html += """
+    </svg>
+</div>
+"""
+components.html(scatter_html, height=400)
+
 
 
 
