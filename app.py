@@ -120,44 +120,68 @@ if tab == "Rankings":
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
-    html = ['<div style="max-height:600px; overflow-y:auto;">', '<table style="width:100%; border-collapse:collapse;">', '<thead><tr>']
+    html = [
+        '<div style="max-height:600px; overflow-y:auto;">',
+        '<table style="width:100%; border-collapse:collapse;">',
+        '<thead><tr>'
+    ]
     for c in cols_rank:
-        th = ('border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; '
-              'color:white; position:sticky; top:0; z-index:2;')
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; '
+            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+        )
         if c == "Team":
+            th += " white-space:nowrap; min-width:200px;"
+        html.append(f"<th style='{th}'>{c}</th>")
+    html.append("</tr></thead><tbody>")
+
+    # Rows
+    for _, row in df.iterrows():
+        html.append("<tr>")
+        for c in cols_rank:
+            v = row[c]
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+
+            if c == "Team":
                 logo = row.get("Logo URL")
-                if pd.notnull(logo) and logo.startswith("http"):
+                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
                     cell = (
                         f'<div style="display:flex;align-items:center;">'
                         f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
                     )
                 else:
                     cell = v
+
             elif c == "OVER/UNDER Pick" and isinstance(v, str):
                 cell = v
                 if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
                 elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
+
             elif c == "Power Rating" and pd.notnull(v):
                 t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
                 r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                 td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                 cell = f"{v:.1f}"
+
             elif c == "Average Game Quality" and pd.notnull(v):
                 t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
                 r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                 td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                 cell = f"{v:.1f}"
+
             elif c == "Schedule Difficulty Rating" and pd.notnull(v):
                 inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
                 r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
                 td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
                 cell = f"{v:.1f}"
+
             else:
                 cell = v
+
             html.append(f"<td style='{td}'>{cell}</td>")
-        html.append('</tr>')
-    html.append('</tbody></table></div>')
-    st.markdown(''.join(html), unsafe_allow_html=True)
+        html.append("</tr>")
+    html.append("</tbody></table></div>")
+    st.markdown("".join(html), unsafe_allow_html=True)
 
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
