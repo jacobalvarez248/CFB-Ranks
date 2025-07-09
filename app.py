@@ -143,7 +143,7 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
-    # Columns to display
+        # Columns to display
     mobile_cols = [
         "Preseason Rank", 
         "Team",  # Logo only
@@ -156,16 +156,29 @@ if tab == "Rankings":
     ]
     if is_mobile():
         cols_rank = [c for c in mobile_cols if c in df.columns]
-        table_style = "width:100%; border-collapse:collapse; table-layout:fixed;"
+        # MOBILE: Fix width to 100vw, hide horizontal scroll, smaller font, no text wrap
+        table_style = (
+            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; "
+            "font-size:13px;"
+        )
+        wrapper_style = (
+            "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+        )
+        header_font = "font-size:13px;"
+        cell_font = "font-size:13px; white-space:nowrap;"
     else:
         cols_rank = (
             df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
             if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
         )
+        # DESKTOP: Widen Team column, no text wrap
         table_style = "width:100%; border-collapse:collapse;"
+        wrapper_style = "max-width:100%; overflow-x:auto;"
+        header_font = ""
+        cell_font = "white-space:nowrap; font-size:15px;"
 
     html = [
-        '<div style="max-height:600px; overflow-y:auto;">',
+        f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
@@ -175,11 +188,17 @@ if tab == "Rankings":
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         )
         if c == "Team":
-            th += " white-space:nowrap; min-width:48px; max-width:48px;"
+            if is_mobile():
+                th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
+            else:
+                th += " white-space:nowrap; min-width:180px; max-width:280px;"  # much wider for desktop, no wrap
+        else:
+            th += " white-space:nowrap;"
+        th += header_font
         html.append(f"<th style='{th}'>{c if c != 'Team' else ''}</th>")
     html.append("</tr></thead><tbody>")
 
-    # For coloring
+    # For coloring (same as before)
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
@@ -189,6 +208,7 @@ if tab == "Rankings":
         for c in cols_rank:
             v = row[c]
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td += cell_font
             cell = v
             if c == "Team":
                 logo = row.get("Logo URL")
@@ -203,7 +223,7 @@ if tab == "Rankings":
                 else:
                     cell = "" if is_mobile() else v
             else:
-                # existing branches
+                # (conditional formatting as before)
                 if c == "OVER/UNDER Pick" and isinstance(v, str):
                     if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
                     elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
@@ -229,6 +249,7 @@ if tab == "Rankings":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
 
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
@@ -332,4 +353,5 @@ elif tab == "Conference Overviews":
     with right:
         st.markdown("#### Conference Overview Chart Placeholder")
         # (Add chart/plot code here as needed)
+
 
