@@ -143,20 +143,23 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
-        # Columns to display
-    mobile_cols = [
-        "Preseason Rank", 
-        "Team",  # Logo only
-        "Vegas Win Total",
-        "Projected Overall Wins",
-        "Projected Overall Losses",
-        "OVER/UNDER Pick",
-        "Average Game Quality",
-        "Schedule Difficulty Rating",
-    ]
+            # --- Rankings Table Setup ---
+    # Short column headers for mobile
+    mobile_header_map = {
+        "Preseason Rank": "Rank",
+        "Team": "Team",
+        "Vegas Win Total": "Win Total",
+        "Projected Overall Wins": "Proj. Wins",
+        "Projected Overall Losses": "Proj. Losses",
+        "OVER/UNDER Pick": "OVER/UNDER",
+        "Average Game Quality": "Avg. Game Qty",
+        "Schedule Difficulty Rating": "Sched. Diff.",
+    }
+    mobile_cols = list(mobile_header_map.keys())
+
     if is_mobile():
         cols_rank = [c for c in mobile_cols if c in df.columns]
-        # MOBILE: Fix width to 100vw, hide horizontal scroll, smaller font, no text wrap
+        display_headers = [mobile_header_map[c] for c in cols_rank]
         table_style = (
             "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; "
             "font-size:13px;"
@@ -171,7 +174,7 @@ if tab == "Rankings":
             df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
             if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
         )
-        # DESKTOP: Widen Team column, no text wrap
+        display_headers = [c if c != "Team" else "Team" for c in cols_rank]
         table_style = "width:100%; border-collapse:collapse;"
         wrapper_style = "max-width:100%; overflow-x:auto;"
         header_font = ""
@@ -182,7 +185,8 @@ if tab == "Rankings":
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
-    for c in cols_rank:
+    # Use display_headers for headers, always "Team" for the team column
+    for disp_col, c in zip(display_headers, cols_rank):
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
@@ -195,8 +199,9 @@ if tab == "Rankings":
         else:
             th += " white-space:nowrap;"
         th += header_font
-        html.append(f"<th style='{th}'>{c if c != 'Team' else ''}</th>")
+        html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
+
 
     # For coloring (same as before)
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
