@@ -113,16 +113,18 @@ if tab == "Rankings":
     st.markdown(
         """
         <style>
-        @media only screen and (max-width: 600px) {
+        @media only screen and (max-width: 1000px) {
           .desktop-only { display: none !important; }
           .mobile-only  { display: block !important; }
         }
-        @media only screen and (min-width: 601px) {
+        @media only screen and (min-width: 1001px) {
           .desktop-only { display: block !important; }
           .mobile-only  { display: none !important; }
         }
         </style>
         """,
+        unsafe_allow_html=True,
+    ),
         unsafe_allow_html=True,
     )
 
@@ -166,19 +168,14 @@ if tab == "Rankings":
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         )
         if c == "Team":
-            th += " white-space:nowrap;"
-        html.append(f"<th style='{th}'>{c}</th>")
-    html.extend(["</tr></thead><tbody>"])
-
-    for _, row in df.iterrows():
-        html.append("<tr>")
-        for c in cols_rank:
-            v = row[c]
-            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-            if c == "Team":
                 logo = row.get("Logo URL")
                 if isinstance(logo, str) and logo.startswith("http"):
-                    cell = f'<img src="{logo}" width="24"/>'
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                    )
+                else:
+                    cell = v"{logo}" width="24"/>'
                 else:
                     cell = ""
             elif c == "OVER/UNDER Pick" and isinstance(v, str):
@@ -219,7 +216,7 @@ if tab == "Rankings":
     ]
     df_mobile = df_expected.copy().sort_values(by="Preseason Rank")
     html2 = [
-        '<div style="overflow-y:auto;">',
+        '<div style="overflow-y:auto; overflow-x:hidden;">',
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
     ]
