@@ -46,7 +46,7 @@ df_expected = df_expected.merge(team_logos, on="Team", how="left")
 import streamlit.components.v1 as components
 
 # Only call this ONCE at the top, never inside a function or repeatedly
-FORCE_MOBILE = st.sidebar.checkbox("Force mobile view", False)
+FORCE_MOBILE = st.sidebar.checkbox("Mobile View", False)
 def is_mobile():
     return FORCE_MOBILE
 
@@ -164,7 +164,7 @@ if tab == "Rankings":
         wrapper_style = (
             "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
         )
-        header_font = "font-size:13px;"
+        header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
     else:
         cols_rank = (
