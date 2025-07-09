@@ -157,7 +157,7 @@ if tab == "Rankings":
         )
         if c == "Team":
             th_style += " white-space:nowrap; min-width:250px;"
-        html.append(f'<th style="{th_style}">{c}</th>'))
+        html.append(f'<th style="{th_style}">{c}</th>')
     html.append('</tr></thead><tbody>')
     for _, row in df.iterrows():
         html.append('<tr>')
