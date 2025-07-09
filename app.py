@@ -251,112 +251,113 @@ elif tab == "Conference Overviews":
 
             # 4) Summary table with conference logos
     left, right = st.columns([1,1])
-with left:
-    html_sum = [
-        '<div style="overflow-x:auto; max-height:600px; overflow-y:auto;">',
-        '<table style="width:100%; border-collapse:collapse;">',
-        '<thead><tr>'
-    ]
-    cols_sum = ["Conference", "# Teams", "Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]
-    for c in cols_sum:
-        th = (
-            'border:1px solid #ddd; padding:8px; text-align:center; '
-            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-        )
-        if c == "Conference":
-            th += " white-space:nowrap; min-width:150px;"
-        html_sum.append(f"<th style='{th}'>{c}</th>")
-    html_sum.append("</tr></thead><tbody>")
-
-    for _, row in summary.iterrows():
-        html_sum.append("<tr>")
+    with left:
+        html_sum = [
+            '<div style="overflow-x:auto; max-height:600px; overflow-y:auto;">',
+            '<table style="width:100%; border-collapse:collapse;">',
+            '<thead><tr>'
+        ]
+        cols_sum = ["Conference", "# Teams", "Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]
         for c in cols_sum:
-            v = row[c]
-            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            th = (
+                'border:1px solid #ddd; padding:8px; text-align:center; '
+                'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+            )
             if c == "Conference":
-                logo = row.get("Logo URL")
-                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                th += " white-space:nowrap; min-width:150px;"
+            html_sum.append(f"<th style='{th}'>{c}</th>")
+        html_sum.append("</tr></thead><tbody>")
+
+        for _, row in summary.iterrows():
+            html_sum.append("<tr>")
+            for c in cols_sum:
+                v = row[c]
+                td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+                if c == "Conference":
+                    logo = row.get("Logo URL")
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                        )
+                    else:
+                        cell = v
+                elif c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
+                    mn, mx = (
+                        (pr_min, pr_max) if c == "Avg. Power Rating" else
+                        (agq_min, agq_max) if c == "Avg. Game Quality" else
+                        (sdr_min, sdr_max)
                     )
+                    t = (v - mn) / (mx - mn) if mx > mn else 0
+                    if c == "Avg. Schedule Difficulty":
+                        t = 1 - t
+                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
+                    cell = f"{v:.1f}"
                 else:
                     cell = v
-            elif c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
-                mn, mx = (
-                    (pr_min, pr_max) if c == "Avg. Power Rating" else
-                    (agq_min, agq_max) if c == "Avg. Game Quality" else
-                    (sdr_min, sdr_max)
-                )
-                t = (v - mn) / (mx - mn) if mx > mn else 0
-                if c == "Avg. Schedule Difficulty":
-                    t = 1 - t
-                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
-                cell = f"{v:.1f}"
-            else:
-                cell = v
-            html_sum.append(f"<td style='{td}'>{cell}</td>")
-        html_sum.append("</tr>")
-    html_sum.append("</tbody></table></div>")
-    st.markdown("".join(html_sum), unsafe_allow_html=True)
+                html_sum.append(f"<td style='{td}'>{cell}</td>")
+            html_sum.append("</tr>")
+        html_sum.append("</tbody></table></div>")
+        st.markdown("".join(html_sum), unsafe_allow_html=True)
 
-with right:
-    st.markdown("#### Conference Strength: Power Rating vs. Game Quality")
-    import streamlit.components.v1 as components
-    plot_df = summary.dropna(subset=["Logo URL"]).copy()
-    scatter_html = """
-    <div style='width:100%; max-width:600px; height:380px; position:relative;'>
-        <svg width='100%' height='100%' viewBox='0 0 600 350'>
-    """
-    x_min, x_max = plot_df["Avg. Game Quality"].min(), plot_df["Avg. Game Quality"].max()
-    y_min, y_max = plot_df["Avg. Power Rating"].min(), plot_df["Avg. Power Rating"].max()
-    pad_x = (x_max - x_min) * 0.07
-    pad_y = (y_max - y_min) * 0.09
-    x_min, x_max = x_min - pad_x, x_max + pad_x
-    y_min, y_max = y_min - pad_y, y_max + pad_y
-    # Draw gridlines
-    for frac in [0, 0.5, 1]:
-        xpos = int(50 + 500 * frac)
-        ypos = int(300 - 250 * frac)
-        if frac not in [0,1]:
-            # Vertical gridlines
-            scatter_html += f'<line x1="{xpos}" y1="50" x2="{xpos}" y2="300" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
-            # Horizontal gridlines
-            scatter_html += f'<line x1="50" y1="{ypos}" x2="550" y2="{ypos}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
-    for _, row in plot_df.iterrows():
-        x = int(50 + 500 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
-        y = int(300 - 250 * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
-        logo_url = row["Logo URL"]
-        conf_name = row["Conference"]
-        scatter_html += f'''
-        <image href="{logo_url}" x="{x-14}" y="{y-14}" width="28" height="28">
-            <title>{conf_name}</title>
-        </image>
+    with right:
+        st.markdown("#### Conference Strength: Power Rating vs. Game Quality")
+        import streamlit.components.v1 as components
+        plot_df = summary.dropna(subset=["Logo URL"]).copy()
+        scatter_html = """
+        <div style='width:100%; max-width:600px; height:380px; position:relative;'>
+            <svg width='100%' height='100%' viewBox='0 0 600 350'>
+        """
+        x_min, x_max = plot_df["Avg. Game Quality"].min(), plot_df["Avg. Game Quality"].max()
+        y_min, y_max = plot_df["Avg. Power Rating"].min(), plot_df["Avg. Power Rating"].max()
+        pad_x = (x_max - x_min) * 0.07
+        pad_y = (y_max - y_min) * 0.09
+        x_min, x_max = x_min - pad_x, x_max + pad_x
+        y_min, y_max = y_min - pad_y, y_max + pad_y
+        # Draw gridlines
+        for frac in [0, 0.5, 1]:
+            xpos = int(50 + 500 * frac)
+            ypos = int(300 - 250 * frac)
+            if frac not in [0,1]:
+                # Vertical gridlines
+                scatter_html += f'<line x1="{xpos}" y1="50" x2="{xpos}" y2="300" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
+                # Horizontal gridlines
+                scatter_html += f'<line x1="50" y1="{ypos}" x2="550" y2="{ypos}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
+        for _, row in plot_df.iterrows():
+            x = int(50 + 500 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
+            y = int(300 - 250 * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
+            logo_url = row["Logo URL"]
+            conf_name = row["Conference"]
+            scatter_html += f'''
+            <image href="{logo_url}" x="{x-14}" y="{y-14}" width="28" height="28">
+                <title>{conf_name}</title>
+            </image>
+            '''
+        scatter_html += '''
+            <!-- X axis -->
+            <line x1="50" y1="300" x2="550" y2="300" stroke="#888" stroke-width="2"/>
+            <text x="300" y="340" font-size="16" fill="#222" text-anchor="middle">Avg. Game Quality</text>
+            <!-- Y axis -->
+            <line x1="50" y1="50" x2="50" y2="300" stroke="#888" stroke-width="2"/>
+            <text x="10" y="175" font-size="16" fill="#222" text-anchor="middle" transform="rotate(-90,10,175)">Avg. Power Rating</text>
         '''
-    scatter_html += '''
-        <!-- X axis -->
-        <line x1="50" y1="300" x2="550" y2="300" stroke="#888" stroke-width="2"/>
-        <text x="300" y="340" font-size="16" fill="#222" text-anchor="middle">Avg. Game Quality</text>
-        <!-- Y axis -->
-        <line x1="50" y1="50" x2="50" y2="300" stroke="#888" stroke-width="2"/>
-        <text x="10" y="175" font-size="16" fill="#222" text-anchor="middle" transform="rotate(-90,10,175)">Avg. Power Rating</text>
-    '''
-    for frac in [0, 0.5, 1]:
-        xv = x_min + (x_max - x_min) * frac
-        xpos = int(50 + 500 * frac)
-        scatter_html += f'<text x="{xpos}" y="320" font-size="12" fill="#444" text-anchor="middle">{xv:.1f}</text>'
-        scatter_html += f'<line x1="{xpos}" y1="295" x2="{xpos}" y2="305" stroke="#888" stroke-width="1"/>'
-    for frac in [0, 0.5, 1]:
-        yv = y_min + (y_max - y_min) * frac
-        ypos = int(300 - 250 * frac)
-        scatter_html += f'<text x="30" y="{ypos+4}" font-size="12" fill="#444" text-anchor="end">{yv:.1f}</text>'
-        scatter_html += f'<line x1="45" y1="{ypos}" x2="55" y2="{ypos}" stroke="#888" stroke-width="1"/>'
-    scatter_html += """
-        </svg>
-    </div>
-    """
-    components.html(scatter_html, height=380)
+        for frac in [0, 0.5, 1]:
+            xv = x_min + (x_max - x_min) * frac
+            xpos = int(50 + 500 * frac)
+            scatter_html += f'<text x="{xpos}" y="320" font-size="12" fill="#444" text-anchor="middle">{xv:.1f}</text>'
+            scatter_html += f'<line x1="{xpos}" y1="295" x2="{xpos}" y2="305" stroke="#888" stroke-width="1"/>'
+        for frac in [0, 0.5, 1]:
+            yv = y_min + (y_max - y_min) * frac
+            ypos = int(300 - 250 * frac)
+            scatter_html += f'<text x="30" y="{ypos+4}" font-size="12" fill="#444" text-anchor="end">{yv:.1f}</text>'
+            scatter_html += f'<line x1="45" y1="{ypos}" x2="55" y2="{ypos}" stroke="#888" stroke-width="1"/>'
+        scatter_html += """
+            </svg>
+        </div>
+        """
+        components.html(scatter_html, height=380)
+
 
 # 5) Detailed conference table (full width below columns)
 st.markdown("---")
