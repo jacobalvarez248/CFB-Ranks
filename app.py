@@ -151,32 +151,29 @@ if tab == "Rankings":
                     )
                 else:
                     cell = v
-
-            elif c == "OVER/UNDER Pick" and isinstance(v, str):
-                cell = v
-                if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
-                elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
-
-            elif c == "Power Rating" and pd.notnull(v):
-                t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
-                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-
-            elif c == "Average Game Quality" and pd.notnull(v):
-                t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
-                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-
-            elif c == "Schedule Difficulty Rating" and pd.notnull(v):
-                inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
-                r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-
             else:
-                cell = v
+                # existing branches
+                if c == "OVER/UNDER Pick" and isinstance(v, str):
+                    cell = v
+                    if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
+                    elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
+                elif c == "Power Rating" and pd.notnull(v):
+                    t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                elif c == "Average Game Quality" and pd.notnull(v):
+                    t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
+                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                elif c == "Schedule Difficulty Rating" and pd.notnull(v):
+                    inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
+                    r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                else:
+                    cell = v
 
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
@@ -265,22 +262,8 @@ elif tab == "Conference Overviews":
             html_sum.append('</tr>')
         html_sum.append('</tbody></table></div>')
         st.markdown(''.join(html_sum), unsafe_allow_html=True)
-    with right:
-        # Scatter with logos
-        chart_df = df_expected.merge(temp, on="Team", how="left")
-        scatter = (
-            alt.Chart(chart_df)
-               .mark_image(width=24, height=24)
-               .encode(
-                   x="Average Game Quality:Q",
-                   y="Power Rating:Q",
-                   url="Logo URL:N",
-                   tooltip=["Team","Power Rating","Average Game Quality"]
-               )
-               .properties(height=600)
-        )
-        st.altair_chart(scatter.interactive(), use_container_width=True)
-
+    # No scatterplot on the right
+    # (scatter removed per request)
     # 5) Detailed conference table
     st.markdown("---")
     sel = st.selectbox("Select conference for details", summary["Conference"].tolist())
