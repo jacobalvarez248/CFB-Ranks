@@ -109,6 +109,25 @@ tab = st.sidebar.radio(
 # ------ Rankings ------
 if tab == "Rankings":
     st.header("📋 Rankings")
+    # Responsive CSS for desktop vs mobile
+    st.markdown(
+        """
+        <style>
+        @media only screen and (max-width: 600px) {
+          .desktop-only { display: none !important; }
+          .mobile-only  { display: block !important; }
+        }
+        @media only screen and (min-width: 601px) {
+          .desktop-only { display: block !important; }
+          .mobile-only  { display: none !important; }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # --- Desktop Version ---
+    st.markdown('<div class="desktop-only">', unsafe_allow_html=True)
     team_search = st.sidebar.text_input("Search team...", "")
     conf_search = st.sidebar.text_input("Filter by conference...", "")
     sort_col = st.sidebar.selectbox(
@@ -151,51 +170,100 @@ if tab == "Rankings":
         html.append(f"<th style='{th}'>{c}</th>")
     html.append("</tr></thead><tbody>")
 
-    # Rows
     for _, row in df.iterrows():
         html.append("<tr>")
         for c in cols_rank:
             v = row[c]
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-
+            # Team with logo
             if c == "Team":
                 logo = row.get("Logo URL")
-                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                if isinstance(logo, str) and logo.startswith("http"):
                     cell = (
                         f'<div style="display:flex;align-items:center;">'
                         f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
                     )
                 else:
                     cell = v
+            elif c == "OVER/UNDER Pick" and isinstance(v, str):
+                cell = v
+                if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
+                elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
+            elif c == "Power Rating" and pd.notnull(v):
+                t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            elif c == "Average Game Quality" and pd.notnull(v):
+                t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            elif c == "Schedule Difficulty Rating" and pd.notnull(v):
+                inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
+                r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
+                cell = f"{v:.1f}"
             else:
-                # existing branches
-                if c == "OVER/UNDER Pick" and isinstance(v, str):
-                    cell = v
-                    if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
-                    elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
-                elif c == "Power Rating" and pd.notnull(v):
-                    t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
-                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                elif c == "Average Game Quality" and pd.notnull(v):
-                    t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
-                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                elif c == "Schedule Difficulty Rating" and pd.notnull(v):
-                    inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
-                    r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                else:
-                    cell = v
-
+                cell = v
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
+    # --- Mobile Version ---
+    st.markdown('<div class="mobile-only">', unsafe_allow_html=True)
+    # Mobile portrait mode: select specific columns and order
+    cols_mobile = [
+        "Preseason Rank",
+        "Team",
+        "Vegas Win Total",
+        "Projected Overall Wins",
+        "Projected Overall Losses",
+        "OVER/UNDER Pick",
+        "Average Game Quality",
+        "Schedule Difficulty Rating",
+    ]
+    df_mobile = df_expected.copy().sort_values(by="Preseason Rank")
+    html = ['<div style="overflow-y:auto;">', '<table style="width:100%; border-collapse:collapse;">', '<thead><tr>']
+    display_names = {"OVER/UNDER Pick": "OVER/UNDER Pick"}
+    for c in cols_mobile:
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; '
+            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+        )
+        label = display_names.get(c, c)
+        if c == "Team": th += " white-space:nowrap;"; label = ""
+        html.append(f"<th style='{th}'>{label}</th>")
+    html.append('</tr></thead><tbody>')
+    for _, row in df_mobile.iterrows():
+        html.append('<tr>')
+        for c in cols_mobile:
+            v = row.get(c, ""); td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            if c == "Team":
+                logo = row.get("Logo URL")
+                cell = f'<img src="{logo}" width="24"/>' if isinstance(logo, str) and logo.startswith("http") else ""
+            elif c == "Vegas Win Total" or c in ["Projected Overall Wins","Projected Overall Losses"]:
+                cell = f"{v:.1f}" if pd.notnull(v) else ""
+            elif c == "OVER/UNDER Pick":
+                cell = v if isinstance(v, str) else ""
+                if cell.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
+                elif cell.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
+            elif c == "Average Game Quality" and pd.notnull(v):
+                mn,mx = df_mobile[c].min(),df_mobile[c].max(); t = (v-mn)/(mx-mn) if mx>mn else 0
+                r,g,b = [int(255+(x-255)*t) for x in(0,32,96)]; td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
+                cell=f"{v:.1f}"
+            elif c == "Schedule Difficulty Rating" and pd.notnull(v):
+                mn,mx=df_mobile[c].min(),df_mobile[c].max(); inv=1-((v-mn)/(mx-mn) if mx>mn else 0)
+                r,g,b=[int(255+(x-255)*inv) for x in(0,32,96)]; td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if inv>0.5 else 'black'};"
+                cell=f"{v:.1f}"
+            else: cell=v
+            html.append(f"<td style='{td}'>{cell}</td>")
+        html.append('</tr>')
+    html.append('</tbody></table></div>')
+    st.markdown(''.join(html), unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
