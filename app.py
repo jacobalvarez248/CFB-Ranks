@@ -267,13 +267,13 @@ elif tab == "Conference Overviews":
                 v = row[c]
                 td = 'border:1px solid #ddd; padding:8px; text-align:center;'
                 if c == "Conference":
-    logo = row.get("Image URL")
-    if not (isinstance(logo, str) and logo.startswith("http")) or logo.strip() == "":
-        logo = "https://png.pngtree.com/png-vector/20230115/ourmid/pngtree-american-football-nfl-rugby-ball-illustration-clipart-design-png-image_6564471.png"
-    cell = (
-        f'<div style="display:flex;align-items:center;">'
-        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-    )
+                    logo = row.get("Logo URL")
+                    if not (isinstance(logo, str) and logo.startswith("http")) or logo.strip() == "":
+                        logo = "https://png.pngtree.com/png-vector/20230115/ourmid/pngtree-american-football-nfl-rugby-ball-illustration-clipart-design-png-image_6564471.png"
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                    )
 
 
                 elif c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
