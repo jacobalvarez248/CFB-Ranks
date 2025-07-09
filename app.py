@@ -76,17 +76,6 @@ else:
     header_font = ""
     cell_font = "white-space:nowrap; font-size:15px;"
 
-    else:
-        cols_rank = (
-            df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
-            if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
-        )
-        display_headers = [c if c != "Team" else "Team" for c in cols_rank]
-        table_style = "width:100%; border-collapse:collapse;"
-        wrapper_style = "max-width:100%; overflow-x:auto;"
-        header_font = ""
-        cell_font = "white-space:nowrap; font-size:15px;"
-
     html = [
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
