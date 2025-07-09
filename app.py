@@ -201,8 +201,9 @@ if tab == "Rankings":
 
     for i, (disp_col, c) in enumerate(zip(display_headers, cols_rank)):
         th = (
-            'border:1px solid #ddd; padding:8px; text-align:center; '
-            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+    'border:1px solid #ddd; padding:8px; text-align:center; '
+    'background-color:#002060; color:white;'
+); color:white; position:sticky; top:0; z-index:2;'
         )
         # Desktop: Pin Preseason Rank and Team columns
         if not is_mobile() and c in PINNED_COLS:
