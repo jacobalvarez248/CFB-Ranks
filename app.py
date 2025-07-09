@@ -154,7 +154,7 @@ if tab == "Rankings":
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
     html = [
-        '<div style="max-height:600px; overflow-y:auto;"><div class="desktop-only">',
+        '<div class="desktop-only"><div style="max-height:600px; overflow-y:auto;">'<div class="desktop-only">',
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
     ]
@@ -201,7 +201,7 @@ if tab == "Rankings":
                 cell = v
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
-    html.extend(["</tbody></table></div>"])
+    html.extend(["</tbody></table></div></div>"])
     st.markdown("".join(html), unsafe_allow_html=True)
 
     # --- Mobile Version ---
