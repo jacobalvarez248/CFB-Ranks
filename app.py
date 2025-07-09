@@ -37,8 +37,9 @@ if "Image URL" in logos_df.columns:
     logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
 
 # Prepare separate team logos and conference logos
-team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team", "Logo URL"]].copy()
+team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]].copy()
 # Merge team logos into df_expected
+# (so conference-logo entries in logos_df won't mix into team tables)
 df_expected = df_expected.merge(team_logos, on="Team", how="left")
 
 # --- Streamlit Config ---
@@ -68,6 +69,7 @@ else:
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
 # --- Data Cleaning & Renaming ---
+# Normalize Conference names in df_expected to match logo sheet (drop hyphens & uppercase)
 df_expected["Conference"] = (
     df_expected["Conference"].astype(str)
     .str.strip()
@@ -92,17 +94,21 @@ rename_map = {
     "Final 2022 Rank": "Final 2024 Rank",
 }
 df_expected.rename(columns=rename_map, inplace=True)
+# Add Preseason Rank if missing
 if "Preseason Rank" not in df_expected.columns:
     df_expected.insert(0, "Preseason Rank", list(range(1, len(df_expected) + 1)))
+# Format probabilities
 if "Undefeated Probability" in df_expected.columns:
     df_expected["Undefeated Probability"] = (
         df_expected["Undefeated Probability"].apply(
             lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
         )
     )
+# Round numeric cols except ranks
 drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
 numeric_cols = [c for c in df_expected.select_dtypes(include=["number"]).columns if c not in drop_ranks]
 df_expected[numeric_cols] = df_expected[numeric_cols].round(1)
+# Ensure types
 for col in ["Preseason Rank", "Final 2024 Rank"]:
     if col in df_expected.columns:
         df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').fillna(0).astype(int)
@@ -137,53 +143,49 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
-        # --- Rankings Table Setup ---
-        mobile_header_map = {
+            # --- Rankings Table Setup ---
+    # Short column headers for mobile
+    mobile_header_map = {
         "Preseason Rank": "Rank",
         "Team": "Team",
-        "Power Rating": "Pwr. Rtg.",
+        "Vegas Win Total": "Win Total",
         "Projected Overall Wins": "Proj. Wins",
         "Projected Overall Losses": "Proj. Losses",
-        "OVER/UNDER Pick": "OVER/ UNDER",
+        "OVER/UNDER Pick": "OVER/UNDER",
         "Average Game Quality": "Avg. Game Qty",
         "Schedule Difficulty Rating": "Sched. Diff.",
     }
-
-    if "Schedule Difficulty Rating" in df.columns:
-        last_idx = df.columns.get_loc("Schedule Difficulty Rating") + 1
-        cols_rank = df.columns[:last_idx]
-    else:
-        cols_rank = df.columns
+    mobile_cols = list(mobile_header_map.keys())
 
     if is_mobile():
-        display_headers = [mobile_header_map.get(c, c) for c in cols_rank]
+        cols_rank = [c for c in mobile_cols if c in df.columns]
+        display_headers = [mobile_header_map[c] for c in cols_rank]
         table_style = (
-            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; "
+            "font-size:13px;"
+        )
+        wrapper_style = (
+            "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
         )
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
-        wrapper_style = (
-            "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
-        )
     else:
+        cols_rank = (
+            df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
+            if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
+        )
         display_headers = [c if c != "Team" else "Team" for c in cols_rank]
         table_style = "width:100%; border-collapse:collapse;"
+        wrapper_style = "max-width:100%; overflow-x:auto;"
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
-        wrapper_style = (
-            "max-width:100vw; max-height:70vh; overflow-x:auto; overflow-y:auto; margin:0 -16px 0 -16px;"
-        )
-    else:
-        wrapper_style = (
-            "max-width:100vw; max-height:70vh; overflow-x:auto; overflow-y:auto; margin:0 -16px 0 -16px;"
-        )
 
     html = [
-
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
+    # Use display_headers for headers, always "Team" for the team column
     for disp_col, c in zip(display_headers, cols_rank):
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
@@ -191,16 +193,17 @@ if tab == "Rankings":
         )
         if c == "Team":
             if is_mobile():
-                th += " white-space:nowrap; min-width:48px; max-width:48px;"
+                th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
             else:
-                th += " white-space:nowrap; min-width:180px; max-width:280px;"
+                th += " white-space:nowrap; min-width:180px; max-width:280px;"  # much wider for desktop, no wrap
         else:
             th += " white-space:nowrap;"
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
 
-    # For coloring
+
+    # For coloring (same as before)
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
@@ -225,6 +228,7 @@ if tab == "Rankings":
                 else:
                     cell = "" if is_mobile() else v
             else:
+                # (conditional formatting as before)
                 if c == "OVER/UNDER Pick" and isinstance(v, str):
                     if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
                     elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
@@ -251,9 +255,11 @@ if tab == "Rankings":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
+
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
+
     # --- Data Prep for Table and Scatter ---
     summary = (
         df_expected.groupby("Conference").agg(
@@ -300,7 +306,7 @@ elif tab == "Conference Overviews":
 
     with left:
         html_sum = [
-            '<div style="overflow-x:auto;">',
+    '<div style="overflow-x:auto;">',
             '<table style="width:100%; border-collapse:collapse;">',
             '<thead><tr>'
         ]
@@ -328,6 +334,8 @@ elif tab == "Conference Overviews":
                         f'<div style="display:flex;align-items:center;">'
                         f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
                     )
+
+
                 elif c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
                     mn, mx = (
                         (pr_min, pr_max) if c == "Avg. Power Rating" else
@@ -351,4 +359,4 @@ elif tab == "Conference Overviews":
         st.markdown("#### Conference Overview Chart Placeholder")
         # (Add chart/plot code here as needed)
 
-# (You can add similar guards and code for the other tabs as needed)
+
