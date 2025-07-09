@@ -138,17 +138,7 @@ if tab == "Rankings":
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
         # --- Rankings Table Setup ---
-    desktop_cols = [
-        "Preseason Rank",
-        "Team",
-        "Power Rating",
-        "Projected Overall Wins",
-        "Projected Overall Losses",
-        "OVER/UNDER Pick",
-        "Average Game Quality",
-        "Schedule Difficulty Rating"
-    ]
-    mobile_header_map = {
+        mobile_header_map = {
         "Preseason Rank": "Rank",
         "Team": "Team",
         "Power Rating": "Pwr. Rtg.",
@@ -158,34 +148,30 @@ if tab == "Rankings":
         "Average Game Quality": "Avg. Game Qty",
         "Schedule Difficulty Rating": "Sched. Diff.",
     }
-    mobile_cols = list(mobile_header_map.keys())
+
+    if "Schedule Difficulty Rating" in df.columns:
+        last_idx = df.columns.get_loc("Schedule Difficulty Rating") + 1
+        cols_rank = df.columns[:last_idx]
+    else:
+        cols_rank = df.columns
 
     if is_mobile():
-        if "Schedule Difficulty Rating" in df.columns:
-            last_idx = df.columns.get_loc("Schedule Difficulty Rating") + 1
-            cols_rank = [c for c in df.columns[:last_idx] if c in mobile_cols]
-        else:
-            cols_rank = [c for c in df.columns if c in mobile_cols]
-        display_headers = [mobile_header_map[c] for c in cols_rank]
+        display_headers = [mobile_header_map.get(c, c) for c in cols_rank]
         table_style = (
             "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
         )
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
+        wrapper_style = (
+            "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
+        )
     else:
-        if "Schedule Difficulty Rating" in df.columns:
-            last_idx = df.columns.get_loc("Schedule Difficulty Rating") + 1
-            cols_rank = [c for c in df.columns[:last_idx] if c in desktop_cols]
-        else:
-            cols_rank = [c for c in df.columns if c in desktop_cols]
         display_headers = [c if c != "Team" else "Team" for c in cols_rank]
         table_style = "width:100%; border-collapse:collapse;"
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
-
-    if is_mobile():
         wrapper_style = (
-            "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
+            "max-width:100vw; max-height:70vh; overflow-x:auto; overflow-y:auto; margin:0 -16px 0 -16px;"
         )
     else:
         wrapper_style = (
