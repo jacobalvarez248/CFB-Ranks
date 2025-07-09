@@ -203,4 +203,4 @@ if tab == "Rankings":
             if is_mobile():
                 th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
             else:
-                th += " white-space:nowrap; min-width:180px; max-width:<|...|>
+                th += " white-space:nowrap; min-width:180px; max-width:180px;"
