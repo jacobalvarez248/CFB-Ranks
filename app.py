@@ -52,25 +52,17 @@ st.set_page_config(
 )
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
-# --- Responsive mobile CSS ---
+# --- Responsive desktop/mobile toggle CSS ---
 st.markdown("""
 <style>
-  /* Responsive table styling */
-  .responsive-table { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
-  .responsive-table table { width: 100%; table-layout: fixed; border-collapse: collapse; }
-  .responsive-table th, .responsive-table td { padding: 8px; }
+  .desktop-table { display: block; }
+  .mobile-table { display: none; }
   @media (max-width: 600px) {
-    .responsive-table th, .responsive-table td { font-size: 12px; padding: 4px; }
-    /* Hide in portrait: Conference(2), Undefeated Probability(5), Projected Conf Losses(7), Schedule Difficulty Rank(8), Final 2024 Rank(9) */
-    .responsive-table th:nth-child(2), .responsive-table td:nth-child(2),
-    .responsive-table th:nth-child(5), .responsive-table td:nth-child(5),
-    .responsive-table th:nth-child(7), .responsive-table td:nth-child(7),
-    .responsive-table th:nth-child(8), .responsive-table td:nth-child(8),
-    .responsive-table th:nth-child(9), .responsive-table td:nth-child(9) {
-      display: none !important;
-    }
+    .desktop-table { display: none !important; }
+    .mobile-table { display: block !important; }
   }
-</style>""", unsafe_allow_html=True)
+</style>
+""", unsafe_allow_html=True)
 
 # --- Data Cleaning & Renaming ---
 # Normalize Conference names in df_expected to match logo sheet (drop hyphens & uppercase)
@@ -94,7 +86,7 @@ rename_map = {
     "Column17": "Schedule Difficulty Rank",
     "xWins for Playoff Team": "Schedule Difficulty Rating",
     "Winless Probability": "Average Game Quality",
-    "Final 2022 Rank": "Final 2024 Rank"
+    "Final 2024 Rank": "Final 2024 Rank",
 }
 df_expected.rename(columns=rename_map, inplace=True)
 # Add Preseason Rank if missing
@@ -156,8 +148,7 @@ if tab == "Rankings":
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
     html = [
-        '<div class="desktop-table scrollable-table" style="max-height:600px; overflow-y:auto;">',
-        '<div class="scrollable-table" style="max-height:600px; overflow-y:auto;">',
+        '<div style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
     ]
