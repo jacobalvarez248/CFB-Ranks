@@ -116,22 +116,6 @@ st.markdown("""
   }
 </style>
 """, unsafe_allow_html=True)
-<style>
-  .responsive-table { overflow-x: hidden; width: 100%; table-layout: fixed; border-collapse: collapse; }
-  .responsive-table th, .responsive-table td { padding: 8px; }
-  @media (max-width: 600px) {
-    .responsive-table th, .responsive-table td { font-size: 12px; padding: 4px; }
-    /* Columns to hide: Conference(3), Undefeated Probability(5), Projected Conf Losses(7), Schedule Difficulty Rank(8), Final 2024 Rank(9) */
-    .responsive-table th:nth-child(3), .responsive-table td:nth-child(3),
-    .responsive-table th:nth-child(5), .responsive-table td:nth-child(5),
-    .responsive-table th:nth-child(7), .responsive-table td:nth-child(7),
-    .responsive-table th:nth-child(8), .responsive-table td:nth-child(8),
-    .responsive-table th:nth-child(9), .responsive-table td:nth-child(9) {
-      display: none;
-    }
-  }
-</style>
-""", unsafe_allow_html=True)
 
 # --- Sidebar & Navigation ---
 tab = st.sidebar.radio("Navigation", ["Rankings", "Conference Overviews", "Team Dashboards", "Charts & Graphs"])
