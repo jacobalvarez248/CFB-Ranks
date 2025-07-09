@@ -83,7 +83,7 @@ st.markdown("""
     text-overflow: ellipsis;
   }
 </style>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html==True)
 
 # --- Sidebar & Navigation ---
 tab = st.sidebar.radio("Navigation", ["Rankings", "Conference Overviews", "Team Dashboards", "Charts & Graphs"])
