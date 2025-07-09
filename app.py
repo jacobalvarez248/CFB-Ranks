@@ -75,7 +75,6 @@ rename_map = {
     "xWins for Playoff Team": "Schedule Difficulty Rating",
     "Winless Probability": "Average Game Quality",
     "Final 2024 Rank": "Final 2024 Rank",
-,
     "Final 2022 Rank": "Final 2024 Rank",
 }
 df_expected.rename(columns=rename_map, inplace=True)
