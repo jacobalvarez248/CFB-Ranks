@@ -315,13 +315,22 @@ with right:
     pad_y = (y_max - y_min) * 0.09
     x_min, x_max = x_min - pad_x, x_max + pad_x
     y_min, y_max = y_min - pad_y, y_max + pad_y
+    # Draw gridlines
+    for frac in [0, 0.5, 1]:
+        xpos = int(50 + 500 * frac)
+        ypos = int(300 - 250 * frac)
+        if frac not in [0,1]:
+            # Vertical gridlines
+            scatter_html += f'<line x1="{xpos}" y1="50" x2="{xpos}" y2="300" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
+            # Horizontal gridlines
+            scatter_html += f'<line x1="50" y1="{ypos}" x2="550" y2="{ypos}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
     for _, row in plot_df.iterrows():
         x = int(50 + 500 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
         y = int(300 - 250 * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
         logo_url = row["Logo URL"]
         conf_name = row["Conference"]
         scatter_html += f'''
-        <image href="{logo_url}" x="{x-20}" y="{y-20}" width="40" height="40">
+        <image href="{logo_url}" x="{x-14}" y="{y-14}" width="28" height="28">
             <title>{conf_name}</title>
         </image>
         '''
