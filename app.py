@@ -4,33 +4,36 @@ from pathlib import Path
 import altair as alt
 import streamlit.components.v1 as components
 
-# Detect mobile user agent
-# Requires: pip install streamlit-user-agents
-from streamlit_user_agents import detect
-user_agent = detect()
+# Mobile detection: try to import streamlit-user-agents
+try:
+    from streamlit_user_agents import detect
+    user_agent = detect()
+    default_mobile = user_agent.is_mobile
+except ImportError:
+    default_mobile = False  # streamlit-user-agents not installed, default to desktop
+
+# Sidebar Mobile Toggle
+# Default toggled based on detection
+st.sidebar.checkbox("Mobile View", default_mobile, key="FORCE_MOBILE")
+
+# Determine mobile mode
 def is_mobile():
     return st.session_state.FORCE_MOBILE
 
-# --- Sidebar Mobile Toggle ---
-# Default to mobile view when on phone
-default_mobile = user_agent.is_mobile
-# Key must match session_state usage
-st.sidebar.checkbox("Mobile View", default_mobile, key="FORCE_MOBILE")
-
-# --- Page Config based on Mobile ---
+# Page Config based on Mobile
 if is_mobile():
     st.set_page_config(
         page_title="CFB 2025 Preview",
         page_icon="🏈",
         layout="wide",
-        initial_sidebar_state="collapsed",
+        initial_sidebar_state="collapsed"
     )
 else:
     st.set_page_config(
         page_title="CFB 2025 Preview",
         page_icon="🏈",
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="expanded"
     )
 
 st.title("🎯 College Football 2025 Pre-Season Preview")
@@ -72,7 +75,6 @@ team_logos = tlogos[tlogos["Team"].isin(df_expected["Team"])][["Team","Logo URL"
 df_expected = df_expected.merge(team_logos, on="Team", how="left")
 
 # --- Data Cleaning & Formatting ---
-# Normalize conference names
 if "Conference" in df_expected.columns:
     df_expected["Conference"] = (
         df_expected["Conference"].astype(str)
@@ -80,10 +82,8 @@ if "Conference" in df_expected.columns:
         .str.replace("-", "", regex=False)
         .str.upper()
     )
-# Drop empty columns
 empty_cols = [c for c in df_expected.columns if str(c).strip() == ""]
 df_expected.drop(columns=empty_cols, inplace=True, errors='ignore')
-# Rename map
 rename_map = {
     "Column18": "Power Rating",
     "Projected Overall Record": "Projected Overall Wins",
@@ -96,17 +96,14 @@ rename_map = {
     "Winless Probability": "Average Game Quality",
 }
 df_expected.rename(columns=rename_map, inplace=True)
-# Add Preseason Rank if missing
 if "Preseason Rank" not in df_expected.columns:
     df_expected.insert(0, "Preseason Rank", list(range(1, len(df_expected) + 1)))
-# Format percentages
 if "Undefeated Probability" in df_expected.columns:
     df_expected["Undefeated Probability"] = (
         df_expected["Undefeated Probability"].apply(
             lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
         )
     )
-# Round numeric columns
 drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank"]
 numeric_cols = [c for c in df_expected.select_dtypes(include=["number"]) if c not in drop_ranks]
 if numeric_cols:
@@ -118,25 +115,15 @@ tab = st.sidebar.radio(
     ["Rankings", "Conference Overviews", "Team Dashboards", "Charts & Graphs"]
 )
 
-# --- Rankings Tab ---
 if tab == "Rankings":
     st.header("📋 Rankings")
-    # ... existing rankings code here ...
     pass
-
-# --- Conference Overviews ---
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
-    # ... existing conference code here ...
     pass
-
-# --- Team Dashboards ---
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
-    # ... team dashboard code ...
     pass
-
-# --- Charts & Graphs ---
 elif tab == "Charts & Graphs":
     st.header("📊 Charts & Graphs")
-    # ... charts and graphs code ...
+    pass
