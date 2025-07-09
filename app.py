@@ -57,20 +57,17 @@ df_expected.rename(columns=rename_map, inplace=True)
 st.set_page_config(page_title="CFB 2025 Preview", page_icon="🏈", layout="wide")
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
+# --- Desktop/Mobile Toggle CSS ---
 st.markdown("""
 <style>
-  .desktop-only { display: block; }
-  .mobile-only  { display: none; }
+  .desktop-only { display: block !important; }
+  .mobile-only  { display: none !important; }
   @media (max-width: 600px) {
     .desktop-only { display: none !important; }
     .mobile-only  { display: block !important; }
   }
 </style>
 """, unsafe_allow_html=True)
-
-
-
-
 
 # --- Sidebar & Navigation ---
 tab = st.sidebar.radio("Navigation", ["Rankings", "Conference Overviews", "Team Dashboards", "Charts & Graphs"])
@@ -135,8 +132,8 @@ if tab == "Rankings":
     # --- Mobile table (simplified) ---
     html_mobile = [
     '<div class="mobile-only" style="width:100%; table-layout:fixed; border-collapse:collapse;">',
-    '<table>',
-    '</table></div>'
+    '<table style="width:100%; border-collapse:collapse;">',
+    '<thead><tr>'
 ]
     for c in cols:
         if c == "Team": continue  # logo only on mobile header
