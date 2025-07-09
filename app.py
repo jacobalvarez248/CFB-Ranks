@@ -36,9 +36,11 @@ df_expected["Team"] = df_expected["Team"].str.strip()
 if "Image URL" in logos_df.columns:
     logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
 
-# Merge logos into df_expected
-temp = logos_df[["Team", "Logo URL"]].copy()
-df_expected = df_expected.merge(temp, on="Team", how="left")
+# Prepare separate team logos and conference logos
+team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]].copy()
+# Merge team logos into df_expected
+# (so conference-logo entries in logos_df won't mix into team tables)
+df_expected = df_expected.merge(team_logos, on="Team", how="left")
 
 # --- Streamlit Config ---
 st.set_page_config(
@@ -104,7 +106,7 @@ if tab == "Rankings":
     )
     asc = st.sidebar.checkbox("Ascending order", True)
 
-    df = df_expected.merge(temp, on="Team", how="left")
+    df = df_expected.merge(team_logos, on="Team", how="left")
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
     if conf_search and "Conference" in df.columns:
@@ -273,7 +275,8 @@ elif tab == "Conference Overviews":
     sel = st.selectbox("Select conference for details", summary["Conference"].tolist())
     df_conf = df_expected[df_expected["Conference"] == sel].copy()
     df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
-    df_conf = df_conf.merge(temp, on="Team", how="left")
+    # Merge team logos for detail table
+df_conf = df_conf.merge(team_logos, on="Team", how="left")
 
     cols_conf = [
         "Projected Conference Finish", "Preseason Rank", "Team", "Power Rating",
