@@ -113,11 +113,11 @@ if tab == "Rankings":
     # Responsive CSS
     st.markdown("""
         <style>
-        @media only screen and (max-width: 600px) {
+        @media only screen and (max-width: 1000px) {
           .desktop-only { display: none !important; }
           .mobile-only { display: block !important; overflow-x:hidden; }
         }
-        @media only screen and (min-width: 601px) {
+        @media only screen and (min-width: 1001px) {
           .desktop-only { display: block !important; }
           .mobile-only { display: none !important; }
         }
@@ -155,7 +155,9 @@ if tab == "Rankings":
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         )
-        html.append(f'<th style="{th_style}">{c}</th>')
+        if c == "Team":
+            th_style += " white-space:nowrap; min-width:250px;"
+        html.append(f'<th style="{th_style}">{c}</th>'))
     html.append('</tr></thead><tbody>')
     for _, row in df.iterrows():
         html.append('<tr>')
