@@ -143,19 +143,22 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
-            # --- Rankings Table Setup ---
-    # Short column headers for mobile
+    # --- Rankings Table Setup ---
     mobile_header_map = {
-    "Preseason Rank": "Rank",
-    "Team": "Team",
-    "Power Rating": "Pwr. Rtg.",
-    "Projected Overall Wins": "Proj. Wins",
-    "Projected Overall Losses": "Proj. Losses",
-    "OVER/UNDER Pick": "OVER/UNDER",
-    "Average Game Quality": "Avg. Game Qty",
-    "Schedule Difficulty Rating": "Sched. Diff.",
-}
+        "Preseason Rank": "Rank",
+        "Team": "Team",
+        "Power Rating": "Pwr. Rtg.",
+        "Projected Overall Wins": "Proj. Wins",
+        "Projected Overall Losses": "Proj. Losses",
+        "OVER/UNDER Pick": "OVER/UNDER",
+        "Average Game Quality": "Avg. Game Qty",
+        "Schedule Difficulty Rating": "Sched. Diff.",
+    }
     mobile_cols = list(mobile_header_map.keys())
+
+    # Columns to pin
+    PINNED_COLS = ["Preseason Rank", "Team"]
+    PINNED_WIDTHS = {"Preseason Rank": 80, "Team": 180}  # px
 
     if is_mobile():
         cols_rank = [c for c in mobile_cols if c in df.columns]
@@ -165,8 +168,8 @@ if tab == "Rankings":
             "font-size:13px;"
         )
         wrapper_style = (
-    "max-width:100vw; overflow-x:hidden; overflow-y:auto; max-height:70vh; margin:0 -16px 0 -16px;"
-)
+            "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+        )
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
     else:
@@ -176,7 +179,7 @@ if tab == "Rankings":
         )
         display_headers = [c if c != "Team" else "Team" for c in cols_rank]
         table_style = "width:100%; border-collapse:collapse;"
-        wrapper_style = "max-width:100%; overflow-x:auto; overflow-y:auto; max-height:75vh;"
+        wrapper_style = "max-width:100%; overflow-x:auto;"
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
 
@@ -185,23 +188,34 @@ if tab == "Rankings":
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
-    # Use display_headers for headers, always "Team" for the team column
-    for disp_col, c in zip(display_headers, cols_rank):
-    th = (
-        'border:1px solid #ddd; padding:8px; text-align:center; '
-        'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-    )
-    if c == "Team":
-        if is_mobile():
-            th += " white-space:nowrap; min-width:48px; max-width:48px;"
+    # --- Table header with sticky pinned columns ---
+    left_offsets = []
+    if not is_mobile():
+        offset = 0
+        for c in cols_rank:
+            if c in PINNED_COLS:
+                left_offsets.append(offset)
+                offset += PINNED_WIDTHS[c]
+            else:
+                left_offsets.append(None)
+
+    for i, (disp_col, c) in enumerate(zip(display_headers, cols_rank)):
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; '
+            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+        )
+        # Desktop: Pin Preseason Rank and Team columns
+        if not is_mobile() and c in PINNED_COLS:
+            idx = cols_rank.index(c)
+            th += f" left:{left_offsets[idx]}px; z-index:3; background:#fff;"
+            th += f" min-width:{PINNED_WIDTHS[c]}px; max-width:{PINNED_WIDTHS[c]}px;"
+        elif c == "Team":
+            th += " white-space:nowrap; min-width:180px; max-width:280px;"
         else:
-            th += " white-space:nowrap; min-width:180px; max-width:280px; position:sticky; left:0; z-index:3; background-color:#002060;"
-    else:
-        th += " white-space:nowrap;"
-    th += header_font
+            th += " white-space:nowrap;"
+        th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
-
 
     # For coloring (same as before)
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
@@ -209,57 +223,35 @@ if tab == "Rankings":
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
     for _, row in df.iterrows():
-    html.append("<tr>")
-    for c in cols_rank:
-        v = row[c]
-        td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-        td += cell_font
-        cell = v
-        if c == "Team":
-            logo = row.get("Logo URL")
-            if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                if is_mobile():
-                    cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+        html.append("<tr>")
+        # --- Sticky pinned columns for data ---
+        offset = 0
+        for idx, c in enumerate(cols_rank):
+            v = row[c]
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td += cell_font
+            # Pin Preseason Rank and Team on desktop
+            if not is_mobile() and c in PINNED_COLS:
+                td += f" position:sticky; left:{left_offsets[idx]}px; z-index:2; background:#fff;"
+                td += f" min-width:{PINNED_WIDTHS[c]}px; max-width:{PINNED_WIDTHS[c]}px;"
+            if c == "Team":
+                logo = row.get("Logo URL")
+                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                    if is_mobile():
+                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                    else:
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                        )
                 else:
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>' + str(v) + '</div>'
-                    )
-            else:
-                cell = "" if is_mobile() else v
-            if not is_mobile():
-                td += " position:sticky; left:0; z-index:1; background-color:white;"
-        else:
-            # (conditional formatting as before)
-            if c == "OVER/UNDER Pick" and isinstance(v, str):
-                if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
-                elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
-            elif c == "Power Rating" and pd.notnull(v):
-                t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
-                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            elif c == "Average Game Quality" and pd.notnull(v):
-                t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
-                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            elif c == "Schedule Difficulty Rating" and pd.notnull(v):
-                inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
-                r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            else:
-                cell = v
-
-        html.append(f"<td style='{td}'>{cell}</td>")
-    html.append("</tr>")
-
+                    cell = "" if is_mobile() else v
             else:
                 # (conditional formatting as before)
                 if c == "OVER/UNDER Pick" and isinstance(v, str):
                     if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
                     elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
+                    cell = v
                 elif c == "Power Rating" and pd.notnull(v):
                     t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
                     r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
@@ -282,7 +274,6 @@ if tab == "Rankings":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
-
 
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
@@ -342,49 +333,4 @@ elif tab == "Conference Overviews":
         for c in cols_sum:
             th = (
                 'border:1px solid #ddd; padding:8px; text-align:center; '
-                'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-            )
-            if c == "Conference":
-                th += " white-space:nowrap; min-width:150px;"
-            html_sum.append(f"<th style='{th}'>{c}</th>")
-        html_sum.append("</tr></thead><tbody>")
-
-        for _, row in summary.iterrows():
-            html_sum.append("<tr>")
-            for c in cols_sum:
-                v = row[c]
-                td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-                if c == "Conference":
-                    logo = row.get("Logo URL")
-                    if not (isinstance(logo, str) and logo.startswith("http")) or logo.strip() == "":
-                        logo = "https://png.pngtree.com/png-vector/20230115/ourmid/pngtree-american-football-nfl-rugby-ball-illustration-clipart-design-png-image_6564471.png"
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                    )
-
-
-                elif c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
-                    mn, mx = (
-                        (pr_min, pr_max) if c == "Avg. Power Rating" else
-                        (agq_min, agq_max) if c == "Avg. Game Quality" else
-                        (sdr_min, sdr_max)
-                    )
-                    t = (v - mn) / (mx - mn) if mx > mn else 0
-                    if c == "Avg. Schedule Difficulty":
-                        t = 1 - t
-                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
-                    cell = f"{v:.1f}"
-                else:
-                    cell = v
-                html_sum.append(f"<td style='{td}'>{cell}</td>")
-            html_sum.append("</tr>")
-        html_sum.append("</tbody></table></div>")
-        st.markdown("".join(html_sum), unsafe_allow_html=True)
-
-    with right:
-        st.markdown("#### Conference Overview Chart Placeholder")
-        # (Add chart/plot code here as needed)
-
-
+                'background-color:#002060
