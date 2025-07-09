@@ -101,7 +101,7 @@ if tab == "Rankings":
         "Schedule Difficulty Rating"
     ]
 
-        # --- Desktop table (full) ---
+            # --- Desktop table (full) ---
     html_desktop = [
         '<div class="desktop-only" style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
@@ -120,7 +120,47 @@ if tab == "Rankings":
     for _, row in df.iterrows():
         html_desktop.append('<tr>')
         for c in cols:
-            # existing per-cell logic here…
+            v = row[c]
+            td_style = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            # Preseason Rank as integer
+            if c == "Preseason Rank":
+                cell = f"{int(v)}"
+            # Team with logo and text
+            elif c == "Team":
+                logo = row.get("Logo URL", "")
+                name = row.get("Team", "")
+                cell = (
+                    f'<div style="display:flex;align-items:center;">'
+                    f'<img src="{logo}" width="24" style="margin-right:8px;"/>'
+                    f'{name}</div>'
+                )
+            # Vegas Win Total one decimal
+            elif c == "Vegas Win Total" and pd.notnull(v):
+                cell = f"{v:.1f}"
+            # Projected Overall Wins/Losses one decimal
+            elif c in ["Projected Overall Wins", "Projected Overall Losses"] and pd.notnull(v):
+                cell = f"{v:.1f}"
+            # OVER/UNDER Pick with colors
+            elif c == "OVER/UNDER Pick":
+                cell = v
+                if isinstance(v, str) and v.upper().startswith("OVER"):
+                    td_style += " background-color:#28a745; color:white;"
+                elif isinstance(v, str) and v.upper().startswith("UNDER"):
+                    td_style += " background-color:#dc3545; color:white;"
+            # Average Game Quality gradient
+            elif c == "Average Game Quality" and pd.notnull(v):
+                t = (v - agq_min) / (agq_max - agq_min) if agq_max>agq_min else 0
+                r,g,b = [int(255+(x-255)*t) for x in (0,32,96)]
+                td_style += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            # Schedule Difficulty Rating gradient
+            elif c == "Schedule Difficulty Rating" and pd.notnull(v):
+                inv = 1 - ((v - sdr_min)/(sdr_max - sdr_min) if sdr_max>sdr_min else 0)
+                r,g,b = [int(255+(x-255)*inv) for x in (0,32,96)]
+                td_style += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            else:
+                cell = v if pd.notnull(v) else ""
             html_desktop.append(f"<td style='{td_style}'>{cell}</td>")
         html_desktop.append('</tr>')
 
@@ -128,8 +168,7 @@ if tab == "Rankings":
     html_desktop.append('</tbody></table></div>')
     st.markdown(''.join(html_desktop), unsafe_allow_html=True)
 
-
-    # --- Mobile table (simplified) ---
+    # --- Mobile table" (simplified) ---
     html_mobile = [
     '<div class="mobile-only" style="width:100%; table-layout:fixed; border-collapse:collapse;">',
     '<table style="width:100%; border-collapse:collapse;">',
