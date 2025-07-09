@@ -56,6 +56,18 @@ st.title("🎯 College Football 2025 Pre-Season Preview")
 st.markdown("""
 <style>
   .desktop-table { display: block; }
+  .mobile-table  { display: none; }
+  @media (max-width: 600px) {
+    .desktop-table { display: none !important; }
+    .mobile-table  { display: block !important; }
+  }
+</style>
+""", unsafe_allow_html=True)
+
+# --- Responsive desktop/mobile toggle CSS ---
+st.markdown("""
+<style>
+  .desktop-table { display: block; }
   .mobile-table { display: none; }
   @media (max-width: 600px) {
     .desktop-table { display: none !important; }
@@ -148,7 +160,7 @@ if tab == "Rankings":
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
     html = [
-        '<div style="max-height:600px; overflow-y:auto;">',
+        '<div class="desktop-table" style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
     ]
@@ -366,3 +378,36 @@ elif tab == "Conference Overviews":
         html_conf.append('</tr>')
     html_conf.append('</tbody></table></div>')
     st.markdown(''.join(html_conf), unsafe_allow_html=True)
+# --- Mobile simplified table for portrait phones ---
+html_mobile = [
+    '<div class="mobile-table" style="width:100%;">',
+    '<table style="width:100%; border-collapse:collapse;">',
+    '<thead><tr>',
+    '<th>Preseason Rank</th>',
+    '<th>Team</th>',
+    '<th>Vegas Win Total</th>',
+    '<th>Projected Overall Wins</th>',
+    '<th>Projected Overall Losses</th>',
+    '<th>OVER/UNDER Pick</th>',
+    '<th>Average Game Quality</th>',
+    '<th>Schedule Difficulty Rating</th>',
+    '</tr></thead><tbody>'
+]
+for _, row in df.iterrows():
+    pr = row["Preseason Rank"]
+    logo = row.get("Logo URL") or ""
+    team_cell = f'<img src="{logo}" width="24"/>' if logo.startswith("http") else ""
+    vegas = row["OVER/UNDER Pick"]
+    ow = row["Projected Overall Wins"]
+    ol = row["Projected Overall Losses"]
+    agq = f"{row['Average Game Quality']:.1f}"
+    sdr = f"{row['Schedule Difficulty Rating']:.1f}"
+    html_mobile.append(
+        f"<tr>"
+        f"<td>{pr}</td><td>{team_cell}</td><td>{vegas}</td>"
+        f"<td>{ow}</td><td>{ol}</td><td>{vegas}</td>"
+        f"<td>{agq}</td><td>{sdr}</td>"
+        f"</tr>"
+    )
+html_mobile.append('</tbody></table></div>')
+st.markdown("".join(html_mobile), unsafe_allow_html=True)
