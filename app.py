@@ -231,4 +231,82 @@ if tab == "Rankings":
         html_sum.append("</tr>")
     html_sum.append("</tbody></table></div>")
     st.markdown("".join(html_sum), unsafe_allow_html=True)
+elif tab == "Conference Overviews":
+    st.header("🏟️ Conference Overviews")
+
+    # --- Data Prep for Table and Scatter ---
+    summary = (
+        df_expected.groupby("Conference").agg(
+            **{
+                "# Teams": ("Preseason Rank", "count"),
+                "Avg. Power Rating": ("Power Rating", "mean"),
+                "Avg. Game Quality": ("Average Game Quality", "mean"),
+                "Avg. Schedule Difficulty": ("Schedule Difficulty Rating", "mean"),
+            }
+        ).reset_index()
+    )
+    summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]] = (
+        summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
+    )
+    logos_conf = logos_df.copy()
+    if "Image URL" in logos_conf.columns:
+        logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+    if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
+        logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
+    logos_conf["Conference"] = (
+        logos_conf["Conference"]
+        .str.strip()
+        .str.replace("-", "", regex=False)
+        .str.upper()
+    )
+    summary["Conference"] = (
+        summary["Conference"]
+        .str.strip()
+        .str.replace("-", "", regex=False)
+        .str.upper()
+    )
+    if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
+        summary = summary.merge(
+            logos_conf[["Conference", "Logo URL"]],
+            on="Conference",
+            how="left"
+        )
+
+    # --- Side-by-side Table and (optional) Chart ---
+    left, right = st.columns([1, 1])
+
+    with left:
+        html_sum = [
+            '<div style="overflow-x:auto;">',
+            '<table style="width:100%; border-collapse:collapse;">',
+            '<thead><tr>'
+        ]
+        cols_sum = ["Conference", "# Teams", "Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]
+        for c in cols_sum:
+            th = (
+                'border:1px solid #ddd; padding:8px; text-align:center; '
+                'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+            )
+            html_sum.append(f"<th style='{th}'>{c}</th>")
+        html_sum.append("</tr></thead><tbody>")
+
+        for _, row in summary.iterrows():
+            html_sum.append("<tr>")
+            for c in cols_sum:
+                td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+                val = row[c]
+                if c == "Conference":
+                    logo = row.get("Logo URL")
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        cell = f'<div style="display:flex;align-items:center;"><img src="{logo}" width="24" style="margin-right:8px;"/>{val}</div>'
+                    else:
+                        cell = val
+                else:
+                    cell = f"{val:.1f}" if isinstance(val, float) else val
+                html_sum.append(f"<td style='{td}'>{cell}</td>")
+            html_sum.append("</tr>")
+        html_sum.append("</tbody></table></div>")
+        st.markdown("".join(html_sum), unsafe_allow_html=True)
+
+    # (Optional: place your Altair chart or more analysis in the `with right:` block)
 
