@@ -206,28 +206,32 @@ elif tab == "Conference Overviews":
         summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
     )
 
-        # 2) Merge and normalize conference logos
+    # 2) Merge and normalize conference logos
     logos_conf = logos_df.copy()
     if "Image URL" in logos_conf.columns:
         logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
     if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
         logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
-    # Normalize conference names (drop hyphens, uppercase)
+    # drop hyphens & uppercase for matching
     logos_conf["Conference"] = (
         logos_conf["Conference"]
         .str.strip()
         .str.replace("-", "", regex=False)
         .str.upper()
     )
+    # apply same normalization to summary
     summary["Conference"] = (
         summary["Conference"]
         .str.strip()
         .str.replace("-", "", regex=False)
         .str.upper()
     )
+    # merge in logo URLs
     if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
         summary = summary.merge(
-            logos_conf[["Conference", "Logo URL"]], on="Conference", how="left"
+            logos_conf[["Conference", "Logo URL"]],
+            on="Conference",
+            how="left"
         )
 
     # 3) Compute bounds
