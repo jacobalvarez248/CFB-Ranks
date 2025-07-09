@@ -419,5 +419,3 @@ elif tab == "Conference Overviews":
         html_conf.append('</tr>')
     html_conf.append('</tbody></table></div>')
     st.markdown(''.join(html_conf), unsafe_allow_html=True)
-, unsafe_allow_html=True)
-
