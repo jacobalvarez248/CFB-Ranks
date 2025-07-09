@@ -200,38 +200,7 @@ if tab == "Rankings":
             elif c == "Team":
                 th += " left:60px; z-index:3; background:#002060;" # Adjust pixel value if needed
             # To freeze more, add more elifs with left:
-    html_sum = [
-        '<div style="overflow-x:auto;">',
-        '<table style="width:100%; border-collapse:collapse;">',
-        '<thead><tr>'
-    ]
-    cols_sum = ["Conference", "# Teams", "Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]
-    for c in cols_sum:
-        th = (
-            'border:1px solid #ddd; padding:8px; text-align:center; '
-            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-        )
-        html_sum.append(f"<th style='{th}'>{c}</th>")
-    html_sum.append("</tr></thead><tbody>")
-
-    for _, row in summary.iterrows():
-        html_sum.append("<tr>")
-        for c in cols_sum:
-            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-            val = row[c]
-            if c == "Conference":
-                logo = row.get("Logo URL")
-                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    cell = f'<div style="display:flex;align-items:center;"><img src="{logo}" width="24" style="margin-right:8px;"/>{val}</div>'
-                else:
-                    cell = val
-            else:
-                cell = f"{val:.1f}" if isinstance(val, float) else val
-            html_sum.append(f"<td style='{td}'>{cell}</td>")
-        html_sum.append("</tr>")
-    html_sum.append("</tbody></table></div>")
-    st.markdown("".join(html_sum), unsafe_allow_html=True)
-elif tab == "Conference Overviews":
+    elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
 
     # --- Data Prep for Table and Scatter ---
