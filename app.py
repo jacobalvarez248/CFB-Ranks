@@ -206,17 +206,26 @@ elif tab == "Conference Overviews":
         summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
     )
 
-    # 2) Merge conference logos
+        # 2) Merge and normalize conference logos
     logos_conf = logos_df.copy()
     if "Image URL" in logos_conf.columns:
         logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
     if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
         logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
-        # Normalize conference names (e.g. drop hyphens and unify case)
-    logos_conf["Conference"] = logos_conf["Conference"].str.strip().str.replace("-", "").str.upper()
-    # Normalize summary conference names to match logos
-    summary["Conference"] = summary["Conference"].str.strip().str.replace("-", "").str.upper()
-        if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
+    # Normalize conference names (drop hyphens, uppercase)
+    logos_conf["Conference"] = (
+        logos_conf["Conference"]
+        .str.strip()
+        .str.replace("-", "", regex=False)
+        .str.upper()
+    )
+    summary["Conference"] = (
+        summary["Conference"]
+        .str.strip()
+        .str.replace("-", "", regex=False)
+        .str.upper()
+    )
+    if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
         summary = summary.merge(
             logos_conf[["Conference", "Logo URL"]], on="Conference", how="left"
         )
