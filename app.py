@@ -52,11 +52,21 @@ st.set_page_config(
 )
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
-# --- Mobile-responsive CSS ---
+# --- Responsive mobile CSS ---
 st.markdown("""
 <style>
+  /* Hide less-important columns and adjust table layout on narrow screens */
   @media (max-width: 600px) {
-    .col-pcw, .col-pcl, .col-final { display: none !important; }
+    /* Prevent horizontal scrolling */
+    .scrollable-table { overflow-x: hidden !important; }
+    .scrollable-table table { table-layout: fixed !important; width: 100% !important; }
+    .scrollable-table th, .scrollable-table td { font-size: 12px !important; padding: 4px !important; }
+    /* Hide specific columns: Projected Conference Wins (6), Projected Conference Losses (7), Final 2024 Rank (9) */
+    .scrollable-table table th:nth-child(6), .scrollable-table table td:nth-child(6),
+    .scrollable-table table th:nth-child(7), .scrollable-table table td:nth-child(7),
+    .scrollable-table table th:nth-child(9), .scrollable-table table td:nth-child(9) {
+      display: none !important;
+    }
   }
 </style>
 """, unsafe_allow_html=True)
@@ -145,16 +155,11 @@ if tab == "Rankings":
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
     html = [
-        '<div style="max-height:600px; overflow-y:auto;">',
+        '<div class="scrollable-table" style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
     ]
-    for c in cols_rank:  # add CSS classes for mobile collapse
-        cls = ''
-        if c == 'Projected Conference Wins': cls = 'col-pcw'
-        elif c == 'Projected Conference Losses': cls = 'col-pcl'
-        elif c == 'Final 2024 Rank': cls = 'col-final'
-
+    for c in cols_rank:
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
