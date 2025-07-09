@@ -167,14 +167,16 @@ if tab == "Rankings":
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
     else:
-        cols_rank = (
-            df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
-            if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
-        )
-        display_headers = [c if c != "Team" else "Team" for c in cols_rank]
-        table_style = "width:100%; border-collapse:collapse;"
-        header_font = ""
-        cell_font = "white-space:nowrap; font-size:15px;"
+    cols_rank = df.columns.tolist()
+    display_headers = [c if c != "Team" else "Team" for c in cols_rank]
+    table_style = "width:100%; border-collapse:collapse;"
+    # Make desktop table edge-to-edge and prevent side scroll:
+    wrapper_style = (
+        "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
+    )
+    header_font = ""
+    cell_font = "white-space:nowrap; font-size:15px;"
+
 
     # Edge-to-edge, no horizontal scroll for BOTH views
     wrapper_style = (
