@@ -276,7 +276,7 @@ elif tab == "Conference Overviews":
     df_conf = df_expected[df_expected["Conference"] == sel].copy()
     df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
     # Merge team logos for detail table
-df_conf = df_conf.merge(team_logos, on="Team", how="left")
+    df_conf = df_conf.merge(team_logos, on="Team", how="left")(team_logos, on="Team", how="left")
 
     cols_conf = [
         "Projected Conference Finish", "Preseason Rank", "Team", "Power Rating",
