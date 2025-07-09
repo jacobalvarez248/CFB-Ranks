@@ -52,6 +52,15 @@ st.set_page_config(
 )
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
+# --- Mobile-responsive CSS ---
+st.markdown("""
+<style>
+  @media (max-width: 600px) {
+    .col-pcw, .col-pcl, .col-final { display: none !important; }
+  }
+</style>
+""", unsafe_allow_html=True)
+
 # --- Data Cleaning & Renaming ---
 # Normalize Conference names in df_expected to match logo sheet (drop hyphens & uppercase)
 df_expected["Conference"] = (
@@ -140,7 +149,12 @@ if tab == "Rankings":
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
     ]
-    for c in cols_rank:
+    for c in cols_rank:  # add CSS classes for mobile collapse
+        cls = ''
+        if c == 'Projected Conference Wins': cls = 'col-pcw'
+        elif c == 'Projected Conference Losses': cls = 'col-pcl'
+        elif c == 'Final 2024 Rank': cls = 'col-final'
+
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
