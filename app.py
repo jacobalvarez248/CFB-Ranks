@@ -275,6 +275,7 @@ elif tab == "Conference Overviews":
         f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
     )
 
+
                 elif c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
                     mn, mx = (
                         (pr_min, pr_max) if c == "Avg. Power Rating" else
