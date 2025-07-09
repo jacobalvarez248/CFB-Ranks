@@ -200,10 +200,8 @@ if tab == "Rankings":
                 left_offsets.append(None)
 
     for i, (disp_col, c) in enumerate(zip(display_headers, cols_rank)):
-    th = (
-    'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white;'
-)
-    )
+    th = 'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white;'
+
         # Desktop: Pin Preseason Rank and Team columns
         if not is_mobile() and c in PINNED_COLS:
             idx = cols_rank.index(c)
@@ -331,6 +329,4 @@ elif tab == "Conference Overviews":
         ]
         cols_sum = ["Conference", "# Teams", "Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]
         for c in cols_sum:
-            th = (
-    'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white;'
-)
+    th = 'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white;'
