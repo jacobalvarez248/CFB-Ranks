@@ -328,14 +328,12 @@ elif tab == "Conference Overviews":
             <title>{conf_name}</title>
         </image>
         '''
-        scatter_html += '''
+        scatter_html += f'''
             <!-- X axis -->
             <line x1="50" y1="650" x2="650" y2="650" stroke="#002060" stroke-width="2"/>
-            <rect x="240" y="660" width="220" height="30" fill="#002060"/>
             <text x="350" y="680" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle">Avg. Game Quality</text>
             <!-- Y axis -->
             <line x1="50" y1="50" x2="50" y2="650" stroke="#002060" stroke-width="2"/>
-            <rect x="-20" y="335" width="110" height="30" fill="#002060"/>
             <text x="10" y="355" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle" transform="rotate(-90,10,355)">Avg. Power Rating</text>
         '''
         for frac in grid_fracs:
