@@ -39,6 +39,7 @@ df_expected = df_expected.merge(team_logos, on="Team", how="left")
 # Ensure key columns exist for styling
 rename_map = {
     "Column18": "Power Rating",
+    "Column 18": "Power Rating",
     "Projected Overall Record": "Projected Overall Wins",
     "Column2": "Projected Overall Losses",
     "Projected Conference Record": "Projected Conference Wins",
