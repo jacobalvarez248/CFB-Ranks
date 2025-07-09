@@ -168,10 +168,15 @@ if tab == "Rankings":
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
 
-    # Edge-to-edge, no horizontal scroll for BOTH views
-    wrapper_style = (
-        "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
-    )
+        # Responsive: allow horizontal scroll on desktop, not mobile
+    if is_mobile():
+        wrapper_style = (
+            "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
+        )
+    else:
+        wrapper_style = (
+            "max-width:100vw; max-height:70vh; overflow-x:auto; overflow-y:auto; margin:0 -16px 0 -16px;"
+        )
 
     html = [
         f'<div style="{wrapper_style}">',
