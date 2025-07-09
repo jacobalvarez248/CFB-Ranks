@@ -69,8 +69,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# --- Responsive CSS for single table ---
-st.markdown("""
+# --- Desktop/Mobile Toggle CSS applied above. Responsive single-table CSS removed to preserve desktop styling
+("""
 <style>
   /* Single-table responsive adjustments */
   .responsive-table { width: 100%; table-layout: fixed; border-collapse: collapse; overflow-x: hidden; }
@@ -120,7 +120,7 @@ if tab == "Rankings":
     # --- Desktop table (full) ---
     html_desktop = [
         '<div class="desktop-table" style="max-height:600px; overflow-y:auto;">',
-        '<table class="responsive-table" style="border-collapse:collapse; width:100%;">',
+        '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
     ]
     for c in cols:
