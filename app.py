@@ -12,29 +12,28 @@ try:
 except ImportError:
     default_mobile = False  # streamlit-user-agents not installed, default to desktop
 
+# --- Page Config & Sidebar Mobile Toggle ---
+# Set page config before any other Streamlit calls
+if default_mobile:
+    initial_state = "collapsed"
+else:
+    initial_state = "expanded"
+st.set_page_config(
+    page_title="CFB 2025 Preview",
+    page_icon="🏈",
+    layout="wide",
+    initial_sidebar_state=initial_state
+)
+
 # Sidebar Mobile Toggle
-# Default toggled based on detection
 st.sidebar.checkbox("Mobile View", default_mobile, key="FORCE_MOBILE")
 
-# Determine mobile mode
 def is_mobile():
     return st.session_state.FORCE_MOBILE
 
-# Page Config based on Mobile
+# Collapse sidebar on mobile
 if is_mobile():
-    st.set_page_config(
-        page_title="CFB 2025 Preview",
-        page_icon="🏈",
-        layout="wide",
-        initial_sidebar_state="collapsed"
-    )
-else:
-    st.set_page_config(
-        page_title="CFB 2025 Preview",
-        page_icon="🏈",
-        layout="wide",
-        initial_sidebar_state="expanded"
-    )
+    st.sidebar.empty()
 
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
@@ -70,7 +69,6 @@ if "Image URL" in tlogos.columns:
 for df in (tlogos, df_expected):
     if "Team" in df.columns:
         df["Team"] = df["Team"].str.strip()
-
 team_logos = tlogos[tlogos["Team"].isin(df_expected["Team"])][["Team","Logo URL"]]
 df_expected = df_expected.merge(team_logos, on="Team", how="left")
 
@@ -109,21 +107,26 @@ numeric_cols = [c for c in df_expected.select_dtypes(include=["number"]) if c no
 if numeric_cols:
     df_expected[numeric_cols] = df_expected[numeric_cols].round(1)
 
-# Sidebar navigation
+# Sidebar Navigation
 tab = st.sidebar.radio(
     "Navigation",
     ["Rankings", "Conference Overviews", "Team Dashboards", "Charts & Graphs"]
 )
 
+# --- Tabs ---
 if tab == "Rankings":
     st.header("📋 Rankings")
-    pass
+    # Display the full expected wins table
+    st.dataframe(df_expected, use_container_width=True)
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
+    # Conference-overview visuals here
     pass
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
+    # Team dashboard visuals here
     pass
 elif tab == "Charts & Graphs":
     st.header("📊 Charts & Graphs")
+    # Charts and graphs visuals here
     pass
