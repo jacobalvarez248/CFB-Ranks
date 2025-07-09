@@ -154,6 +154,7 @@ if tab == "Rankings":
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
     html = [
+        '<div class="desktop-only"><div style="max-height:600px; overflow-y:auto;">',
         '<div class="desktop-only"><div style="max-height:600px; overflow-y:auto;">'<div class="desktop-only">',
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
