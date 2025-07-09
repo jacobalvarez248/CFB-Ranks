@@ -52,6 +52,46 @@ st.set_page_config(
 )
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
+st.markdown("""
+<style>
+  .responsive-table { 
+    overflow-x: hidden; 
+    width: 100%; 
+    table-layout: fixed; 
+    border-collapse: collapse; 
+  }
+  .responsive-table th, .responsive-table td {
+    padding: 8px;
+  }
+
+  @media (max-width: 600px) {
+    /* Shrink text and padding */
+    .responsive-table th, .responsive-table td {
+      font-size: 12px;
+      padding: 4px;
+    }
+    /* Hide unwanted portrait-only columns (by index):
+       Conference(2), Undefeated Probability(5),
+       Projected Conference Losses(7),
+       Schedule Difficulty Rank(8),
+       Final 2024 Rank(9)
+    */
+    .responsive-table th:nth-child(2),
+    .responsive-table td:nth-child(2),
+    .responsive-table th:nth-child(5),
+    .responsive-table td:nth-child(5),
+    .responsive-table th:nth-child(7),
+    .responsive-table td:nth-child(7),
+    .responsive-table th:nth-child(8),
+    .responsive-table td:nth-child(8),
+    .responsive-table th:nth-child(9),
+    .responsive-table td:nth-child(9) {
+      display: none;
+    }
+  }
+</style>
+""", unsafe_allow_html=True)
+
 # --- Responsive desktop/mobile toggle CSS ---
 st.markdown("""
 <style>
@@ -173,10 +213,11 @@ if tab == "Rankings":
     cols_rank = df.columns.tolist()
     # --- Desktop table ---
     html = [
-        '<div class="desktop-table" style="max-height:600px; overflow-y:auto;">',
-        '<table style="width:100%; border-collapse:collapse;">',
-        '<thead><tr>'
-    ]
+    '<div style="max-height:600px;">',
+    '<table class="responsive-table">',
+    ...
+]
+
     for c in cols_rank:
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
