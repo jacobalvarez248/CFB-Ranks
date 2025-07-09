@@ -200,7 +200,7 @@ if tab == "Rankings":
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
 
-    # 1) Summary metrics
+    # --- Data Prep for Table and Scatter ---
     summary = (
         df_expected.groupby("Conference").agg(
             **{
@@ -214,47 +214,39 @@ elif tab == "Conference Overviews":
     summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]] = (
         summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
     )
-
-    # 2) Merge and normalize conference logos
     logos_conf = logos_df.copy()
     if "Image URL" in logos_conf.columns:
         logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
     if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
         logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
-    # drop hyphens & uppercase for matching
     logos_conf["Conference"] = (
         logos_conf["Conference"]
         .str.strip()
         .str.replace("-", "", regex=False)
         .str.upper()
     )
-    # apply same normalization to summary
     summary["Conference"] = (
         summary["Conference"]
         .str.strip()
         .str.replace("-", "", regex=False)
         .str.upper()
     )
-        # merge in logo URLs
     if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
         summary = summary.merge(
             logos_conf[["Conference", "Logo URL"]],
             on="Conference",
             how="left"
         )
-    # 3) Compute bounds
-    pr_min, pr_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
-    agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
-    sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
     pr_min, pr_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
     agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
     sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
 
-            # 4) Summary table with conference logos
-    left, right = st.columns([1,1])
+    # --- Side-by-side Table and Scatterplot ---
+    left, right = st.columns([1, 1])
+
     with left:
         html_sum = [
-            '<div style="overflow-x:auto; max-height:600px; overflow-y:auto;">',
+            '<div style="overflow-x:auto; max-height:400px; overflow-y:auto;">',
             '<table style="width:100%; border-collapse:collapse;">',
             '<thead><tr>'
         ]
@@ -307,8 +299,8 @@ elif tab == "Conference Overviews":
         import streamlit.components.v1 as components
         plot_df = summary.dropna(subset=["Logo URL"]).copy()
         scatter_html = """
-        <div style='width:100%; max-width:600px; height:600px; position:relative;'>
-            <svg width='100%' height='100%' viewBox='0 0 600 600'>
+        <div style='width:100%; max-width:600px; height:400px; position:relative;'>
+            <svg width='100%' height='100%' viewBox='0 0 600 400'>
         """
         x_min, x_max = plot_df["Avg. Game Quality"].min(), plot_df["Avg. Game Quality"].max()
         y_min, y_max = plot_df["Avg. Power Rating"].min(), plot_df["Avg. Power Rating"].max()
@@ -316,103 +308,99 @@ elif tab == "Conference Overviews":
         pad_y = (y_max - y_min) * 0.09
         x_min, x_max = x_min - pad_x, x_max + pad_x
         y_min, y_max = y_min - pad_y, y_max + pad_y
-        # Draw more gridlines
         grid_fracs = [0, 0.2, 0.4, 0.6, 0.8, 1]
-for frac in grid_fracs:
-    xpos = int(50 + 500 * frac)
-    ypos = int(350 - 300 * frac)
-    if frac not in [0,1]:
-        scatter_html += f'<line x1="{xpos}" y1="50" x2="{xpos}" y2="350" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
-        scatter_html += f'<line x1="50" y1="{ypos}" x2="550" y2="{ypos}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
-for _, row in plot_df.iterrows():
-    x = int(50 + 500 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
-    y = int(350 - 300 * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
-    logo_url = row["Logo URL"]
-    conf_name = row["Conference"]
-    scatter_html += f'''
-    <image href="{logo_url}" x="{x-14}" y="{y-14}" width="28" height="28">
-        <title>{conf_name}</title>
-    </image>
-    '''
-scatter_html += '''
-    <!-- X axis -->
-    <line x1="50" y1="350" x2="550" y2="350" stroke="#888" stroke-width="2"/>
-    <text x="300" y="390" font-size="16" fill="#222" text-anchor="middle">Avg. Game Quality</text>
-    <!-- Y axis -->
-    <line x1="50" y1="50" x2="50" y2="350" stroke="#888" stroke-width="2"/>
-    <text x="10" y="200" font-size="16" fill="#222" text-anchor="middle" transform="rotate(-90,10,200)">Avg. Power Rating</text>
-'''
-for frac in grid_fracs:
-    xv = x_min + (x_max - x_min) * frac
-    xpos = int(50 + 500 * frac)
-    scatter_html += f'<text x="{xpos}" y="370" font-size="12" fill="#444" text-anchor="middle">{xv:.1f}</text>'
-    scatter_html += f'<line x1="{xpos}" y1="345" x2="{xpos}" y2="355" stroke="#888" stroke-width="1"/>'
-for frac in grid_fracs:
-    yv = y_min + (y_max - y_min) * frac
-    ypos = int(350 - 300 * frac)
-    scatter_html += f'<text x="30" y="{ypos+4}" font-size="12" fill="#444" text-anchor="end">{yv:.1f}</text>'
-    scatter_html += f'<line x1="45" y1="{ypos}" x2="55" y2="{ypos}" stroke="#888" stroke-width="1"/>'
-scatter_html += """
-    </svg>
-</div>
-"""
-components.html(scatter_html, height=400)
-# 5) Detailed conference table (full width below columns)
-st.markdown("---")
-sel = st.selectbox("Select conference for details", summary["Conference"].tolist())
-df_conf = df_expected[df_expected["Conference"] == sel].copy()
+        for frac in grid_fracs:
+            xpos = int(50 + 500 * frac)
+            ypos = int(350 - 300 * frac)
+            if frac not in [0, 1]:
+                scatter_html += f'<line x1="{xpos}" y1="50" x2="{xpos}" y2="350" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
+                scatter_html += f'<line x1="50" y1="{ypos}" x2="550" y2="{ypos}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
+        for _, row in plot_df.iterrows():
+            x = int(50 + 500 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
+            y = int(350 - 300 * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
+            logo_url = row["Logo URL"]
+            conf_name = row["Conference"]
+            scatter_html += f'''
+            <image href="{logo_url}" x="{x-14}" y="{y-14}" width="28" height="28">
+                <title>{conf_name}</title>
+            </image>
+            '''
+        scatter_html += '''
+            <!-- X axis -->
+            <line x1="50" y1="350" x2="550" y2="350" stroke="#888" stroke-width="2"/>
+            <text x="300" y="390" font-size="16" fill="#222" text-anchor="middle">Avg. Game Quality</text>
+            <!-- Y axis -->
+            <line x1="50" y1="50" x2="50" y2="350" stroke="#888" stroke-width="2"/>
+            <text x="10" y="200" font-size="16" fill="#222" text-anchor="middle" transform="rotate(-90,10,200)">Avg. Power Rating</text>
+        '''
+        for frac in grid_fracs:
+            xv = x_min + (x_max - x_min) * frac
+            xpos = int(50 + 500 * frac)
+            scatter_html += f'<text x="{xpos}" y="370" font-size="12" fill="#444" text-anchor="middle">{xv:.1f}</text>'
+            scatter_html += f'<line x1="{xpos}" y1="345" x2="{xpos}" y2="355" stroke="#888" stroke-width="1"/>'
+        for frac in grid_fracs:
+            yv = y_min + (y_max - y_min) * frac
+            ypos = int(350 - 300 * frac)
+            scatter_html += f'<text x="30" y="{ypos+4}" font-size="12" fill="#444" text-anchor="end">{yv:.1f}</text>'
+            scatter_html += f'<line x1="45" y1="{ypos}" x2="55" y2="{ypos}" stroke="#888" stroke-width="1"/>'
+        scatter_html += """
+            </svg>
+        </div>
+        """
+        components.html(scatter_html, height=400)
 
-# Sort by Projected Conference Wins, descending
-if "Projected Conference Wins" in df_conf.columns:
-    df_conf = df_conf.sort_values(by="Projected Conference Wins", ascending=False).reset_index(drop=True)
-
-df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
-
-cols_conf = [
-    "Projected Conference Finish", "Preseason Rank", "Team", "Power Rating",
-    "Projected Conference Wins", "Projected Conference Losses",
-    "Average Game Quality", "Schedule Difficulty Rank", "Schedule Difficulty Rating"
-]
-bounds = {
-    "Power Rating": (df_conf["Power Rating"].min(), df_conf["Power Rating"].max()),
-    "Average Game Quality": (df_conf["Average Game Quality"].min(), df_conf["Average Game Quality"].max()),
-    "Schedule Difficulty Rating": (df_conf["Schedule Difficulty Rating"].min(), df_conf["Schedule Difficulty Rating"].max())
-}
-
-html_conf = ['<div style="max-height:500px; overflow-y:auto;">', '<table style="width:100%; border-collapse:collapse;">', '<thead><tr>']
-for c in cols_conf:
-    th = 'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-    if c == "Team":
-        th += " white-space:nowrap; min-width:200px;"
-    html_conf.append(f"<th style='{th}'>{c}</th>")
-html_conf.append('</tr></thead><tbody>')
-for _, row in df_conf.iterrows():
-    html_conf.append('<tr>')
+    # --- Full-width detailed table below ---
+    st.markdown("---")
+    sel = st.selectbox("Select conference for details", summary["Conference"].tolist())
+    df_conf = df_expected[df_expected["Conference"] == sel].copy()
+    if "Projected Conference Wins" in df_conf.columns:
+        df_conf = df_conf.sort_values(by="Projected Conference Wins", ascending=False).reset_index(drop=True)
+    df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
+    cols_conf = [
+        "Projected Conference Finish", "Preseason Rank", "Team", "Power Rating",
+        "Projected Conference Wins", "Projected Conference Losses",
+        "Average Game Quality", "Schedule Difficulty Rank", "Schedule Difficulty Rating"
+    ]
+    bounds = {
+        "Power Rating": (df_conf["Power Rating"].min(), df_conf["Power Rating"].max()),
+        "Average Game Quality": (df_conf["Average Game Quality"].min(), df_conf["Average Game Quality"].max()),
+        "Schedule Difficulty Rating": (df_conf["Schedule Difficulty Rating"].min(), df_conf["Schedule Difficulty Rating"].max())
+    }
+    html_conf = ['<div style="max-height:500px; overflow-y:auto;">', '<table style="width:100%; border-collapse:collapse;">', '<thead><tr>']
     for c in cols_conf:
-        v = row[c]
-        td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+        th = 'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         if c == "Team":
-            logo = row.get("Logo URL")
-            if pd.notnull(logo) and logo.startswith("http"):
-                cell = (
-                    f'<div style="display:flex;align-items:center;">'
-                    f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                )
+            th += " white-space:nowrap; min-width:200px;"
+        html_conf.append(f"<th style='{th}'>{c}</th>")
+    html_conf.append('</tr></thead><tbody>')
+    for _, row in df_conf.iterrows():
+        html_conf.append('<tr>')
+        for c in cols_conf:
+            v = row[c]
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            if c == "Team":
+                logo = row.get("Logo URL")
+                if pd.notnull(logo) and logo.startswith("http"):
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                    )
+                else:
+                    cell = v
+            elif c in ["Projected Conference Finish", "Preseason Rank", "Schedule Difficulty Rank"]:
+                cell = int(v)
+            elif c in ["Projected Conference Wins", "Projected Conference Losses"]:
+                cell = f"{v:.1f}"
             else:
-                cell = v
-        elif c in ["Projected Conference Finish", "Preseason Rank", "Schedule Difficulty Rank"]:
-            cell = int(v)
-        elif c in ["Projected Conference Wins", "Projected Conference Losses"]:
-            cell = f"{v:.1f}"
-        else:
-            mn, mx = bounds[c]
-            t = (v - mn) / (mx - mn) if mx > mn else 0
-            if c == "Schedule Difficulty Rating":
-                t = 1 - t
-            r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-            td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
-            cell = f"{v:.1f}"
-        html_conf.append(f"<td style='{td}'>{cell}</td>")
-    html_conf.append('</tr>')
-html_conf.append('</tbody></table></div>')
-st.markdown(''.join(html_conf), unsafe_allow_html=True)
+                mn, mx = bounds[c]
+                t = (v - mn) / (mx - mn) if mx > mn else 0
+                if c == "Schedule Difficulty Rating":
+                    t = 1 - t
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
+                cell = f"{v:.1f}"
+            html_conf.append(f"<td style='{td}'>{cell}</td>")
+        html_conf.append('</tr>')
+    html_conf.append('</tbody></table></div>')
+    st.markdown(''.join(html_conf), unsafe_allow_html=True)
+
