@@ -187,18 +187,18 @@ if tab == "Rankings":
     ]
     # Use display_headers for headers, always "Team" for the team column
     for disp_col, c in zip(display_headers, cols_rank):
-        th = (
-            'border:1px solid #ddd; padding:8px; text-align:center; '
-            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-        )
-        if c == "Team":
-    if is_mobile():
-        th += " white-space:nowrap; min-width:48px; max-width:48px;"
+    th = (
+        'border:1px solid #ddd; padding:8px; text-align:center; '
+        'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+    )
+    if c == "Team":
+        if is_mobile():
+            th += " white-space:nowrap; min-width:48px; max-width:48px;"
+        else:
+            th += " white-space:nowrap; min-width:180px; max-width:280px; position:sticky; left:0; z-index:3; background-color:#002060;"
     else:
-        th += " white-space:nowrap; min-width:180px; max-width:280px; position:sticky; left:0; z-index:3; background-color:#002060;"
-else:
-    th += " white-space:nowrap;"
-        th += header_font
+        th += " white-space:nowrap;"
+    th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
 
@@ -209,26 +209,51 @@ else:
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
     for _, row in df.iterrows():
-        html.append("<tr>")
-        for c in cols_rank:
-            v = row[c]
-            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-            td += cell_font
-            cell = v
-            if c == "Team":
-    logo = row.get("Logo URL")
-    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-        if is_mobile():
-            cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+    html.append("<tr>")
+    for c in cols_rank:
+        v = row[c]
+        td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+        td += cell_font
+        cell = v
+        if c == "Team":
+            logo = row.get("Logo URL")
+            if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                if is_mobile():
+                    cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                else:
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>' + str(v) + '</div>'
+                    )
+            else:
+                cell = "" if is_mobile() else v
+            if not is_mobile():
+                td += " position:sticky; left:0; z-index:1; background-color:white;"
         else:
-            cell = (
-                f'<div style="display:flex;align-items:center;">'
-                f'<img src="{logo}" width="24" style="margin-right:8px;"/>' + str(v) + '</div>'
-            )
-    else:
-        cell = "" if is_mobile() else v
-    if not is_mobile():
-        td += " position:sticky; left:0; z-index:1; background-color:white;"
+            # (conditional formatting as before)
+            if c == "OVER/UNDER Pick" and isinstance(v, str):
+                if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
+                elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
+            elif c == "Power Rating" and pd.notnull(v):
+                t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            elif c == "Average Game Quality" and pd.notnull(v):
+                t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            elif c == "Schedule Difficulty Rating" and pd.notnull(v):
+                inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
+                r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            else:
+                cell = v
+
+        html.append(f"<td style='{td}'>{cell}</td>")
+    html.append("</tr>")
 
             else:
                 # (conditional formatting as before)
