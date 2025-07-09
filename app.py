@@ -1,3 +1,4 @@
+
 import pandas as pd
 import streamlit as st
 from pathlib import Path
@@ -211,8 +212,10 @@ elif tab == "Conference Overviews":
         logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
     if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
         logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
-    logos_conf["Conference"] = logos_conf["Conference"].str.strip()
-    summary["Conference"] = summary["Conference"].str.strip()
+    # Normalize conference names (e.g. drop hyphens and unify case)
+logos_conf["Conference"] = logos_conf["Conference"].str.strip()\.str.replace("-", "").str.upper()
+    # Normalize summary conference names to match logos
+summary["Conference"] = summary["Conference"].str.strip().str.replace("-", "").str.upper()
     if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
         summary = summary.merge(
             logos_conf[["Conference", "Logo URL"]], on="Conference", how="left"
