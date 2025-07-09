@@ -266,22 +266,19 @@ elif tab == "Conference Overviews":
         for c in cols_sum:
             th = ('border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; '
                   'position:sticky; top:0; z-index:2;')
-            if c == "Conference": th += " white-space:nowrap; min-width:150px;"
-            html_sum.append(f"<th style='{th}'>{c}</th>")
-        html_sum.append('</tr></thead><tbody>')
-        for _, row in summary.iterrows():
-            html_sum.append('<tr>')
-            for c in cols_sum:
-                v = row[c]
-                td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-                if c == "Conference":
+                            if c == "Conference":
                     logo = row.get("Logo URL")
-                    if pd.notnull(logo) and str(logo).startswith("http"):
-                        cell = (f'<div style="display:flex;align-items:center;">'
-                                f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>')
+                    # normalize protocol if necessary
+                    if isinstance(logo, str) and logo.startswith("https://content.sportslogos.net"):
+                        logo = logo.replace("https://", "http://")
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                        )
                     else:
                         cell = v
-                elif c == "# Teams":
+                elif c == "# Teams":"
                     cell = int(v)
                 elif c in ["Avg. Power Rating", "Avg. Game Quality"]:
                     mn, mx = (pr_min, pr_max) if c == "Avg. Power Rating" else (agq_min, agq_max)
