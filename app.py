@@ -165,8 +165,8 @@ if tab == "Rankings":
             "font-size:13px;"
         )
         wrapper_style = (
-            "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
-        )
+    "max-width:100vw; overflow-x:hidden; overflow-y:auto; max-height:70vh; margin:0 -16px 0 -16px;"
+)
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
     else:
@@ -176,7 +176,7 @@ if tab == "Rankings":
         )
         display_headers = [c if c != "Team" else "Team" for c in cols_rank]
         table_style = "width:100%; border-collapse:collapse;"
-        wrapper_style = "max-width:100%; overflow-x:auto;"
+        wrapper_style = "max-width:100%; overflow-x:auto; overflow-y:auto; max-height:75vh;"
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
 
