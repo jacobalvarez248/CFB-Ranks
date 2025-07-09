@@ -50,31 +50,53 @@ FORCE_MOBILE = st.sidebar.checkbox("Mobile View", False)
 def is_mobile():
     return FORCE_MOBILE
 
-# Use collapsed sidebar if mobile
-if is_mobile():
-    cols_rank = [c for c in mobile_cols if c in df.columns]
-    display_headers = [mobile_header_map[c] for c in cols_rank]
-    table_style = (
-        "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; "
-        "font-size:13px;"
-    )
-    wrapper_style = (
-        "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
-    )
-    header_font = "font-size:13px; white-space:normal;"
-    cell_font = "font-size:13px; white-space:nowrap;"
-else:
-    cols_rank = (
-        df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
-        if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
-    )
-    display_headers = [c if c != "Team" else "Team" for c in cols_rank]
-    table_style = "width:100%; border-collapse:collapse;"
-    wrapper_style = (
-        "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
-    )
-    header_font = ""
-    cell_font = "white-space:nowrap; font-size:15px;"
+# --- Sidebar & Tabs ---
+tab = st.sidebar.radio(
+    "Navigation",
+    ["Rankings", "Conference Overviews", "Team Dashboards", "Charts & Graphs"]
+)
+
+# ------ Rankings ------
+if tab == "Rankings":
+    # All table selection, header, and rendering logic here
+    # (formerly after "Use collapsed sidebar if mobile")
+    # (start block)
+    mobile_header_map = {
+        "Preseason Rank": "Rank",
+        "Team": "Team",
+        "Power Rating": "Pwr. Rtg.",
+        "Projected Overall Wins": "Proj. Wins",
+        "Projected Overall Losses": "Proj. Losses",
+        "OVER/UNDER Pick": "OVER/ UNDER",
+        "Average Game Quality": "Avg. Game Qty",
+        "Schedule Difficulty Rating": "Sched. Diff.",
+    }
+    mobile_cols = list(mobile_header_map.keys())
+
+    if is_mobile():
+        cols_rank = [c for c in mobile_cols if c in df_expected.columns]
+        display_headers = [mobile_header_map[c] for c in cols_rank]
+        table_style = (
+            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; "
+            "font-size:13px;"
+        )
+        wrapper_style = (
+            "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
+        )
+        header_font = "font-size:13px; white-space:normal;"
+        cell_font = "font-size:13px; white-space:nowrap;"
+    else:
+        cols_rank = (
+            df_expected.columns.tolist()[: df_expected.columns.tolist().index("Schedule Difficulty Rating") + 1]
+            if "Schedule Difficulty Rating" in df_expected.columns else df_expected.columns.tolist()
+        )
+        display_headers = [c if c != "Team" else "Team" for c in cols_rank]
+        table_style = "width:100%; border-collapse:collapse;"
+        wrapper_style = (
+            "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
+        )
+        header_font = ""
+        cell_font = "white-space:nowrap; font-size:15px;"
 
     html = [
         f'<div style="{wrapper_style}">',
@@ -98,13 +120,12 @@ else:
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
 
-
     # For coloring (same as before)
-    pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
-    agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
-    sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
+    pr_min, pr_max = df_expected["Power Rating"].min(), df_expected["Power Rating"].max()
+    agq_min, agq_max = df_expected["Average Game Quality"].min(), df_expected["Average Game Quality"].max()
+    sdr_min, sdr_max = df_expected["Schedule Difficulty Rating"].min(), df_expected["Schedule Difficulty Rating"].max()
 
-    for _, row in df.iterrows():
+    for _, row in df_expected.iterrows():
         html.append("<tr>")
         for c in cols_rank:
             v = row[c]
