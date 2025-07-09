@@ -330,4 +330,5 @@ elif tab == "Conference Overviews":
         st.markdown("".join(html_sum), unsafe_allow_html=True)
 
     with right:
-      st.markdown("#### Conference
+    st.markdown("#### Conference Overview Chart Placeholder")
+    # (Add chart/plot code here as needed)
