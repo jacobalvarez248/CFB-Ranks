@@ -103,16 +103,19 @@ tab = st.sidebar.radio(
 if tab == "Rankings":
     st.header("📋 Rankings")
     # Hide sidebar and switch tables in portrait mode
-    st.markdown(
+        st.markdown(
         """
         <style>
-        @media only screen and (orientation: portrait) {
+        /* Default: show desktop, hide mobile */
+        .desktop-table {display:block!important;} .mobile-table {display:none!important;}
+        /* Portrait or narrow screens: hide sidebar, show mobile */
+        @media only screen and (orientation: portrait), only screen and (max-width: 600px) {
             .css-1d391kg {display:none!important;}  /* hide sidebar */
             .css-1fjq9mv {margin-left:0!important;} /* expand main */
-            .desktop-table {display:none!important;} .mobile-table {display:table!important;}
+            .desktop-table {display:none!important;} .mobile-table {display:block!important;}
         }
-        .desktop-table {display:table!important;} .mobile-table {display:none!important;}
-        .mobile-table table {table-layout:fixed!important;width:100%!important;overflow:hidden!important;}
+        /* Mobile table fixed layout */
+        .mobile-table table {table-layout:fixed!important;width:100%!important;}
         </style>
         """, unsafe_allow_html=True
     )
@@ -210,6 +213,11 @@ if tab == "Rankings":
                     cell = f'<div style="display:flex;align-items:center;"><img src="{logo}" width="24" style="margin-right:8px;"/>{row["Team"]}</div>'
                 else:
                     cell = row["Team"]
+            elif c == "Power Rating" and pd.notnull(v):
+                t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f"background-color:#{r:02x}{g:02x}{b:02x};color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}"
             elif c == "OVER/UNDER Pick" and isinstance(v, str):
                 cell = v
                 if v.upper().startswith("OVER"):
