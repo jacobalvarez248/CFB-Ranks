@@ -204,7 +204,10 @@ if tab == "Rankings":
             cell=v
             if c=="Team":
                 logo=row.get("Logo URL")
-                cell=f'<div style="display:flex;align-items:center;">'[0:0]  # placeholder preserve original block
+                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                cell = f'<div style="display:flex;align-items:center;"><img src="{logo}" width="24" style="margin-right:8px;"/>{row["Team"]}</div>'
+            else:
+                cell = row["Team"]  # placeholder preserve original block
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append('</tr>')
     html.append('</tbody></table></div>')
