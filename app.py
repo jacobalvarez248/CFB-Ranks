@@ -70,30 +70,7 @@ st.markdown("""
       display: none !important;
     }
   }
-</style>
-""", unsafe_allow_html=True)
-<style>
-  /* Hide less-important columns and adjust table layout on narrow screens */
-  @media (max-width: 600px) {
-    /* Lock table width and text size */
-    .scrollable-table { overflow-x: hidden !important; }
-    .scrollable-table table { table-layout: fixed !important; width: 100% !important; }
-    .scrollable-table th, .scrollable-table td { font-size: 12px !important; padding: 4px !important; }
-    /* Hide columns by position: Conference (2), Undefeated Probability (?), Schedule Difficulty Rank (?), Projected Conference Losses (7), Final 2024 Rank (?) */
-    /* You may need to adjust indices if your column order differs */
-    .scrollable-table table th:nth-child(2),  .scrollable-table table td:nth-child(2),
-    .scrollable-table table th:nth-child(5),  .scrollable-table table td:nth-child(5),
-    .scrollable-table table th:nth-child(8),  .scrollable-table table td:nth-child(8),
-    .scrollable-table table th:nth-child(9),  .scrollable-table table td:nth-child(9),
-    .scrollable-table table th:nth-child(10), .scrollable-table table td:nth-child(10) {
-      display: none !important;
-    }
-    /* Ensure Projected Overall Wins column (nth-child 6) remains visible */
-    .scrollable-table table th:nth-child(6), .scrollable-table table td:nth-child(6) {
-      display: table-cell !important;
-    }
-  }
-""", unsafe_allow_html=True)
+</style>""", unsafe_allow_html=True)
 
 # --- Data Cleaning & Renaming ---
 # Normalize Conference names in df_expected to match logo sheet (drop hyphens & uppercase)
