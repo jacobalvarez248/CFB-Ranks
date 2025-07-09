@@ -127,6 +127,7 @@ if tab == "Rankings":
     )
 
     # --- Desktop Version ---
+    st.markdown('<div class="desktop-only">', unsafe_allow_html=True)
     team_search = st.sidebar.text_input("Search team...", "")
     conf_search = st.sidebar.text_input("Filter by conference...", "")
     sort_col = st.sidebar.selectbox(
@@ -153,9 +154,9 @@ if tab == "Rankings":
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
+    # Build desktop HTML table
     html = [
-        '<div class="desktop-only"><div style="max-height:600px; overflow-y:auto;">',
-        '<div class="desktop-only"><div style="max-height:600px; overflow-y:auto;">'<div class="desktop-only">',
+        '<div style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
     ]
@@ -165,9 +166,10 @@ if tab == "Rankings":
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         )
         if c == "Team":
-            th += " white-space:nowrap; min-width:200px;"
+            th += " white-space:nowrap;"
         html.append(f"<th style='{th}'>{c}</th>")
     html.extend(["</tr></thead><tbody>"])
+
     for _, row in df.iterrows():
         html.append("<tr>")
         for c in cols_rank:
@@ -176,12 +178,9 @@ if tab == "Rankings":
             if c == "Team":
                 logo = row.get("Logo URL")
                 if isinstance(logo, str) and logo.startswith("http"):
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                    )
+                    cell = f'<img src="{logo}" width="24"/>'
                 else:
-                    cell = v
+                    cell = ""
             elif c == "OVER/UNDER Pick" and isinstance(v, str):
                 cell = v
                 if v.upper().startswith("OVER"):
@@ -202,10 +201,12 @@ if tab == "Rankings":
                 cell = v
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
-    html.extend(["</tbody></table></div></div>"])
-    st.markdown("".join(html), unsafe_allow_html=True)
+    html.append("</tbody></table></div>")
+    st.markdown(''.join(html), unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # --- Mobile Version ---
+    st.markdown('<div class="mobile-only">', unsafe_allow_html=True)
     cols_mobile = [
         "Preseason Rank",
         "Team",
@@ -217,7 +218,11 @@ if tab == "Rankings":
         "Schedule Difficulty Rating",
     ]
     df_mobile = df_expected.copy().sort_values(by="Preseason Rank")
-    html2 = ['<div class="mobile-only"><div style="overflow-y:auto;"><table style="width:100%; border-collapse:collapse;"><thead><tr>']
+    html2 = [
+        '<div style="overflow-y:auto;">',
+        '<table style="width:100%; border-collapse:collapse;">',
+        '<thead><tr>'
+    ]
     display_names = {"OVER/UNDER Pick": "OVER/UNDER Pick"}
     for c in cols_mobile:
         th = (
@@ -262,9 +267,9 @@ if tab == "Rankings":
                 cell = v
             html2.append(f"<td style='{td}'>{cell}</td>")
         html2.append("</tr>")
-    html2.extend(["</tbody></table></div></div>"])
-    st.markdown("".join(html2), unsafe_allow_html=True)
-
+    html2.append("</tbody></table></div>")
+    st.markdown(''.join(html2), unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
