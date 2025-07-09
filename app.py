@@ -54,7 +54,23 @@ st.title("🎯 College Football 2025 Pre-Season Preview")
 
 # --- Responsive mobile CSS ---
 st.markdown("""
-
+<style>
+  /* Responsive table styling */
+  .responsive-table { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
+  .responsive-table table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+  .responsive-table th, .responsive-table td { padding: 8px; }
+  @media (max-width: 600px) {
+    .responsive-table th, .responsive-table td { font-size: 12px; padding: 4px; }
+    /* Hide in portrait: Conference(2), Undefeated Probability(5), Projected Conf Losses(7), Schedule Difficulty Rank(8), Final 2024 Rank(9) */
+    .responsive-table th:nth-child(2), .responsive-table td:nth-child(2),
+    .responsive-table th:nth-child(5), .responsive-table td:nth-child(5),
+    .responsive-table th:nth-child(7), .responsive-table td:nth-child(7),
+    .responsive-table th:nth-child(8), .responsive-table td:nth-child(8),
+    .responsive-table th:nth-child(9), .responsive-table td:nth-child(9) {
+      display: none !important;
+    }
+  }
+</style>
 """, unsafe_allow_html=True)
 <style>
   /* Hide less-important columns and adjust table layout on narrow screens */
