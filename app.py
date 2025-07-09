@@ -124,19 +124,13 @@ if tab == "Rankings":
     for c in cols_rank:
         th = ('border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; '
               'color:white; position:sticky; top:0; z-index:2;')
-        if c == "Team": th += " white-space:nowrap; min-width:200px;"
-        html.append(f"<th style='{th}'>{c}</th>")
-    html.append('</tr></thead><tbody>')
-    for _, row in df.iterrows():
-        html.append('<tr>')
-        for c in cols_rank:
-            v = row[c]
-            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-            if c == "Team":
+        if c == "Team":
                 logo = row.get("Logo URL")
                 if pd.notnull(logo) and logo.startswith("http"):
-                    cell = (f'<div style="display:flex;align-items:center;">'
-                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>')
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                    )
                 else:
                     cell = v
             elif c == "OVER/UNDER Pick" and isinstance(v, str):
@@ -294,9 +288,11 @@ elif tab == "Conference Overviews":
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
             if c == "Team":
                 logo = row.get("Logo URL")
-                if pd.notnull(logo) and str(logo).startswith("http"):
-                    cell = (f'<div style="display:flex;align-items:center;">'
-                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>')
+                if pd.notnull(logo) and logo.startswith("http"):
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                    )
                 else:
                     cell = v
             elif c in ["Projected Conference Finish", "Preseason Rank", "Schedule Difficulty Rank"]:
