@@ -148,13 +148,14 @@ if tab == "Rankings":
     mobile_header_map = {
     "Preseason Rank": "Rank",
     "Team": "Team",
-    "Vegas Win Total": "Win Total",
+    "Power Rating": "Pwr. Rtg.",
     "Projected Overall Wins": "Proj. Wins",
     "Projected Overall Losses": "Proj. Losses",
-    "OVER/UNDER Pick": "OVER/ UNDER",  # changed here
+    "OVER/UNDER Pick": "OVER/ UNDER",
     "Average Game Quality": "Avg. Game Qty",
     "Schedule Difficulty Rating": "Sched. Diff.",
 }
+mobile_cols = list(mobile_header_map.keys())
     mobile_cols = list(mobile_header_map.keys())
 
     if is_mobile():
@@ -166,7 +167,7 @@ if tab == "Rankings":
         )
         wrapper_style = (
     "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
-) if is_mobile() else (
+)
     "max-width:100%; max-height:70vh; overflow-x:auto; overflow-y:auto;"
 )
         header_font = "font-size:13px; white-space:normal;"
