@@ -300,20 +300,19 @@ elif tab == "Conference Overviews":
             html_sum.append("</tr>")
         html_sum.append("</tbody></table></div>")
         st.markdown("".join(html_sum), unsafe_allow_html=True)
-    # No scatterplot on the right
-    # (scatter removed per request)
-    # 5) Detailed conference table
+
+        # 5) Detailed conference table
     st.markdown("---")
     sel = st.selectbox("Select conference for details", summary["Conference"].tolist())
-df_conf = df_expected[df_expected["Conference"] == sel].copy()
+    df_conf = df_expected[df_expected["Conference"] == sel].copy()
 
-# Sort by Projected Conference Wins, descending
-if "Projected Conference Wins" in df_conf.columns:
-    df_conf = df_conf.sort_values(by="Projected Conference Wins", ascending=False).reset_index(drop=True)
+    # Sort by Projected Conference Wins, descending
+    if "Projected Conference Wins" in df_conf.columns:
+        df_conf = df_conf.sort_values(by="Projected Conference Wins", ascending=False).reset_index(drop=True)
 
-df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
+    df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
 
-        # (team logos already in df_expected via initial merge)
+    # (team logos already in df_expected via initial merge)
     cols_conf = [
         "Projected Conference Finish", "Preseason Rank", "Team", "Power Rating",
         "Projected Conference Wins", "Projected Conference Losses",
@@ -328,7 +327,8 @@ df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
     html_conf = ['<div style="max-height:500px; overflow-y:auto;">', '<table style="width:100%; border-collapse:collapse;">', '<thead><tr>']
     for c in cols_conf:
         th = 'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-        if c == "Team": th += " white-space:nowrap; min-width:200px;"
+        if c == "Team":
+            th += " white-space:nowrap; min-width:200px;"
         html_conf.append(f"<th style='{th}'>{c}</th>")
     html_conf.append('</tr></thead><tbody>')
     for _, row in df_conf.iterrows():
@@ -352,7 +352,8 @@ df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
             else:
                 mn, mx = bounds[c]
                 t = (v - mn) / (mx - mn) if mx > mn else 0
-                if c == "Schedule Difficulty Rating": t = 1 - t
+                if c == "Schedule Difficulty Rating":
+                    t = 1 - t
                 r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                 td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
                 cell = f"{v:.1f}"
@@ -360,3 +361,4 @@ df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
         html_conf.append('</tr>')
     html_conf.append('</tbody></table></div>')
     st.markdown(''.join(html_conf), unsafe_allow_html=True)
+
