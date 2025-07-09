@@ -45,9 +45,10 @@ df_expected = df_expected.merge(team_logos, on="Team", how="left")
 # --- Streamlit Config ---
 import streamlit.components.v1 as components
 
+# Only call this ONCE at the top, never inside a function or repeatedly
+FORCE_MOBILE = st.sidebar.checkbox("Force mobile view", False)
 def is_mobile():
-    # You can replace with real JS query if you have a component for it.
-    return st.sidebar.checkbox("Force mobile view", False)
+    return FORCE_MOBILE
 
 # Use collapsed sidebar if mobile
 if is_mobile():
@@ -65,12 +66,6 @@ else:
         initial_sidebar_state="expanded",
     )
 
-st.set_page_config(
-    page_title="CFB 2025 Preview",
-    page_icon="🏈",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
 # --- Data Cleaning & Renaming ---
@@ -149,67 +144,67 @@ if tab == "Rankings":
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
     # Columns to display
-mobile_cols = [
-    "Preseason Rank", 
-    "Team",  # Logo only
-    "Vegas Win Total",
-    "Projected Overall Wins",
-    "Projected Overall Losses",
-    "OVER/UNDER Pick",
-    "Average Game Quality",
-    "Schedule Difficulty Rating",
-]
-if is_mobile():
-    cols_rank = [c for c in mobile_cols if c in df.columns]
-    table_style = "width:100%; border-collapse:collapse; table-layout:fixed;"
-else:
-    cols_rank = (
-        df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
-        if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
-    )
-    table_style = "width:100%; border-collapse:collapse;"
-
-# ... (later in your HTML build)
-html = [
-    '<div style="max-height:600px; overflow-y:auto;">',
-    f'<table style="{table_style}">',
-    # ...
-]
-# in Team cell rendering:
-if c == "Team":
-    logo = row.get("Logo URL")
-    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-        if is_mobile():
-            cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
-        else:
-            cell = (
-                f'<div style="display:flex;align-items:center;">'
-                f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-            )
+    mobile_cols = [
+        "Preseason Rank", 
+        "Team",  # Logo only
+        "Vegas Win Total",
+        "Projected Overall Wins",
+        "Projected Overall Losses",
+        "OVER/UNDER Pick",
+        "Average Game Quality",
+        "Schedule Difficulty Rating",
+    ]
+    if is_mobile():
+        cols_rank = [c for c in mobile_cols if c in df.columns]
+        table_style = "width:100%; border-collapse:collapse; table-layout:fixed;"
     else:
-        cell = "" if is_mobile() else v
+        cols_rank = (
+            df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
+            if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
+        )
+        table_style = "width:100%; border-collapse:collapse;"
 
+    html = [
+        '<div style="max-height:600px; overflow-y:auto;">',
+        f'<table style="{table_style}">',
+        '<thead><tr>'
+    ]
+    for c in cols_rank:
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; '
+            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+        )
+        if c == "Team":
+            th += " white-space:nowrap; min-width:48px; max-width:48px;"
+        html.append(f"<th style='{th}'>{c if c != 'Team' else ''}</th>")
+    html.append("</tr></thead><tbody>")
 
-    # Rows
+    # For coloring
+    pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
+    agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
+    sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
+
     for _, row in df.iterrows():
         html.append("<tr>")
         for c in cols_rank:
             v = row[c]
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-
+            cell = v
             if c == "Team":
                 logo = row.get("Logo URL")
                 if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                    )
+                    if is_mobile():
+                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                    else:
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                        )
                 else:
-                    cell = v
+                    cell = "" if is_mobile() else v
             else:
                 # existing branches
                 if c == "OVER/UNDER Pick" and isinstance(v, str):
-                    cell = v
                     if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
                     elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
                 elif c == "Power Rating" and pd.notnull(v):
@@ -335,131 +330,4 @@ elif tab == "Conference Overviews":
         st.markdown("".join(html_sum), unsafe_allow_html=True)
 
     with right:
-      st.markdown("#### Conference Strength: Power Rating vs. Game Quality")
-      import streamlit.components.v1 as components
-
-      # Dynamically set height to match the table
-      num_rows = len(summary)
-      row_height = 44
-      table_height = 56 + num_rows * row_height
-      min_height = 350
-      max_height = 900
-      plot_height = max(min_height, min(table_height, max_height))
-      y_bottom = plot_height - 50
-      plot_area = plot_height - 100
-
-      # Plot ALL conferences, not just those with a logo!
-      scatter_html = f"""
-      <div style='width:100%; max-width:700px; height:{plot_height}px; position:relative;'>
-          <svg width='100%' height='100%' viewBox='0 0 700 {plot_height}'>
-      """
-      x_min, x_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
-      y_min, y_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
-      pad_x = (x_max - x_min) * 0.07
-      pad_y = (y_max - y_min) * 0.09
-      x_min, x_max = x_min - pad_x, x_max + pad_x
-      y_min, y_max = y_min - pad_y, y_max + pad_y
-
-      grid_fracs = [0, 0.2, 0.4, 0.6, 0.8, 1]
-      for frac in grid_fracs:
-          xpos = int(50 + 600 * frac)
-          ypos = int(y_bottom - plot_area * frac)
-          if frac not in [0, 1]:
-              scatter_html += f'<line x1="{xpos}" y1="50" x2="{xpos}" y2="{y_bottom}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
-              scatter_html += f'<line x1="50" y1="{ypos}" x2="650" y2="{ypos}" stroke="#ccc" stroke-width="1" stroke-dasharray="4"/>'
-
-      # Plot ALL conferences, with fallback for missing logos
-      for _, row in summary.iterrows():
-          x = int(50 + 600 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
-          y = int(y_bottom - plot_area * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
-          logo_url = row["Logo URL"]
-          if not (isinstance(logo_url, str) and logo_url.startswith("http")) or logo_url.strip() == "":
-              logo_url = "https://png.pngtree.com/png-vector/20230115/ourmid/pngtree-american-football-nfl-rugby-ball-illustration-clipart-design-png-image_6564471.png"
-          conf_name = row["Conference"]
-          scatter_html += f'''
-          <image href="{logo_url}" x="{x-14}" y="{y-14}" width="28" height="28">
-              <title>{conf_name}</title>
-          </image>
-          '''
-
-           # Axes and ticks (all with explicit font-family)
-      scatter_html += f'''
-          <!-- X axis -->
-          <line x1="50" y1="{y_bottom}" x2="650" y2="{y_bottom}" stroke="#002060" stroke-width="2"/>
-          <text x="350" y="{y_bottom+30}" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle" style="font-family:'Segoe UI', Arial, sans-serif">Avg. Game Quality</text>
-          <!-- Y axis -->
-          <line x1="50" y1="50" x2="50" y2="{y_bottom}" stroke="#002060" stroke-width="2"/>
-          <text x="10" y="{plot_height//2}" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle" transform="rotate(-90,10,{plot_height//2})" style="font-family:'Segoe UI', Arial, sans-serif">Avg. Power Rating</text>
-      '''
-      for frac in grid_fracs:
-          xv = x_min + (x_max - x_min) * frac
-          xpos = int(50 + 600 * frac)
-          scatter_html += f'<text x="{xpos}" y="{y_bottom+20}" font-size="16" fill="#fff" font-weight="bold" text-anchor="middle" style="font-family:\'Segoe UI\', Arial, sans-serif">{xv:.1f}</text>'
-          scatter_html += f'<line x1="{xpos}" y1="{y_bottom-5}" x2="{xpos}" y2="{y_bottom+5}" stroke="#002060" stroke-width="2"/>'
-      for frac in grid_fracs:
-          yv = y_min + (y_max - y_min) * frac
-          ypos = int(y_bottom - plot_area * frac)
-          scatter_html += f'<text x="30" y="{ypos+8}" font-size="16" fill="#fff" font-weight="bold" text-anchor="end" style="font-family:\'Segoe UI\', Arial, sans-serif">{yv:.1f}</text>'
-          scatter_html += f'<line x1="45" y1="{ypos}" x2="55" y2="{ypos}" stroke="#002060" stroke-width="2"/>'
-      scatter_html += f"""
-          </svg>
-      </div>
-      """
-      components.html(scatter_html, height=plot_height)
-
-
-
-    # --- Full-width detailed table below ---
-    st.markdown("---")
-    sel = st.selectbox("Select conference for details", summary["Conference"].tolist())
-    df_conf = df_expected[df_expected["Conference"] == sel].copy()
-    if "Projected Conference Wins" in df_conf.columns:
-        df_conf = df_conf.sort_values(by="Projected Conference Wins", ascending=False).reset_index(drop=True)
-    df_conf.insert(0, "Projected Conference Finish", range(1, len(df_conf) + 1))
-    cols_conf = [
-        "Projected Conference Finish", "Preseason Rank", "Team", "Power Rating",
-        "Projected Conference Wins", "Projected Conference Losses",
-        "Average Game Quality", "Schedule Difficulty Rank", "Schedule Difficulty Rating"
-    ]
-    bounds = {
-        "Power Rating": (df_conf["Power Rating"].min(), df_conf["Power Rating"].max()),
-        "Average Game Quality": (df_conf["Average Game Quality"].min(), df_conf["Average Game Quality"].max()),
-        "Schedule Difficulty Rating": (df_conf["Schedule Difficulty Rating"].min(), df_conf["Schedule Difficulty Rating"].max())
-    }
-    html_conf = ['<div style="max-height:500px; overflow-y:auto;">', '<table style="width:100%; border-collapse:collapse;">', '<thead><tr>']
-    for c in cols_conf:
-        th = 'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-        if c == "Team":
-            th += " white-space:nowrap; min-width:200px;"
-        html_conf.append(f"<th style='{th}'>{c}</th>")
-    html_conf.append('</tr></thead><tbody>')
-    for _, row in df_conf.iterrows():
-        html_conf.append('<tr>')
-        for c in cols_conf:
-            v = row[c]
-            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-            if c == "Team":
-                logo = row.get("Logo URL")
-                if pd.notnull(logo) and logo.startswith("http"):
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                    )
-                else:
-                    cell = v
-            elif c in ["Projected Conference Finish", "Preseason Rank", "Schedule Difficulty Rank"]:
-                cell = int(v)
-            elif c in ["Projected Conference Wins", "Projected Conference Losses"]:
-                cell = f"{v:.1f}"
-            else:
-                mn, mx = bounds[c]
-                t = (v - mn) / (mx - mn) if mx > mn else 0
-                if c == "Schedule Difficulty Rating":
-                    t = 1 - t
-                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'white' if t>0.5 else 'black'};"
-                cell = f"{v:.1f}"
-            html_conf.append(f"<td style='{td}'>{cell}</td>")
-        html_conf.append('</tr>')
-    html_conf.append('</tbody></table></div>')
-    st.markdown(''.join(html_conf), unsafe_allow_html=True)
+      st.markdown("#### Conference
