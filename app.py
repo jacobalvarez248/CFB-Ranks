@@ -347,20 +347,20 @@ elif tab == "Conference Overviews":
       scatter_html += f'''
           <!-- X axis -->
           <line x1="50" y1="{y_bottom}" x2="650" y2="{y_bottom}" stroke="#002060" stroke-width="2"/>
-          <text x="350" y="{y_bottom+30}" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle">Avg. Game Quality</text>
+          $1 style="font-family:'Segoe UI', Arial, sans-serif"$2Avg. Game Quality</text>
           <!-- Y axis -->
           <line x1="50" y1="50" x2="50" y2="{y_bottom}" stroke="#002060" stroke-width="2"/>
-          <text x="10" y="{plot_height//2}" font-size="20" fill="#fff" font-weight="bold" text-anchor="middle" transform="rotate(-90,10,{plot_height//2})">Avg. Power Rating</text>
+          $1 style="font-family:'Segoe UI', Arial, sans-serif"$2Avg. Power Rating</text>
       '''
       for frac in grid_fracs:
           xv = x_min + (x_max - x_min) * frac
           xpos = int(50 + 600 * frac)
-          scatter_html += f'<text x="{xpos}" y="{y_bottom+20}" font-size="16" fill="#fff" font-weight="bold" text-anchor="middle">{xv:.1f}</text>'
+          scatter_html += f'$1 style="font-family:'Segoe UI', Arial, sans-serif"$2{xv:.1f}</text>'
           scatter_html += f'<line x1="{xpos}" y1="{y_bottom-5}" x2="{xpos}" y2="{y_bottom+5}" stroke="#002060" stroke-width="2"/>'
       for frac in grid_fracs:
           yv = y_min + (y_max - y_min) * frac
           ypos = int(y_bottom - plot_area * frac)
-          scatter_html += f'<text x="30" y="{ypos+8}" font-size="16" fill="#fff" font-weight="bold" text-anchor="end">{yv:.1f}</text>'
+          scatter_html += f'$1 style="font-family:'Segoe UI', Arial, sans-serif"$2{yv:.1f}</text>'
           scatter_html += f'<line x1="45" y1="{ypos}" x2="55" y2="{ypos}" stroke="#002060" stroke-width="2"/>'
       scatter_html += f"""
           </svg>
