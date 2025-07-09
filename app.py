@@ -113,11 +113,11 @@ if tab == "Rankings":
     st.markdown(
         """
         <style>
-        @media only screen and (max-width: 600px) {
+        @media only screen and (max-width: 1000px) {
           .desktop-only { display: none !important; }
           .mobile-only  { display: block !important; }
         }
-        @media only screen and (min-width: 601px) {
+        @media only screen and (min-width: 1001px) {
           .desktop-only { display: block !important; }
           .mobile-only  { display: none !important; }
         }
