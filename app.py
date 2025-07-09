@@ -71,7 +71,7 @@ st.markdown("""
     .scrollable-table table th:nth-child(9), .scrollable-table table td:nth-child(9) { display: none !important; }
   }
 </style>
-""", unsafe_allow_html=True)"""
+""", unsafe_allow_html=True)""
 <style>
   /* Hide less-important columns and adjust table layout on narrow screens */
   @media (max-width: 600px) {
