@@ -267,14 +267,14 @@ elif tab == "Conference Overviews":
                 v = row[c]
                 td = 'border:1px solid #ddd; padding:8px; text-align:center;'
                 if c == "Conference":
-                    logo = row.get("Logo URL")
-                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                        cell = (
-                            f'<div style="display:flex;align-items:center;">'
-                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                        )
-                    else:
-                        cell = v
+    logo = row.get("Logo URL")
+    if not (isinstance(logo, str) and logo.startswith("http")) or logo.strip() == "":
+        logo = "https://png.pngtree.com/png-vector/20230115/ourmid/pngtree-american-football-nfl-rugby-ball-illustration-clipart-design-png-image_6564471.png"
+    cell = (
+        f'<div style="display:flex;align-items:center;">'
+        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+    )
+
                 elif c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
                     mn, mx = (
                         (pr_min, pr_max) if c == "Avg. Power Rating" else
@@ -319,12 +319,14 @@ elif tab == "Conference Overviews":
             x = int(50 + 500 * (row["Avg. Game Quality"] - x_min) / (x_max - x_min))
             y = int(350 - 300 * (row["Avg. Power Rating"] - y_min) / (y_max - y_min))
             logo_url = row["Logo URL"]
-            conf_name = row["Conference"]
-            scatter_html += f'''
-            <image href="{logo_url}" x="{x-14}" y="{y-14}" width="28" height="28">
-                <title>{conf_name}</title>
-            </image>
-            '''
+        if not (isinstance(logo_url, str) and logo_url.startswith("http")) or logo_url.strip() == "":
+            logo_url = "https://png.pngtree.com/png-vector/20230115/ourmid/pngtree-american-football-nfl-rugby-ball-illustration-clipart-design-png-image_6564471.png"
+        conf_name = row["Conference"]
+        scatter_html += f'''
+        <image href="{logo_url}" x="{x-14}" y="{y-14}" width="28" height="28">
+            <title>{conf_name}</title>
+        </image>
+        '''
         scatter_html += '''
             <!-- X axis -->
             <line x1="50" y1="350" x2="550" y2="350" stroke="#888" stroke-width="2"/>
