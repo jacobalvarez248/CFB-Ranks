@@ -146,15 +146,15 @@ if tab == "Rankings":
             # --- Rankings Table Setup ---
     # Short column headers for mobile
     mobile_header_map = {
-        "Preseason Rank": "Rank",
-        "Team": "Team",
-        "Vegas Win Total": "Win Total",
-        "Projected Overall Wins": "Proj. Wins",
-        "Projected Overall Losses": "Proj. Losses",
-        "OVER/UNDER Pick": "OVER/UNDER",
-        "Average Game Quality": "Avg. Game Qty",
-        "Schedule Difficulty Rating": "Sched. Diff.",
-    }
+    "Preseason Rank": "Rank",
+    "Team": "Team",
+    "Vegas Win Total": "Win Total",
+    "Projected Overall Wins": "Proj. Wins",
+    "Projected Overall Losses": "Proj. Losses",
+    "OVER/UNDER Pick": "OVER/ UNDER",  # changed here
+    "Average Game Quality": "Avg. Game Qty",
+    "Schedule Difficulty Rating": "Sched. Diff.",
+}
     mobile_cols = list(mobile_header_map.keys())
 
     if is_mobile():
@@ -165,8 +165,10 @@ if tab == "Rankings":
             "font-size:13px;"
         )
         wrapper_style = (
-            "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
-        )
+    "max-width:100vw; max-height:70vh; overflow-x:hidden; overflow-y:auto; margin:0 -16px 0 -16px;"
+) if is_mobile() else (
+    "max-width:100%; max-height:70vh; overflow-x:auto; overflow-y:auto;"
+)
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
     else:
