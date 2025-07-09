@@ -29,28 +29,20 @@ df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 
 # Normalize logo column
-# Trim whitespace on team names to ensure clean merge
 logos_df["Team"] = logos_df["Team"].str.strip()
 df_expected["Team"] = df_expected["Team"].str.strip()
-# Rename Image URL -> Logo URL for consistency
 if "Image URL" in logos_df.columns:
     logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-
-# Prepare separate team logos and conference logos
 team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]].copy()
-# Merge team logos into df_expected
-# (so conference-logo entries in logos_df won't mix into team tables)
 df_expected = df_expected.merge(team_logos, on="Team", how="left")
 
 # --- Streamlit Config ---
 import streamlit.components.v1 as components
 
-# Only call this ONCE at the top, never inside a function or repeatedly
 FORCE_MOBILE = st.sidebar.checkbox("Mobile View", False)
 def is_mobile():
     return FORCE_MOBILE
 
-# Use collapsed sidebar if mobile
 if is_mobile():
     st.set_page_config(
         page_title="CFB 2025 Preview",
@@ -69,14 +61,12 @@ else:
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
 # --- Data Cleaning & Renaming ---
-# Normalize Conference names in df_expected to match logo sheet (drop hyphens & uppercase)
 df_expected["Conference"] = (
     df_expected["Conference"].astype(str)
     .str.strip()
     .str.replace("-", "", regex=False)
     .str.upper()
 )
-
 empty_cols = [c for c in df_expected.columns if str(c).strip() == ""]
 df_expected.drop(columns=empty_cols, inplace=True, errors='ignore')
 df_expected.drop(columns=["Column1", "Column3"], inplace=True, errors='ignore')
@@ -94,21 +84,17 @@ rename_map = {
     "Final 2022 Rank": "Final 2024 Rank",
 }
 df_expected.rename(columns=rename_map, inplace=True)
-# Add Preseason Rank if missing
 if "Preseason Rank" not in df_expected.columns:
     df_expected.insert(0, "Preseason Rank", list(range(1, len(df_expected) + 1)))
-# Format probabilities
 if "Undefeated Probability" in df_expected.columns:
     df_expected["Undefeated Probability"] = (
         df_expected["Undefeated Probability"].apply(
             lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
         )
     )
-# Round numeric cols except ranks
 drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
 numeric_cols = [c for c in df_expected.select_dtypes(include=["number"]).columns if c not in drop_ranks]
 df_expected[numeric_cols] = df_expected[numeric_cols].round(1)
-# Ensure types
 for col in ["Preseason Rank", "Final 2024 Rank"]:
     if col in df_expected.columns:
         df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').fillna(0).astype(int)
@@ -143,6 +129,14 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
+    # Pinned columns setup for desktop
+    pinned_cols = ["Preseason Rank", "Team"]
+    # Define left offsets in px for each pinned column
+    left_offsets = {
+        "Preseason Rank": 0,
+        "Team": 80  # width of Preseason Rank col (pixels)
+    }
+
     # --- Rankings Table Setup ---
     mobile_header_map = {
         "Preseason Rank": "Rank",
@@ -155,10 +149,6 @@ if tab == "Rankings":
         "Schedule Difficulty Rating": "Sched. Diff.",
     }
     mobile_cols = list(mobile_header_map.keys())
-
-    # Columns to pin
-    PINNED_COLS = ["Preseason Rank", "Team"]
-    PINNED_WIDTHS = {"Preseason Rank": 80, "Team": 180}  # px
 
     if is_mobile():
         cols_rank = [c for c in mobile_cols if c in df.columns]
@@ -188,145 +178,55 @@ if tab == "Rankings":
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
-    # --- Table header with sticky pinned columns ---
-    left_offsets = []
-    if not is_mobile():
-        offset = 0
-        for c in cols_rank:
-            if c in PINNED_COLS:
-                left_offsets.append(offset)
-                offset += PINNED_WIDTHS[c]
-            else:
-                left_offsets.append(None)
-
-    for i, (disp_col, c) in enumerate(zip(display_headers, cols_rank)):
-    th = 'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white;'
-
-        # Desktop: Pin Preseason Rank and Team columns
-        if not is_mobile() and c in PINNED_COLS:
-            idx = cols_rank.index(c)
-            th += f" left:{left_offsets[idx]}px; z-index:3; background:#fff;"
-            th += f" min-width:{PINNED_WIDTHS[c]}px; max-width:{PINNED_WIDTHS[c]}px;"
-        elif c == "Team":
-            th += " white-space:nowrap; min-width:180px; max-width:280px;"
+    for disp_col, c in zip(display_headers, cols_rank):
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; '
+            'background-color:#002060; color:white; position:sticky; top:0;'
+        )
+        # Apply left sticky for desktop pinned cols
+        if not is_mobile() and c in pinned_cols:
+            th += f' left:{left_offsets[c]}px; z-index:3;'
         else:
-            th += " white-space:nowrap;"
+            th += ' z-index:2;'
+        # Specific width hints for pinned headers
+        if c == "Preseason Rank":
+            th += ' min-width:80px;'
+        if c == "Team":
+            th += ' min-width:180px; white-space:nowrap;'
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
 
-    # For coloring (same as before)
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
     for _, row in df.iterrows():
         html.append("<tr>")
-        # --- Sticky pinned columns for data ---
-        offset = 0
-        for idx, c in enumerate(cols_rank):
+        for c in cols_rank:
             v = row[c]
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
             td += cell_font
-            # Pin Preseason Rank and Team on desktop
-            if not is_mobile() and c in PINNED_COLS:
-                td += f" position:sticky; left:{left_offsets[idx]}px; z-index:2; background:#fff;"
-                td += f" min-width:{PINNED_WIDTHS[c]}px; max-width:{PINNED_WIDTHS[c]}px;"
+            # Apply left sticky for desktop pinned cols in rows
+            if not is_mobile() and c in pinned_cols:
+                td += ' position:sticky;'
+                td += f' left:{left_offsets[c]}px;'
+                td += ' background-color:white; z-index:1;'
+            cell = v
             if c == "Team":
                 logo = row.get("Logo URL")
                 if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    if is_mobile():
-                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
-                    else:
-                        cell = (
-                            f'<div style="display:flex;align-items:center;">'
-                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                        )
-                else:
-                    cell = "" if is_mobile() else v
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                    ) if not is_mobile() else f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                elif not is_mobile():
+                    cell = v
             else:
-                # (conditional formatting as before)
                 if c == "OVER/UNDER Pick" and isinstance(v, str):
                     if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
                     elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
-                    cell = v
                 elif c == "Power Rating" and pd.notnull(v):
                     t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
                     r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                elif c == "Average Game Quality" and pd.notnull(v):
-                    t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
-                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                elif c == "Schedule Difficulty Rating" and pd.notnull(v):
-                    inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
-                    r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
-                    cell = f"{v:.1f}"
-                else:
-                    cell = v
-
-            html.append(f"<td style='{td}'>{cell}</td>")
-        html.append("</tr>")
-    html.append("</tbody></table></div>")
-    st.markdown("".join(html), unsafe_allow_html=True)
-
-# ------ Conference Overviews ------
-elif tab == "Conference Overviews":
-    st.header("🏟️ Conference Overviews")
-
-    # --- Data Prep for Table and Scatter ---
-    summary = (
-        df_expected.groupby("Conference").agg(
-            **{
-                "# Teams": ("Preseason Rank", "count"),
-                "Avg. Power Rating": ("Power Rating", "mean"),
-                "Avg. Game Quality": ("Average Game Quality", "mean"),
-                "Avg. Schedule Difficulty": ("Schedule Difficulty Rating", "mean"),
-            }
-        ).reset_index()
-    )
-    summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]] = (
-        summary[["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]].round(1)
-    )
-    logos_conf = logos_df.copy()
-    if "Image URL" in logos_conf.columns:
-        logos_conf.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-    if "Team" in logos_conf.columns and "Conference" not in logos_conf.columns:
-        logos_conf.rename(columns={"Team": "Conference"}, inplace=True)
-    logos_conf["Conference"] = (
-        logos_conf["Conference"]
-        .str.strip()
-        .str.replace("-", "", regex=False)
-        .str.upper()
-    )
-    summary["Conference"] = (
-        summary["Conference"]
-        .str.strip()
-        .str.replace("-", "", regex=False)
-        .str.upper()
-    )
-    if {"Conference", "Logo URL"}.issubset(logos_conf.columns):
-        summary = summary.merge(
-            logos_conf[["Conference", "Logo URL"]],
-            on="Conference",
-            how="left"
-        )
-    pr_min, pr_max = summary["Avg. Power Rating"].min(), summary["Avg. Power Rating"].max()
-    agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
-    sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
-
-    # --- Side-by-side Table and Scatterplot ---
-    left, right = st.columns([1, 1])
-
-    with left:
-        html_sum = [
-    '<div style="overflow-x:auto;">',
-            '<table style="width:100%; border-collapse:collapse;">',
-            '<thead><tr>'
-        ]
-        cols_sum = ["Conference", "# Teams", "Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]
-        for c in cols_sum:
-    th = 'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white;'
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:...
