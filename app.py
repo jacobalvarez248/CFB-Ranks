@@ -32,7 +32,7 @@ logos_df = load_sheet(data_path, "Logos", header=1)
 # Trim whitespace on team names to ensure clean merge
 logos_df["Team"] = logos_df["Team"].str.strip()
 df_expected["Team"] = df_expected["Team"].str.strip()
-if "Image URL" in logos_df.columns:
+# Rename Image URL -> Logo URL for consistency
 if "Image URL" in logos_df.columns:
     logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
 
