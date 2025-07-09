@@ -7,22 +7,8 @@ import altair as alt
 from pandas import DataFrame
 
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
-    try:
-        import xlwings as xw
-        wb = xw.Book(data_path)
-        sht = wb.sheets[sheet_name]
-        df = (
-            sht.range("A1")
-               .options(pd.DataFrame, header=header, index=False, expand="table")
-               .value
-        )
-    except Exception:
-        df = pd.read_excel(
-            data_path,
-            sheet_name=sheet_name,
-            engine="openpyxl",
-            header=header
-        )
+    # Sort dataframe by the selected column
+    df = df.sort_values(by=sort_col, ascending=asc)
     return df
 
 # --- Load Data ---
