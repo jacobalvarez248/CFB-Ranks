@@ -1,6 +1,8 @@
+
 import pandas as pd
 import streamlit as st
 from pathlib import Path
+import altair as alt
 
 # Helper to load Excel sheets via xlwings or pandas/openpyxl
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
@@ -27,19 +29,43 @@ data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 
-# Clean up logos and expected DF
+# Normalize logo column
+# Trim whitespace on team names to ensure clean merge
 logos_df["Team"] = logos_df["Team"].str.strip()
 df_expected["Team"] = df_expected["Team"].str.strip()
+# Rename Image URL -> Logo URL for consistency
 if "Image URL" in logos_df.columns:
     logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]]
+
+# Prepare separate team logos and conference logos
+team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]].copy()
+# Merge team logos into df_expected
+# (so conference-logo entries in logos_df won't mix into team tables)
 df_expected = df_expected.merge(team_logos, on="Team", how="left")
 
-# --- Rename columns ---
-# Ensure key columns exist for styling
+# --- Streamlit Config ---
+st.set_page_config(
+    page_title="CFB 2025 Preview",
+    page_icon="🏈",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+st.title("🎯 College Football 2025 Pre-Season Preview")
+
+# --- Data Cleaning & Renaming ---
+# Normalize Conference names in df_expected to match logo sheet (drop hyphens & uppercase)
+df_expected["Conference"] = (
+    df_expected["Conference"].astype(str)
+    .str.strip()
+    .str.replace("-", "", regex=False)
+    .str.upper()
+)
+
+empty_cols = [c for c in df_expected.columns if str(c).strip() == ""]
+df_expected.drop(columns=empty_cols, inplace=True, errors='ignore')
+df_expected.drop(columns=["Column1", "Column3"], inplace=True, errors='ignore')
 rename_map = {
     "Column18": "Power Rating",
-    "Column 18": "Power Rating",
     "Projected Overall Record": "Projected Overall Wins",
     "Column2": "Projected Overall Losses",
     "Projected Conference Record": "Projected Conference Wins",
@@ -48,155 +74,128 @@ rename_map = {
     "Column17": "Schedule Difficulty Rank",
     "xWins for Playoff Team": "Schedule Difficulty Rating",
     "Winless Probability": "Average Game Quality",
-    # final rank if present
-    "Final 2024 Rank": "Final 2024 Rank"
+    "Final 2024 Rank": "Final 2024 Rank",
 }
 df_expected.rename(columns=rename_map, inplace=True)
+# Add Preseason Rank if missing
+if "Preseason Rank" not in df_expected.columns:
+    df_expected.insert(0, "Preseason Rank", list(range(1, len(df_expected) + 1)))
+# Format probabilities
+if "Undefeated Probability" in df_expected.columns:
+    df_expected["Undefeated Probability"] = (
+        df_expected["Undefeated Probability"].apply(
+            lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
+        )
+    )
+# Round numeric cols except ranks
+drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
+numeric_cols = [c for c in df_expected.select_dtypes(include=["number"]).columns if c not in drop_ranks]
+df_expected[numeric_cols] = df_expected[numeric_cols].round(1)
+# Ensure types
+for col in ["Preseason Rank", "Final 2024 Rank"]:
+    if col in df_expected.columns:
+        df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').fillna(0).astype(int)
+for col in ["Power Rating", "Average Game Quality", "Schedule Difficulty Rating"]:
+    if col in df_expected.columns:
+        df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').round(1)
 
-# --- Streamlit Config ---
-st.set_page_config(page_title="CFB 2025 Preview", page_icon="🏈", layout="wide")
-st.title("🎯 College Football 2025 Pre-Season Preview")
+# --- Sidebar & Tabs ---
+tab = st.sidebar.radio(
+    "Navigation",
+    ["Rankings", "Conference Overviews", "Team Dashboards", "Charts & Graphs"]
+)
 
-# --- Desktop/Mobile Toggle CSS ---
-st.markdown("""
-<style>
-  .desktop-only { display: block !important; }
-  .mobile-only  { display: none !important; }
-  @media (max-width: 600px) {
-    .desktop-only { display: none !important; }
-    .mobile-only  { display: block !important; }
-  }
-</style>
-""", unsafe_allow_html=True)
-
-# --- Sidebar & Navigation ---
-tab = st.sidebar.radio("Navigation", ["Rankings", "Conference Overviews", "Team Dashboards", "Charts & Graphs"])
-
+# ------ Rankings ------
 if tab == "Rankings":
     st.header("📋 Rankings")
-    # Filters
     team_search = st.sidebar.text_input("Search team...", "")
     conf_search = st.sidebar.text_input("Filter by conference...", "")
-    sort_col = st.sidebar.selectbox("Sort by column", df_expected.columns.tolist(), df_expected.columns.get_loc("Preseason Rank"))
+    sort_col = st.sidebar.selectbox(
+        "Sort by column", df_expected.columns, df_expected.columns.get_loc("Preseason Rank")
+    )
     asc = st.sidebar.checkbox("Ascending order", True)
 
-    # Prepare DataFrame
     df = df_expected.copy()
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
-    if conf_search:
+    if conf_search and "Conference" in df.columns:
         df = df[df["Conference"].str.contains(conf_search, case=False, na=False)]
-    df = df.sort_values(by="Preseason Rank", ascending=True)
-    df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
+    df = df.sort_values(by="Preseason Rank")
+    try:
+        df = df.sort_values(by=sort_col, ascending=asc)
+    except TypeError:
+        df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
-    # Compute bounds for styling
+    # Columns to display
+    cols_rank = (
+        df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
+        if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
+    )
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
-    # Define columns for tables
-    cols = [
-        "Preseason Rank", "Team", "Vegas Win Total", "Projected Overall Wins",
-        "Projected Overall Losses", "OVER/UNDER Pick", "Average Game Quality",
-        "Schedule Difficulty Rating"
-    ]
-
-            # --- Desktop table (full) ---
-    html_desktop = [
-        '<div class="desktop-only" style="max-height:600px; overflow-y:auto;">',
+    html = [
+        '<div style="max-height:600px; overflow-y:auto;">',
         '<table style="width:100%; border-collapse:collapse;">',
         '<thead><tr>'
     ]
-    # add your headers
-    for c in cols:
-        th_style = (
+    for c in cols_rank:
+        th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
             'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
         )
-        html_desktop.append(f"<th style='{th_style}'>{c}</th>")
-    html_desktop.append('</tr></thead><tbody>')
+        if c == "Team":
+            th += " white-space:nowrap; min-width:200px;"
+        html.append(f"<th style='{th}'>{c}</th>")
+    html.append("</tr></thead><tbody>")
 
-    # add your data rows
+    # Rows
     for _, row in df.iterrows():
-        html_desktop.append('<tr>')
-        for c in cols:
+        html.append("<tr>")
+        for c in cols_rank:
             v = row[c]
-            td_style = 'border:1px solid #ddd; padding:8px; text-align:center;'
-            # Preseason Rank as integer
-            if c == "Preseason Rank":
-                cell = f"{int(v)}"
-            # Team with logo and text
-            elif c == "Team":
-                logo = row.get("Logo URL", "")
-                name = row.get("Team", "")
-                cell = (
-                    f'<div style="display:flex;align-items:center;">'
-                    f'<img src="{logo}" width="24" style="margin-right:8px;"/>'
-                    f'{name}</div>'
-                )
-            # Vegas Win Total one decimal
-            elif c == "Vegas Win Total" and pd.notnull(v):
-                cell = f"{v:.1f}"
-            # Projected Overall Wins/Losses one decimal
-            elif c in ["Projected Overall Wins", "Projected Overall Losses"] and pd.notnull(v):
-                cell = f"{v:.1f}"
-            # OVER/UNDER Pick with colors
-            elif c == "OVER/UNDER Pick":
-                cell = v
-                if isinstance(v, str) and v.upper().startswith("OVER"):
-                    td_style += " background-color:#28a745; color:white;"
-                elif isinstance(v, str) and v.upper().startswith("UNDER"):
-                    td_style += " background-color:#dc3545; color:white;"
-            # Average Game Quality gradient
-            elif c == "Average Game Quality" and pd.notnull(v):
-                t = (v - agq_min) / (agq_max - agq_min) if agq_max>agq_min else 0
-                r,g,b = [int(255+(x-255)*t) for x in (0,32,96)]
-                td_style += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            # Schedule Difficulty Rating gradient
-            elif c == "Schedule Difficulty Rating" and pd.notnull(v):
-                inv = 1 - ((v - sdr_min)/(sdr_max - sdr_min) if sdr_max>sdr_min else 0)
-                r,g,b = [int(255+(x-255)*inv) for x in (0,32,96)]
-                td_style += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
-                cell = f"{v:.1f}"
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+
+            if c == "Team":
+                logo = row.get("Logo URL")
+                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                    )
+                else:
+                    cell = v
             else:
-                cell = v if pd.notnull(v) else ""
-            html_desktop.append(f"<td style='{td_style}'>{cell}</td>")
-        html_desktop.append('</tr>')
+                # existing branches
+                if c == "OVER/UNDER Pick" and isinstance(v, str):
+                    cell = v
+                    if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
+                    elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
+                elif c == "Power Rating" and pd.notnull(v):
+                    t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                elif c == "Average Game Quality" and pd.notnull(v):
+                    t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
+                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                elif c == "Schedule Difficulty Rating" and pd.notnull(v):
+                    inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
+                    r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                else:
+                    cell = v
 
-    # close out the table
-    html_desktop.append('</tbody></table></div>')
-    st.markdown(''.join(html_desktop), unsafe_allow_html=True)
+            html.append(f"<td style='{td}'>{cell}</td>")
+        html.append("</tr>")
+    html.append("</tbody></table></div>")
+    st.markdown("".join(html), unsafe_allow_html=True)
 
-    # --- Mobile table" (simplified) ---
-    html_mobile = [
-    '<div class="mobile-only" style="width:100%; table-layout:fixed; border-collapse:collapse;">',
-    '<table style="width:100%; border-collapse:collapse;">',
-    '<thead><tr>'
-]
-    for c in cols:
-        if c == "Team": continue  # logo only on mobile header
-        html_mobile.append(f"<th>{c}</th>")
-    html_mobile.insert(2, '<th>Team</th>')  # ensure Team column in position 2
-    html_mobile.append('</tr></thead><tbody>')
-
-    for _, row in df.iterrows():
-        html_mobile.append('<tr>')
-        html_mobile.append(f"<td>{int(row['Preseason Rank'])}</td>")
-        logo = row.get('Logo URL','')
-        html_mobile.append(f"<td><img src='{logo}' width='24'/></td>")
-        html_mobile.append(f"<td>{row['Vegas Win Total']:.1f}</td>")
-        html_mobile.append(f"<td>{row['Projected Overall Wins']:.1f}</td>")
-        html_mobile.append(f"<td>{row['Projected Overall Losses']:.1f}</td>")
-        pick = row['OVER/UNDER Pick']
-        color = '#28a745' if pick.upper().startswith('OVER') else '#dc3545'
-        html_mobile.append(f"<td style='background-color:{color};color:#fff'>{pick}</td>")
-        html_mobile.append(f"<td>{row['Average Game Quality']:.1f}</td>")
-        html_mobile.append(f"<td>{row['Schedule Difficulty Rating']:.1f}</td>")
-        html_mobile.append('</tr>')
-    html_mobile.append('</tbody></table></div>')
-    st.markdown(''.join(html_mobile), unsafe_allow_html=True)
-
+# ------ Conference Overviews ------
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
 
@@ -355,4 +354,3 @@ elif tab == "Conference Overviews":
         html_conf.append('</tr>')
     html_conf.append('</tbody></table></div>')
     st.markdown(''.join(html_conf), unsafe_allow_html=True)
-
