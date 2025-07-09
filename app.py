@@ -146,15 +146,15 @@ if tab == "Rankings":
             # --- Rankings Table Setup ---
     # Short column headers for mobile
     mobile_header_map = {
-        "Preseason Rank": "Rank",
-        "Team": "Team",
-        "Vegas Win Total": "Win Total",
-        "Projected Overall Wins": "Proj. Wins",
-        "Projected Overall Losses": "Proj. Losses",
-        "OVER/UNDER Pick": "OVER/UNDER",
-        "Average Game Quality": "Avg. Game Qty",
-        "Schedule Difficulty Rating": "Sched. Diff.",
-    }
+    "Preseason Rank": "Rank",
+    "Team": "Team",
+    "Power Rating": "Pwr. Rtg.",
+    "Projected Overall Wins": "Proj. Wins",
+    "Projected Overall Losses": "Proj. Losses",
+    "OVER/UNDER Pick": "OVER/UNDER",
+    "Average Game Quality": "Avg. Game Qty",
+    "Schedule Difficulty Rating": "Sched. Diff.",
+}
     mobile_cols = list(mobile_header_map.keys())
 
     if is_mobile():
