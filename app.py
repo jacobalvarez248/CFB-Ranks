@@ -35,6 +35,23 @@ if "Image URL" in logos_df.columns:
 team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]]
 df_expected = df_expected.merge(team_logos, on="Team", how="left")
 
+# --- Rename columns ---
+# Ensure key columns exist for styling
+rename_map = {
+    "Column18": "Power Rating",
+    "Projected Overall Record": "Projected Overall Wins",
+    "Column2": "Projected Overall Losses",
+    "Projected Conference Record": "Projected Conference Wins",
+    "Column4": "Projected Conference Losses",
+    "Pick": "OVER/UNDER Pick",
+    "Column17": "Schedule Difficulty Rank",
+    "xWins for Playoff Team": "Schedule Difficulty Rating",
+    "Winless Probability": "Average Game Quality",
+    # final rank if present
+    "Final 2024 Rank": "Final 2024 Rank"
+}
+df_expected.rename(columns=rename_map, inplace=True)
+
 # --- Streamlit Config ---
 st.set_page_config(page_title="CFB 2025 Preview", page_icon="🏈", layout="wide")
 st.title("🎯 College Football 2025 Pre-Season Preview")
