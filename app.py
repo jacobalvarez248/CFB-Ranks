@@ -602,6 +602,7 @@ elif tab == "Charts & Graphs":
         point_opacity = 0.96
         # Height: auto, but not too tall
         height = max(220, 17 * len(conf_order))
+
     else:
         logo_size = 34
         line_size = 14
