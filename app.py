@@ -384,7 +384,6 @@ elif tab == "Industry Composite Ranking":
     df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
     df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
 
-    # Columns to display
     all_metrics = ["Composite", "JPR", "SP+", "FPI", "Kford"]
     if is_mobile():
         main_cols = ["Composite Rank", "Team"] + all_metrics
@@ -453,14 +452,19 @@ elif tab == "Industry Composite Ranking":
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
-    compact_cols = ["Composite Rank", "Conference", "Composite","JPR","SP+","FPI","Kford"]
+    compact_cols = ["Composite Rank", "Conference", "Composite", "JPR", "SP+", "FPI", "Kford"]
     for disp_col, c in zip(display_headers, display_cols):
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; '
             'position:sticky; top:0; z-index:2;'
         )
         if c == "Team":
-            th += " white-space:nowrap; min-width:120px; max-width:260px;"
+            if is_mobile():
+                th += " white-space:nowrap; min-width:180px; max-width:280px;"
+            else:
+                th += " white-space:nowrap; min-width:180px; max-width:260px;"
+        elif is_mobile() and c in all_metrics:
+            th += " min-width:56px; max-width:60px; white-space:normal; font-size:12px; line-height:1.1;"
         elif not is_mobile() and c in compact_cols:
             th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
         else:
@@ -475,12 +479,14 @@ elif tab == "Industry Composite Ranking":
             v = row[c]
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
             td += cell_font
+            if is_mobile() and c in all_metrics:
+                td += " font-size:12px; padding:6px;"
             cell = v
             if c == "Team":
                 logo = row.get("Logo URL")
                 team_name = v
+                # Always side-by-side (mobile & desktop)
                 if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    # Always side-by-side (both desktop and mobile)
                     cell = (
                         f'<div style="display:flex;align-items:center;">'
                         f'<img src="{logo}" width="24" style="margin-right:8px;"/>{team_name}</div>'
