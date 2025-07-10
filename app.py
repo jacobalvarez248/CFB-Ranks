@@ -549,13 +549,11 @@ elif tab == "Charts & Graphs":
     import altair as alt
 
     df = df_expected.dropna(subset=["Power Rating", "Conference", "Logo URL"]).copy()
-
-    # Compute conference order
     conf_means = df.groupby("Conference")["Power Rating"].mean().sort_values(ascending=False)
     conf_order = conf_means.index.tolist()
     df["Conference"] = pd.Categorical(df["Conference"], categories=conf_order, ordered=True)
 
-    # Compute quartiles for lines
+    # Quartile lines
     q1, med, q3 = np.percentile(df["Power Rating"], [25, 50, 75])
     rule_data = pd.DataFrame({
         "Power Rating": [q1, med, q3],
@@ -567,10 +565,10 @@ elif tab == "Charts & Graphs":
         x=alt.X("Power Rating:Q", title="Power Rating"),
     )
 
-    # Scatter plot (team logos)
+    # Team logos as points
     points = base.mark_image(
-        width=25,
-        height=25
+        width=30,
+        height=30
     ).encode(
         url="Logo URL:N",
         tooltip=["Team", "Power Rating", "Conference"]
@@ -591,11 +589,19 @@ elif tab == "Charts & Graphs":
         text="label"
     )
 
-    chart = (points + rules + texts).properties(
-        width=750, height=38*len(conf_order) + 40,
+    # Mean line for each conference (vertical, as a "trend")
+    mean_df = df.groupby("Conference", as_index=False).agg({"Power Rating":"mean"})
+    mean_df["Conference"] = pd.Categorical(mean_df["Conference"], categories=conf_order, ordered=True)
+    trendlines = alt.Chart(mean_df).mark_rule(
+        color="#4ea550", size=6, opacity=0.15
+    ).encode(
+        x="Power Rating:Q",
+        y="Conference:N"
+    )
+
+    chart = (points + rules + texts + trendlines).properties(
+        width=800, height=56*len(conf_order) + 80,
         title="Team Power Ratings by Conference (Logos Only)"
     )
 
     st.altair_chart(chart, use_container_width=True)
-
-
