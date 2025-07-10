@@ -545,62 +545,56 @@ elif tab == "Industry Composite Ranking":
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
-    import matplotlib.pyplot as plt
-    import numpy as np
-    from PIL import Image
-    import requests
+    import altair as alt
 
-    # Work from the main df_expected table for Power Rating
     df = df_expected.dropna(subset=["Power Rating", "Conference", "Logo URL"]).copy()
-    # Compute average PR per conference and sort
+
+    # Compute conference order
     conf_means = df.groupby("Conference")["Power Rating"].mean().sort_values(ascending=False)
     conf_order = conf_means.index.tolist()
-    df["Conference Y"] = df["Conference"].apply(lambda x: conf_order.index(x))
+    df["Conference"] = pd.Categorical(df["Conference"], categories=conf_order, ordered=True)
 
-    # For logo loading (cache to avoid reloading)
-    @st.cache_data
-    def get_logo_img(url, size=28):
-        try:
-            im = Image.open(requests.get(url, stream=True).raw).convert("RGBA")
-            im = im.resize((size, size), Image.LANCZOS)
-            return im
-        except Exception:
-            # Blank fallback
-            return Image.new("RGBA", (size, size), (255,255,255,0))
+    # Compute quartiles for lines
+    q1, med, q3 = np.percentile(df["Power Rating"], [25, 50, 75])
+    rule_data = pd.DataFrame({
+        "Power Rating": [q1, med, q3],
+        "label": ["25th Percentile", "Median", "75th Percentile"]
+    })
 
-    fig, ax = plt.subplots(figsize=(13, 7.5))
+    base = alt.Chart(df).encode(
+        y=alt.Y("Conference:N", sort=conf_order, title="Conference"),
+        x=alt.X("Power Rating:Q", title="Power Rating"),
+    )
 
-    # Plot each team logo at its (Power Rating, Conference Y) position
-    for _, row in df.iterrows():
-        x = row["Power Rating"]
-        y = row["Conference Y"]
-        logo_url = row["Logo URL"]
-        im = get_logo_img(logo_url, size=28)
-        ax.imshow(im, extent=(x-0.35, x+0.35, y-0.22, y+0.22), aspect='auto', zorder=2)
-
-    # Y-ticks: conferences (from conf_order)
-    ax.set_yticks(range(len(conf_order)))
-    ax.set_yticklabels(conf_order, fontsize=13)
-    ax.invert_yaxis()  # Highest at top
-
-    # X: Power Rating limits
-    min_pr = df["Power Rating"].min()
-    max_pr = df["Power Rating"].max()
-    ax.set_xlim(min_pr-2, max_pr+2)
-    ax.set_xlabel("Power Rating", fontsize=14)
-    ax.grid(axis="x", color="#888", linestyle="dotted", linewidth=0.6, zorder=0)
+    # Scatter plot (team logos)
+    points = base.mark_image(
+        width=25,
+        height=25
+    ).encode(
+        url="Logo URL:N",
+        tooltip=["Team", "Power Rating", "Conference"]
+    )
 
     # Quartile lines
-    q1, med, q3 = np.percentile(df["Power Rating"], [25, 50, 75])
-    for val, label, col in zip([q1, med, q3], ["25th Percentile", "Median", "75th Percentile"], ["#9067b8", "#333", "#9067b8"]):
-        ax.axvline(val, color=col, linestyle="--", linewidth=2, zorder=1)
-        ax.text(val, -0.6, label, color=col, ha="center", va="bottom", fontsize=12, fontweight="bold", rotation=0, backgroundcolor="#fff")
+    rules = alt.Chart(rule_data).mark_rule(strokeDash=[6,4], color="#9067b8", size=2).encode(
+        x="Power Rating:Q"
+    )
+    texts = alt.Chart(rule_data).mark_text(
+        dy=-15,
+        fontWeight="bold",
+        fontSize=13,
+        color="#9067b8"
+    ).encode(
+        x="Power Rating:Q",
+        y=alt.value(-10),
+        text="label"
+    )
 
-    ax.set_title("Team Power Ratings by Conference (Logos Only)", fontsize=17, fontweight="bold")
-    ax.set_facecolor("#f9f9f9")
-    ax.tick_params(axis="y", length=0)
-    ax.set_ylabel("Conference", fontsize=14)
-    plt.tight_layout()
+    chart = (points + rules + texts).properties(
+        width=750, height=38*len(conf_order) + 40,
+        title="Team Power Ratings by Conference (Logos Only)"
+    )
 
-    st.pyplot(fig)
+    st.altair_chart(chart, use_container_width=True)
+
 
