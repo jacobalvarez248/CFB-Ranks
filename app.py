@@ -694,7 +694,7 @@ if is_mobile():
     bar_title_size = 14
     bar_legend = None
     bar_width = None
-    bar_size = 6  # Skinny bars!
+    bar_size = 10  # Skinny bars!
     bar_height = max(90, bar_size * len(bar_df))  # bar_size per team; reduces gaps
     x_axis = alt.X(f"{bar_rating_col}:Q", title=selected_bar_rating)
     y_axis = alt.Y(
