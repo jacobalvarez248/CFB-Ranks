@@ -548,30 +548,34 @@ elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
 
-    # Prepare data, drop rows without logo
+    # Prepare data
     df = df_expected.dropna(subset=["Power Rating", "Conference", "Logo URL"]).copy()
-
-    # Calculate mean Power Rating per conference and order conferences by mean PR, highest at the top
     conf_means = df.groupby("Conference", as_index=False)["Power Rating"].mean()
     conf_means = conf_means.sort_values("Power Rating", ascending=False).reset_index(drop=True)
     conf_order = conf_means["Conference"].tolist()
-
-    # Enforce categorical ordering
     df["Conference"] = pd.Categorical(df["Conference"], categories=conf_order, ordered=True)
 
-    # Quartiles for vertical lines
+    # Quartile lines
     q1, med, q3 = np.percentile(df["Power Rating"], [25, 50, 75])
     rule_data = pd.DataFrame({
         "Power Rating": [q1, med, q3],
         "label": ["25th Percentile", "Median", "75th Percentile"]
     })
 
+    # Data for horizontal conference "trendlines" (min to max for each conf)
+    line_df = (
+        df.groupby("Conference")
+        .agg(xmin=("Power Rating", "min"), xmax=("Power Rating", "max"))
+        .reset_index()
+    )
+    line_df["Conference"] = pd.Categorical(line_df["Conference"], categories=conf_order, ordered=True)
+
     base = alt.Chart(df).encode(
         y=alt.Y("Conference:N", sort=conf_order, title="Conference"),
         x=alt.X("Power Rating:Q", title="Power Rating"),
     )
 
-    # Team logos
+    # Team logos as points
     points = base.mark_image(
         width=34,
         height=34
@@ -580,7 +584,16 @@ elif tab == "Charts & Graphs":
         tooltip=["Team", "Power Rating", "Conference"]
     )
 
-    # Quartile lines (should always appear)
+    # Horizontal trendlines per conference
+    hlines = alt.Chart(line_df).mark_rule(
+        color="#2066b1", size=6, opacity=0.65
+    ).encode(
+        y=alt.Y("Conference:N", sort=conf_order),
+        x="xmin:Q",
+        x2="xmax:Q"
+    )
+
+    # Quartile lines (vertical) and their labels
     rules = alt.Chart(rule_data).mark_rule(
         strokeDash=[6,4], color="#9067b8", size=2
     ).encode(
@@ -597,35 +610,9 @@ elif tab == "Charts & Graphs":
         text="label"
     )
 
-    # Long blue trendlines for each conference (drawn across all y values)
-    trendline_data = []
-    for conf, row in conf_means.iterrows():
-        trendline_data.append({
-            "Conference": row["Conference"],
-            "Power Rating": row["Power Rating"],
-            "y_min": 0 - 0.5,
-            "y_max": len(conf_order) - 1 + 0.5
-        })
-    # Instead of encoding y, use y2 for a vertical bar spanning the entire chart
-    trend_df = pd.DataFrame({
-        "Power Rating": conf_means["Power Rating"],
-        "Conference": conf_means["Conference"],
-        "y_bottom": -0.5,
-        "y_top": len(conf_order) - 0.5
-    })
-    # Blue vertical lines at mean power rating for each conference, spanning the entire y axis
-    trendlines = alt.Chart(trend_df).mark_rule(
-        color="#2066b1", size=6, opacity=0.65
-    ).encode(
-        x="Power Rating:Q"
-    )
-
-    chart = (rules + texts + trendlines + points).properties(
+    chart = (rules + texts + hlines + points).properties(
         width=1000, height=95*len(conf_order) + 120,
         title="Team Power Ratings by Conference (Logos Only)"
     )
 
     st.altair_chart(chart, use_container_width=True)
-
-
-
