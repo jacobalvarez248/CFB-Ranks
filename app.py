@@ -727,16 +727,28 @@ bar_props = dict(
 if not is_mobile():
     bar_props["width"] = bar_width
 
-bar_chart = alt.Chart(bar_df).mark_bar(
-    color="gray",
-    stroke="black",
-    strokeWidth=1.2
-).encode(
-    x=x_axis,
-    y=y_axis,
-    color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
-    tooltip=["Team", bar_rating_col, "Conference"]
-).properties(**bar_props)
+if is_mobile():
+    bar_chart = alt.Chart(bar_df).mark_bar(
+        color="gray"
+        # No border on mobile: do NOT include stroke or strokeWidth
+    ).encode(
+        x=x_axis,
+        y=y_axis,
+        color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
+        tooltip=["Team", bar_rating_col, "Conference"]
+    ).properties(**bar_props)
+else:
+    bar_chart = alt.Chart(bar_df).mark_bar(
+        color="gray",
+        stroke="black",
+        strokeWidth=1.2
+    ).encode(
+        x=x_axis,
+        y=y_axis,
+        color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
+        tooltip=["Team", bar_rating_col, "Conference"]
+    ).properties(**bar_props)
+
 
 # Logos at the end of the bar
 if is_mobile():
