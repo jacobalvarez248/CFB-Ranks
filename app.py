@@ -429,9 +429,12 @@ elif tab == "Industry Composite Ranking":
         df_show = df_show[df_show["Conference"].str.contains(conf_filter, case=False, na=False)]
     df_show = df_show.sort_values(by=sort_col, ascending=asc if not sort_col == "Composite Rank" else True)
 
-    format_cols = [c for c in all_metrics if c in df_show.columns]
-    col_min = {c: df_show[c].min() for c in format_cols}
-    col_max = {c: df_show[c].max() for c in format_cols}
+    # For color scales
+    metric_cols = [c for c in all_metrics if c in df_show.columns]
+    composite_min, composite_max = df_show["Composite"].min(), df_show["Composite"].max()
+    other_metric_cols = [c for c in metric_cols if c != "Composite"]
+    col_min = {c: df_show[c].min() for c in other_metric_cols}
+    col_max = {c: df_show[c].max() for c in other_metric_cols}
 
     if is_mobile():
         table_style = (
@@ -455,13 +458,19 @@ elif tab == "Industry Composite Ranking":
     ]
     compact_cols = ["Composite Rank", "Conference", "Composite", "JPR", "SP+", "FPI", "Kford"]
     for disp_col, c in zip(display_headers, display_cols):
-        th = (
-            'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; '
-            'position:sticky; top:0; z-index:2;'
-        )
+        if c == "Composite":
+            th = (
+                'border:1px solid #ddd; padding:8px; text-align:center; background-color:#548235; color:white; '
+                'position:sticky; top:0; z-index:2;'
+            )
+        else:
+            th = (
+                'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; '
+                'position:sticky; top:0; z-index:2;'
+            )
         if c == "Team":
             if is_mobile():
-                th += " white-space:nowrap; min-width:60vw; max-width:80vw;"  # super-wide for mobile!
+                th += " white-space:nowrap; min-width:60vw; max-width:80vw;"
             else:
                 th += " white-space:nowrap; min-width:180px; max-width:260px;"
         elif is_mobile() and c in all_metrics:
@@ -485,27 +494,41 @@ elif tab == "Industry Composite Ranking":
             cell = v
             if c == "Team":
                 logo = row.get("Logo URL")
-                team_name = v
-                # Always side-by-side (mobile & desktop)
-                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{team_name}</div>'
-                    )
+                # MOBILE: logo only; DESKTOP: logo+name
+                if is_mobile():
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                    else:
+                        cell = ""
                 else:
-                    cell = team_name
+                    team_name = v
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{team_name}</div>'
+                        )
+                    else:
+                        cell = team_name
             elif c == "Composite Rank":
                 cell = f"{int(v)}"
-            elif c in format_cols and pd.notnull(v):
+            elif c == "Composite" and pd.notnull(v):
+                # Green color scale (light gray to #548235)
+                t = (v - composite_min) / (composite_max - composite_min) if composite_max > composite_min else 0
+                # Start from light gray (e.g., #eaeaea), go to dark green #548235
+                r1, g1, b1 = 234, 234, 234  # light gray
+                r2, g2, b2 = 84, 130, 53    # #548235
+                r = int(r1 + (r2 - r1) * t)
+                g = int(g1 + (g2 - g1) * t)
+                b = int(b1 + (b2 - b1) * t)
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:white; font-weight:bold;"
+                cell = f"<b>{v:.1f}</b>"
+            elif c in other_metric_cols and pd.notnull(v):
+                # Blue color scale for all others
                 mn, mx = col_min[c], col_max[c]
                 t = (v - mn) / (mx - mn) if mx > mn else 0
                 r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                 td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                val_str = f"{v:.1f}"
-                if c == "Composite":
-                    cell = f"<b>{val_str}</b>"
-                else:
-                    cell = val_str
+                cell = f"{v:.1f}"
             else:
                 cell = v
             html.append(f"<td style='{td}'>{cell}</td>")
