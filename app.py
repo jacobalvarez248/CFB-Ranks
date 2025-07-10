@@ -663,7 +663,6 @@ elif tab == "Charts & Graphs":
     chart = (rules + texts + hlines + points).properties(**chart_props)
 
     st.altair_chart(chart, use_container_width=True)
-
 st.markdown("---")
 st.header("Team Power Ratings Bar Chart")
 
@@ -680,10 +679,10 @@ bar_rating_col = pr_cols[selected_bar_rating]
 bar_df = df_comp.dropna(subset=[bar_rating_col, "Conference", "Logo URL"]).copy()
 # Order teams by selected rating (descending: left=highest)
 bar_df = bar_df.sort_values(by=bar_rating_col, ascending=False).reset_index(drop=True)
-bar_df["Team Order"] = bar_df.index.astype(str)  # for encoding
 
-# Categorical order to force left-to-right sort
-bar_df["Team Order"] = pd.Categorical(bar_df["Team Order"], categories=bar_df["Team Order"], ordered=True)
+# Use unique team name for x-axis and keep explicit order
+team_order = bar_df["Team"].tolist()
+bar_df["Team"] = pd.Categorical(bar_df["Team"], categories=team_order, ordered=True)
 
 # Conference color mapping
 conf_list = bar_df["Conference"].unique().tolist()
@@ -696,12 +695,14 @@ if is_mobile():
     bar_font_size = 8
     bar_width = None
     bar_title_size = 12
+    x_pad = 16
 else:
     bar_height = 470
     bar_logo_size = 13   # Smaller for desktop too
     bar_font_size = 11
     bar_width = 900
     bar_title_size = 19
+    x_pad = 26
 
 # Build bar chart
 bar_chart = alt.Chart(bar_df).mark_bar(
@@ -709,7 +710,7 @@ bar_chart = alt.Chart(bar_df).mark_bar(
     stroke="black",
     strokeWidth=1.3
 ).encode(
-    x=alt.X('Team Order:N', sort=None, title=None, axis=alt.Axis(labels=False, ticks=False)),  # explicit sort=None for custom order
+    x=alt.X('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False, domain=False)),
     y=alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating),
     color=alt.Color("Conference:N", scale=palette, legend=alt.Legend(title="Conference")),
     tooltip=["Team", bar_rating_col, "Conference"]
@@ -720,7 +721,8 @@ bar_chart = alt.Chart(bar_df).mark_bar(
         f"{selected_bar_rating} Ratings by Team",
         fontSize=bar_title_size,
         fontWeight="bold"
-    )
+    ),
+    padding={'left': x_pad, 'right': x_pad}   # <-- ensures logos at ends aren't cut off
 )
 
 # Add logos at the end of each bar (even smaller now)
@@ -728,7 +730,7 @@ logo_points = alt.Chart(bar_df).mark_image(
     width=bar_logo_size,
     height=bar_logo_size
 ).encode(
-    x=alt.X('Team Order:N', sort=None),
+    x=alt.X('Team:N', sort=team_order),
     y=alt.Y(f"{bar_rating_col}:Q"),
     url="Logo URL:N"
 )
@@ -739,3 +741,5 @@ final_bar_chart = (bar_chart + logo_points).configure_axis(
 )
 
 st.altair_chart(final_bar_chart, use_container_width=True)
+
+
