@@ -593,14 +593,15 @@ elif tab == "Charts & Graphs":
     line_df["Conference"] = pd.Categorical(line_df["Conference"], categories=conf_order, ordered=True)
 
     if is_mobile():
-        # --- MOBILE VERSION: More square, small logos/text, no side scroll ---
-        width = 370
-        height = min(400, 30 * len(conf_order) + 90)
-        logo_size = 18
-        line_size = 8
-        font_size = 11
-        left_pad = 80
-        point_opacity = 0.92
+        # --- MOBILE VERSION: Tiny logos, tiny text, minimal padding, nearly square ---
+        width = None  # Let Streamlit use full width
+        logo_size = 10
+        line_size = 5
+        font_size = 9
+        left_pad = 0
+        point_opacity = 0.96
+        # Height is a function of number of conferences but not too tall
+        height = max(220, 17 * len(conf_order))
     else:
         width = 1000
         height = 95*len(conf_order) + 120
@@ -615,7 +616,6 @@ elif tab == "Charts & Graphs":
         x=alt.X(f"{rating_col}:Q", title=selected_rating, axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
     )
 
-    # Team logos as points
     points = base.mark_image(
         width=logo_size,
         height=logo_size,
@@ -625,7 +625,6 @@ elif tab == "Charts & Graphs":
         tooltip=["Team", rating_col, "Conference"]
     )
 
-    # Horizontal colored/shaded trendlines per conference
     hlines = alt.Chart(line_df).mark_rule(
         size=line_size, opacity=0.22
     ).encode(
@@ -635,20 +634,19 @@ elif tab == "Charts & Graphs":
         color=alt.Color("Conference:N", scale=alt.Scale(scheme="category10"), legend=None)
     )
 
-    # Quartile lines (vertical) and their labels
     rules = alt.Chart(rule_data).mark_rule(
         strokeDash=[6,4], color="#9067b8", size=2
     ).encode(
         x=f"{rating_col}:Q"
     )
     texts = alt.Chart(rule_data).mark_text(
-        dy=-11 if is_mobile() else -16,
+        dy=-8 if is_mobile() else -16,
         fontWeight="bold",
         fontSize=font_size if is_mobile() else 15,
         color="#9067b8"
     ).encode(
         x=f"{rating_col}:Q",
-        y=alt.value(-8 if is_mobile() else -10),
+        y=alt.value(-7 if is_mobile() else -10),
         text="label"
     )
 
@@ -656,8 +654,9 @@ elif tab == "Charts & Graphs":
         width=width,
         height=height,
         title=f"Team {selected_rating} by Conference (Logos Only)",
-        padding={"left": left_pad, "top": 20, "right": 12, "bottom": 30}
+        padding={"left": left_pad, "top": 6, "right": 6, "bottom": 6}
     )
 
     st.altair_chart(chart, use_container_width=True)
+
 
