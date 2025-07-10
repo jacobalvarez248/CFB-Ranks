@@ -550,9 +550,11 @@ elif tab == "Charts & Graphs":
 
     # Prepare data, drop rows without logo
     df = df_expected.dropna(subset=["Power Rating", "Conference", "Logo URL"]).copy()
-    # Calculate mean Power Rating per conference and order conferences
-    conf_means = df.groupby("Conference")["Power Rating"].mean().sort_values(ascending=False)
-    conf_order = conf_means.index.tolist()
+    # Calculate mean Power Rating per conference and order conferences by mean PR, highest at the top
+    conf_means = df.groupby("Conference", as_index=False)["Power Rating"].mean()
+    conf_means = conf_means.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    conf_order = conf_means["Conference"].tolist()
+    # Make sure Conference is a categorical variable with this order
     df["Conference"] = pd.Categorical(df["Conference"], categories=conf_order, ordered=True)
 
     # Quartiles for vertical lines
@@ -567,7 +569,7 @@ elif tab == "Charts & Graphs":
         x=alt.X("Power Rating:Q", title="Power Rating"),
     )
 
-    # Plot team logos
+    # Team logos
     points = base.mark_image(
         width=34,
         height=34
@@ -576,14 +578,14 @@ elif tab == "Charts & Graphs":
         tooltip=["Team", "Power Rating", "Conference"]
     )
 
-    # Quartile lines and labels
+    # Quartile lines and labels (always visible)
     rules = alt.Chart(rule_data).mark_rule(strokeDash=[6,4], color="#9067b8", size=2).encode(
         x="Power Rating:Q"
     )
     texts = alt.Chart(rule_data).mark_text(
-        dy=-12,
+        dy=-16,
         fontWeight="bold",
-        fontSize=14,
+        fontSize=15,
         color="#9067b8"
     ).encode(
         x="Power Rating:Q",
@@ -591,32 +593,21 @@ elif tab == "Charts & Graphs":
         text="label"
     )
 
-    # Mean/gradient trendlines per conference
+    # Blue trendlines (thin) per conference
     mean_df = df.groupby("Conference", as_index=False).agg({"Power Rating":"mean"})
     mean_df["Conference"] = pd.Categorical(mean_df["Conference"], categories=conf_order, ordered=True)
-    min_pr, max_pr = mean_df["Power Rating"].min(), mean_df["Power Rating"].max()
-    # Gradient color green: from #b7e7b0 (light) to #548235 (dark)
-    def green_gradient(x):
-        if max_pr == min_pr:
-            return '#548235'
-        t = (x - min_pr) / (max_pr - min_pr)
-        r = int(183 + (84 - 183) * t)   # 183 → 84
-        g = int(231 + (130 - 231) * t)  # 231 → 130
-        b = int(176 + (53 - 176) * t)   # 176 → 53
-        return f'rgb({r},{g},{b})'
-    mean_df["trend_color"] = mean_df["Power Rating"].apply(green_gradient)
     trendlines = alt.Chart(mean_df).mark_rule(
-        size=22, opacity=0.45
+        size=6, opacity=0.75, color="#2066b1"
     ).encode(
         x="Power Rating:Q",
-        y="Conference:N",
-        color=alt.Color("trend_color:N", scale=None)
+        y="Conference:N"
     )
 
     chart = (trendlines + points + rules + texts).properties(
-        width=960, height=80*len(conf_order) + 120,
+        width=1000, height=90*len(conf_order) + 120,
         title="Team Power Ratings by Conference (Logos Only)"
     )
 
     st.altair_chart(chart, use_container_width=True)
+
 
