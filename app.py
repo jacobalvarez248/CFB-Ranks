@@ -704,17 +704,7 @@ else:
     bar_title_size = 19
 
 # Build bar chart
-bar_chart = alt.Chart(bar_df).mark_bar(
-    color="gray",
-    stroke="black",
-    strokeWidth=1.3
-).encode(
-    x=alt.X('Team Order:N', sort=None, title=None, axis=alt.Axis(labels=False, ticks=False)),  # explicit sort=None for custom order
-    y=alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating),
-    color=alt.Color("Conference:N", scale=palette, legend=alt.Legend(title="Conference")),
-    tooltip=["Team", bar_rating_col, "Conference"]
-).properties(
-    width=bar_width,
+bar_props = dict(
     height=bar_height,
     title=alt.TitleParams(
         f"{selected_bar_rating} Ratings by Team",
@@ -722,6 +712,20 @@ bar_chart = alt.Chart(bar_df).mark_bar(
         fontWeight="bold"
     )
 )
+if bar_width is not None:
+    bar_props["width"] = bar_width
+
+bar_chart = alt.Chart(bar_df).mark_bar(
+    color="gray",
+    stroke="black",
+    strokeWidth=1.3
+).encode(
+    x=alt.X('Team Order:N', sort=None, title=None, axis=alt.Axis(labels=False, ticks=False)),
+    y=alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating),
+    color=alt.Color("Conference:N", scale=palette, legend=alt.Legend(title="Conference")),
+    tooltip=["Team", bar_rating_col, "Conference"]
+).properties(**bar_props)
+
 
 # Add logos at the end of each bar (even smaller now)
 logo_points = alt.Chart(bar_df).mark_image(
