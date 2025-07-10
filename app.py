@@ -634,8 +634,11 @@ elif tab == "Charts & Graphs":
     )
 
     chart = (rules + texts + hlines + points).properties(
-        width=1000, height=95*len(conf_order) + 120,
-        title=f"Team {selected_rating} by Conference (Logos Only)"
+        width=1000,
+        height=95*len(conf_order) + 120,
+        title=f"Team {selected_rating} by Conference (Logos Only)",
+        padding={"left": 170, "top": 20, "right": 30, "bottom": 40}
     )
+
 
     st.altair_chart(chart, use_container_width=True)
