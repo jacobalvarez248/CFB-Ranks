@@ -593,23 +593,23 @@ elif tab == "Charts & Graphs":
     line_df["Conference"] = pd.Categorical(line_df["Conference"], categories=conf_order, ordered=True)
 
     # Set chart display variables based on device
-   if is_mobile():
-      # --- MOBILE VERSION: Tiny logos, minimal padding, perfectly square ---
-      logo_size = 10
-      line_size = 5
-      font_size = 9
-      left_pad = 0
-      point_opacity = 0.96
-      # Hardcode the height for square shape (Altair/Streamlit auto-fills width)
-      height = 340
-  else:
-      logo_size = 34
-      line_size = 14
-      font_size = 15
-      left_pad = 170
-      point_opacity = 1
-      height = 95*len(conf_order) + 120
-      width = 1000
+    if is_mobile():
+        # --- MOBILE VERSION: Tiny logos, minimal padding, perfectly square ---
+        logo_size = 10
+        line_size = 5
+        font_size = 9
+        left_pad = 0
+        point_opacity = 0.96
+        # Hardcode the height for square shape (Altair/Streamlit auto-fills width)
+        height = 340
+    else:
+        logo_size = 34
+        line_size = 14
+        font_size = 15
+        left_pad = 170
+        point_opacity = 1
+        height = 95*len(conf_order) + 120
+        width = 1000
 
 
     base = alt.Chart(df).encode(
