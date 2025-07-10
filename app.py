@@ -429,22 +429,28 @@ elif tab == "Conference Overviews":
         "Projected Overall Losses", "Projected Conference Losses", "Average Game Quality",
         "Schedule Difficulty Rank", "Schedule Difficulty Rating"
     ]
-    for disp_col, c in zip(display_headers, cols):
-        th = (
-            'border:1px solid #ddd; padding:8px; text-align:center; '
-            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-        )
-        if c == "Team":
-            if is_mobile():
-                th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
-            else:
-                th += " white-space:nowrap; min-width:180px; max-width:240px;"
-        elif not is_mobile() and c in compact_cols_conf:
-            th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
+    compact_cols_conf = [
+    "Projected Finish", "Power Rating", "Projected Overall Wins", "Projected Conference Wins",
+    "Projected Overall Losses", "Projected Conference Losses", "Average Game Quality",
+    "Schedule Difficulty Rank", "Schedule Difficulty Rating"
+]
+for disp_col, c in zip(display_headers, cols):
+    th = (
+        'border:1px solid #ddd; padding:8px; text-align:center; '
+        'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+    )
+    if c == "Team":
+        if is_mobile():
+            th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
         else:
-            th += " white-space:nowrap;"
-        th += header_font
-        html.append(f"<th style='{th}'>{disp_col}</th>")
+            th += " white-space:nowrap; min-width:180px; max-width:240px;"
+    elif not is_mobile() and c in compact_cols_conf:
+        th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
+    else:
+        th += " white-space:nowrap;"
+    th += header_font
+    html.append(f"<th style='{th}'>{disp_col}</th>")
+
 
 
     for _, row in standings.iterrows():
