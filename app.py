@@ -592,15 +592,34 @@ elif tab == "Charts & Graphs":
     )
     line_df["Conference"] = pd.Categorical(line_df["Conference"], categories=conf_order, ordered=True)
 
+    if is_mobile():
+        # --- MOBILE VERSION: More square, small logos/text, no side scroll ---
+        width = 370
+        height = min(400, 30 * len(conf_order) + 90)
+        logo_size = 18
+        line_size = 8
+        font_size = 11
+        left_pad = 80
+        point_opacity = 0.92
+    else:
+        width = 1000
+        height = 95*len(conf_order) + 120
+        logo_size = 34
+        line_size = 14
+        font_size = 15
+        left_pad = 170
+        point_opacity = 1
+
     base = alt.Chart(df).encode(
-        y=alt.Y("Conference:N", sort=conf_order, title="Conference"),
-        x=alt.X(f"{rating_col}:Q", title=selected_rating),
+        y=alt.Y("Conference:N", sort=conf_order, title="Conference", axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
+        x=alt.X(f"{rating_col}:Q", title=selected_rating, axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
     )
 
     # Team logos as points
     points = base.mark_image(
-        width=34,
-        height=34
+        width=logo_size,
+        height=logo_size,
+        opacity=point_opacity
     ).encode(
         url="Logo URL:N",
         tooltip=["Team", rating_col, "Conference"]
@@ -608,7 +627,7 @@ elif tab == "Charts & Graphs":
 
     # Horizontal colored/shaded trendlines per conference
     hlines = alt.Chart(line_df).mark_rule(
-        size=14, opacity=0.22
+        size=line_size, opacity=0.22
     ).encode(
         y=alt.Y("Conference:N", sort=conf_order),
         x="xmin:Q",
@@ -623,22 +642,22 @@ elif tab == "Charts & Graphs":
         x=f"{rating_col}:Q"
     )
     texts = alt.Chart(rule_data).mark_text(
-        dy=-16,
+        dy=-11 if is_mobile() else -16,
         fontWeight="bold",
-        fontSize=15,
+        fontSize=font_size if is_mobile() else 15,
         color="#9067b8"
     ).encode(
         x=f"{rating_col}:Q",
-        y=alt.value(-10),
+        y=alt.value(-8 if is_mobile() else -10),
         text="label"
     )
 
     chart = (rules + texts + hlines + points).properties(
-        width=1000,
-        height=95*len(conf_order) + 120,
+        width=width,
+        height=height,
         title=f"Team {selected_rating} by Conference (Logos Only)",
-        padding={"left": 170, "top": 20, "right": 30, "bottom": 40}
+        padding={"left": left_pad, "top": 20, "right": 12, "bottom": 30}
     )
 
-
     st.altair_chart(chart, use_container_width=True)
+
