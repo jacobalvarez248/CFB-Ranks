@@ -380,9 +380,14 @@ elif tab == "Conference Overviews":
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
     df_comp = load_sheet(data_path, "Industry Composite", header=1)
-    df_comp.columns = [str(c).strip() for c in df_comp.columns]  # <- column clean!
-    logos_df["Team"] = logos_df["Team"].str.strip()
-    # st.write(df_comp.columns.tolist())  # Uncomment for debugging
+    df_comp.columns = [str(c).strip() for c in df_comp.columns]
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+    df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
+    # Debug lines, uncomment for troubleshooting
+    # st.write("Industry Composite cols:", df_comp.columns.tolist())
+    # st.write("Logos cols:", logos_df.columns.tolist())
+    # st.write("Sample Teams in Industry Composite:", df_comp["Team"].head())
+    # st.write("Sample Teams in Logos:", logos_df["Team"].head())
     df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
     mobile_header_map = {
         "Composite Rank": "Rank",
