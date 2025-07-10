@@ -688,15 +688,22 @@ conf_list = bar_df["Conference"].unique().tolist()
 palette = alt.Scale(scheme="category10", domain=conf_list)
 
 if is_mobile():
-    # --- MOBILE: Horizontal bar chart, as tall as needed, tiny logos, no legend ---
-    bar_height = max(240, 32 * len(bar_df))  # auto-height, 32px per team
+    # --- MOBILE: Horizontal bar chart, minimal gap, skinny bars ---
     bar_logo_size = 14
     bar_font_size = 9
-    bar_width = None
     bar_title_size = 14
     bar_legend = None
+    bar_width = None
+    bar_size = 6  # Skinny bars!
+    bar_height = max(90, bar_size * len(bar_df))  # bar_size per team; reduces gaps
     x_axis = alt.X(f"{bar_rating_col}:Q", title=selected_bar_rating)
-    y_axis = alt.Y('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False))
+    y_axis = alt.Y(
+        'Team:N',
+        sort=team_order,
+        title=None,
+        axis=alt.Axis(labels=False, ticks=False)
+    )
+
 else:
     # --- DESKTOP: Vertical bar chart, legend on ---
     bar_height = 470
