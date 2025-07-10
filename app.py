@@ -665,76 +665,78 @@ elif tab == "Charts & Graphs":
     st.altair_chart(chart, use_container_width=True)
 
     st.markdown("---")
-    st.header("Team Power Ratings Bar Chart")
+st.header("Team Power Ratings Bar Chart")
 
-    # ---- Independent rating filter for this chart ----
-    selected_bar_rating = st.selectbox(
-        "Choose a rating for bar chart:",
-        pr_choices,
-        index=0,  # Default to JPR
-        key="bar_chart_rating_select"
+# ---- Independent rating filter for this chart ----
+selected_bar_rating = st.selectbox(
+    "Choose a rating for bar chart:",
+    pr_choices,
+    index=0,  # Default to JPR
+    key="bar_chart_rating_select"
+)
+bar_rating_col = pr_cols[selected_bar_rating]
+
+# Data prep for bar chart
+bar_df = df_comp.dropna(subset=[bar_rating_col, "Conference", "Logo URL"]).copy()
+# Order teams by selected rating (descending)
+bar_df = bar_df.sort_values(by=bar_rating_col, ascending=False).reset_index(drop=True)
+bar_df["Team Order"] = bar_df.index.astype(str)  # for encoding, avoid label crowding
+
+# Conference color mapping: use same color palette as logo chart
+conf_list = bar_df["Conference"].unique().tolist()
+palette = alt.Scale(scheme="category10", domain=conf_list)
+
+# --- MOBILE/desktop chart config ---
+if is_mobile():
+    bar_height = 290
+    bar_logo_size = 10   # Make logos even smaller
+    bar_font_size = 9
+    bar_width = None  # Let container fill width
+    bar_title_size = 13
+else:
+    bar_height = 510
+    bar_logo_size = 22   # Also a bit smaller for desktop
+    bar_font_size = 13
+    bar_width = 900
+    bar_title_size = 20
+
+# Sort by power rating left-to-right (highest on the left)
+bar_df["Team Order"] = pd.Categorical(bar_df["Team Order"], categories=bar_df["Team Order"], ordered=True)
+
+# Build bar chart
+bar_chart = alt.Chart(bar_df).mark_bar(
+    color="gray",
+    stroke="black",
+    strokeWidth=1.5
+).encode(
+    x=alt.X('Team Order:N', title=None, axis=alt.Axis(labels=False, ticks=False)),
+    y=alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating),
+    color=alt.Color("Conference:N", scale=palette, legend=alt.Legend(title="Conference")),
+    tooltip=["Team", bar_rating_col, "Conference"]
+).properties(
+    width=bar_width,
+    height=bar_height,
+    title=alt.TitleParams(
+        f"{selected_bar_rating} Ratings by Team",
+        fontSize=bar_title_size,
+        fontWeight="bold"
     )
-    bar_rating_col = pr_cols[selected_bar_rating]
+)
 
-    # Data prep for bar chart
-    bar_df = df_comp.dropna(subset=[bar_rating_col, "Conference", "Logo URL"]).copy()
-    # Order teams by selected rating (descending)
-    bar_df = bar_df.sort_values(by=bar_rating_col, ascending=False).reset_index(drop=True)
-    bar_df["Team Order"] = bar_df.index.astype(str)  # for encoding, avoid label crowding
+# Add logos at the end of each bar (smaller now)
+logo_points = alt.Chart(bar_df).mark_image(
+    width=bar_logo_size,
+    height=bar_logo_size
+).encode(
+    x='Team Order:N',
+    y=alt.Y(f"{bar_rating_col}:Q"),
+    url="Logo URL:N"
+)
 
-    # Conference color mapping: use same color palette as logo chart
-    conf_list = bar_df["Conference"].unique().tolist()
-    palette = alt.Scale(scheme="category10", domain=conf_list)
+final_bar_chart = (bar_chart + logo_points).configure_axis(
+    labelFontSize=bar_font_size,
+    titleFontSize=bar_font_size + 2
+)
 
-    # --- MOBILE/desktop chart config ---
-    if is_mobile():
-        bar_height = 290
-        bar_logo_size = 16
-        bar_font_size = 9
-        bar_width = None  # Let container fill width
-        bar_title_size = 15
-    else:
-        bar_height = 510
-        bar_logo_size = 32
-        bar_font_size = 14
-        bar_width = 900
-        bar_title_size = 21
-
-    # Build bar chart
-    bar_chart = alt.Chart(bar_df).mark_bar(
-        color="gray",
-        stroke="black",
-        strokeWidth=1.5
-    ).encode(
-        x=alt.X('Team Order:N', title=None, axis=alt.Axis(labels=False, ticks=False)),  # no x axis label/ticks
-        y=alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating),
-        color=alt.Color("Conference:N", scale=palette, legend=alt.Legend(title="Conference")),
-        tooltip=["Team", bar_rating_col, "Conference"]
-    ).properties(
-        width=bar_width,
-        height=bar_height,
-        title=alt.TitleParams(
-            f"{selected_bar_rating} Ratings by Team",
-            fontSize=bar_title_size,
-            fontWeight="bold"
-        )
-    )
-
-    # Add logos at the end of each bar
-    logo_points = alt.Chart(bar_df).mark_image(
-        width=bar_logo_size,
-        height=bar_logo_size
-    ).encode(
-        x='Team Order:N',
-        y=alt.Y(f"{bar_rating_col}:Q"),
-        url="Logo URL:N"
-    )
-
-    final_bar_chart = (bar_chart + logo_points).configure_axis(
-        labelFontSize=bar_font_size,
-        titleFontSize=bar_font_size + 2
-    )
-
-    st.altair_chart(final_bar_chart, use_container_width=True)
-
+st.altair_chart(final_bar_chart, use_container_width=True)
 
