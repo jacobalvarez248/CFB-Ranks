@@ -172,6 +172,12 @@ if tab == "Rankings":
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
+        # Set min/max widths for compact columns on desktop
+    compact_cols = [
+        "Final 2024 Rank", "Preseason Rank", "Projected Overall Wins", "Projected Overall Losses",
+        "Projected Conference Wins", "Projected Conference Losses", "Undefeated Probability",
+        "Average Game Quality", "Schedule Difficulty Rank", "Schedule Difficulty Rating"
+    ]
     for disp_col, c in zip(display_headers, cols_rank):
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
@@ -182,11 +188,13 @@ if tab == "Rankings":
                 th += " white-space:nowrap; min-width:48px; max-width:48px;"
             else:
                 th += " white-space:nowrap; min-width:180px; max-width:280px;"
+        elif not is_mobile() and c in compact_cols:
+            th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
         else:
             th += " white-space:nowrap;"
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
-    html.append("</tr></thead><tbody>")
+
 
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
