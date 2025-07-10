@@ -238,19 +238,7 @@ if tab == "Rankings":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
-    # --- Download Button for Rankings Table ---
-    download_rankings = df.copy()
-    download_rankings.reset_index(drop=True, inplace=True)
-    excel_buffer = io.BytesIO()
-    with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
-        download_rankings.to_excel(writer, index=False)
-    st.download_button(
-        label="⬇️ Download Rankings Table (Excel)",
-        data=excel_buffer.getvalue(),
-        file_name="CFB_2025_Rankings.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-
+    
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
@@ -299,8 +287,13 @@ elif tab == "Conference Overviews":
     left, right = st.columns([1, 1])
 
     with left:
+        # Responsive wrapper style for mobile/desktop
+        if is_mobile():
+            summary_wrapper_style = 'max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;'
+        else:
+            summary_wrapper_style = 'max-width:100%; overflow-x:auto;'
         html_sum = [
-            '<div style="overflow-x:auto;">',
+            f'<div style="{summary_wrapper_style}">',
             '<table style="width:100%; border-collapse:collapse;">',
             '<thead><tr>'
         ]
@@ -347,9 +340,11 @@ elif tab == "Conference Overviews":
         html_sum.append("</tbody></table></div>")
         st.markdown("".join(html_sum), unsafe_allow_html=True)
 
-    with right:
-        st.markdown("#### Conference Overview Chart Placeholder")
-        # (Add chart/plot code here as needed)
+    # Hide chart column on mobile
+    if not is_mobile():
+        with right:
+            st.markdown("#### Conference Overview Chart Placeholder")
+            # (Add chart/plot code here as needed)
 
     # --- Conference Standings Table ---
     st.markdown("#### Conference Standings")
@@ -479,20 +474,3 @@ elif tab == "Conference Overviews":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
-
-    # --- Download Button for Conference Standings Table ---
-    download_conf = standings[cols].copy()
-    if is_mobile():
-        if "Team" in download_conf.columns:
-            download_conf["Team"] = download_conf["Logo URL"].where(
-                download_conf["Logo URL"].notnull(), ""
-            )
-    excel_buffer_conf = io.BytesIO()
-    with pd.ExcelWriter(excel_buffer_conf, engine="xlsxwriter") as writer:
-        download_conf.to_excel(writer, index=False)
-    st.download_button(
-        label=f"⬇️ Download {selected_conf} Standings Table (Excel)",
-        data=excel_buffer_conf.getvalue(),
-        file_name=f"CFB_2025_{selected_conf}_Standings.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
