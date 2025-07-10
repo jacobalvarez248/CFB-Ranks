@@ -548,31 +548,48 @@ elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
 
+    # Add the filter above the chart
+    pr_cols = {
+        "JPR": "Power Rating",
+        "Composite": "Composite",
+        "SP+": "SP+",
+        "FPI": "FPI",
+        "KFord": "Kford"
+    }
+    # Only keep columns that exist in your df
+    pr_choices = [k for k, v in pr_cols.items() if v in df_expected.columns]
+    selected_rating = st.selectbox(
+        "Choose a rating to plot:",
+        pr_choices,
+        index=0  # JPR as default
+    )
+    rating_col = pr_cols[selected_rating]
+
     # Prepare data
-    df = df_expected.dropna(subset=["Power Rating", "Conference", "Logo URL"]).copy()
-    conf_means = df.groupby("Conference", as_index=False)["Power Rating"].mean()
-    conf_means = conf_means.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    df = df_expected.dropna(subset=[rating_col, "Conference", "Logo URL"]).copy()
+    conf_means = df.groupby("Conference", as_index=False)[rating_col].mean()
+    conf_means = conf_means.sort_values(rating_col, ascending=False).reset_index(drop=True)
     conf_order = conf_means["Conference"].tolist()
     df["Conference"] = pd.Categorical(df["Conference"], categories=conf_order, ordered=True)
 
     # Quartile lines
-    q1, med, q3 = np.percentile(df["Power Rating"], [25, 50, 75])
+    q1, med, q3 = np.percentile(df[rating_col], [25, 50, 75])
     rule_data = pd.DataFrame({
-        "Power Rating": [q1, med, q3],
+        rating_col: [q1, med, q3],
         "label": ["25th Percentile", "Median", "75th Percentile"]
     })
 
     # Data for horizontal conference "trendlines" (min to max for each conf)
     line_df = (
         df.groupby("Conference")
-        .agg(xmin=("Power Rating", "min"), xmax=("Power Rating", "max"))
+        .agg(xmin=(rating_col, "min"), xmax=(rating_col, "max"))
         .reset_index()
     )
     line_df["Conference"] = pd.Categorical(line_df["Conference"], categories=conf_order, ordered=True)
 
     base = alt.Chart(df).encode(
         y=alt.Y("Conference:N", sort=conf_order, title="Conference"),
-        x=alt.X("Power Rating:Q", title="Power Rating"),
+        x=alt.X(f"{rating_col}:Q", title=selected_rating),
     )
 
     # Team logos as points
@@ -581,7 +598,7 @@ elif tab == "Charts & Graphs":
         height=34
     ).encode(
         url="Logo URL:N",
-        tooltip=["Team", "Power Rating", "Conference"]
+        tooltip=["Team", rating_col, "Conference"]
     )
 
     # Horizontal colored/shaded trendlines per conference
@@ -598,7 +615,7 @@ elif tab == "Charts & Graphs":
     rules = alt.Chart(rule_data).mark_rule(
         strokeDash=[6,4], color="#9067b8", size=2
     ).encode(
-        x="Power Rating:Q"
+        x=f"{rating_col}:Q"
     )
     texts = alt.Chart(rule_data).mark_text(
         dy=-16,
@@ -606,14 +623,15 @@ elif tab == "Charts & Graphs":
         fontSize=15,
         color="#9067b8"
     ).encode(
-        x="Power Rating:Q",
+        x=f"{rating_col}:Q",
         y=alt.value(-10),
         text="label"
     )
 
     chart = (rules + texts + hlines + points).properties(
         width=1000, height=95*len(conf_order) + 120,
-        title="Team Power Ratings by Conference (Logos Only)"
+        title=f"Team {selected_rating} by Conference (Logos Only)"
     )
 
     st.altair_chart(chart, use_container_width=True)
+
