@@ -543,3 +543,64 @@ elif tab == "Industry Composite Ranking":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
+elif tab == "Charts & Graphs":
+    st.header("📈 Charts & Graphs")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from PIL import Image
+    import requests
+
+    # Work from the main df_expected table for Power Rating
+    df = df_expected.dropna(subset=["Power Rating", "Conference", "Logo URL"]).copy()
+    # Compute average PR per conference and sort
+    conf_means = df.groupby("Conference")["Power Rating"].mean().sort_values(ascending=False)
+    conf_order = conf_means.index.tolist()
+    df["Conference Y"] = df["Conference"].apply(lambda x: conf_order.index(x))
+
+    # For logo loading (cache to avoid reloading)
+    @st.cache_data
+    def get_logo_img(url, size=28):
+        try:
+            im = Image.open(requests.get(url, stream=True).raw).convert("RGBA")
+            im = im.resize((size, size), Image.LANCZOS)
+            return im
+        except Exception:
+            # Blank fallback
+            return Image.new("RGBA", (size, size), (255,255,255,0))
+
+    fig, ax = plt.subplots(figsize=(13, 7.5))
+
+    # Plot each team logo at its (Power Rating, Conference Y) position
+    for _, row in df.iterrows():
+        x = row["Power Rating"]
+        y = row["Conference Y"]
+        logo_url = row["Logo URL"]
+        im = get_logo_img(logo_url, size=28)
+        ax.imshow(im, extent=(x-0.35, x+0.35, y-0.22, y+0.22), aspect='auto', zorder=2)
+
+    # Y-ticks: conferences (from conf_order)
+    ax.set_yticks(range(len(conf_order)))
+    ax.set_yticklabels(conf_order, fontsize=13)
+    ax.invert_yaxis()  # Highest at top
+
+    # X: Power Rating limits
+    min_pr = df["Power Rating"].min()
+    max_pr = df["Power Rating"].max()
+    ax.set_xlim(min_pr-2, max_pr+2)
+    ax.set_xlabel("Power Rating", fontsize=14)
+    ax.grid(axis="x", color="#888", linestyle="dotted", linewidth=0.6, zorder=0)
+
+    # Quartile lines
+    q1, med, q3 = np.percentile(df["Power Rating"], [25, 50, 75])
+    for val, label, col in zip([q1, med, q3], ["25th Percentile", "Median", "75th Percentile"], ["#9067b8", "#333", "#9067b8"]):
+        ax.axvline(val, color=col, linestyle="--", linewidth=2, zorder=1)
+        ax.text(val, -0.6, label, color=col, ha="center", va="bottom", fontsize=12, fontweight="bold", rotation=0, backgroundcolor="#fff")
+
+    ax.set_title("Team Power Ratings by Conference (Logos Only)", fontsize=17, fontweight="bold")
+    ax.set_facecolor("#f9f9f9")
+    ax.tick_params(axis="y", length=0)
+    ax.set_ylabel("Conference", fontsize=14)
+    plt.tight_layout()
+
+    st.pyplot(fig)
+
