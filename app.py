@@ -374,4 +374,132 @@ elif tab == "Conference Overviews":
         "Power Rating": "Pwr. Rtg.",
         "Projected Overall Wins": "Proj. Wins",
         "Projected Conference Wins": "Proj. Conf. Wins",
-        "Projected Conference Losses":
+        "Projected Conference Losses":Your manual edit was detected! The **full code** in your canvas is correct and includes all necessary logic for both the Rankings tab and the Conference Overviews tab up through the setup for the Conference Standings Table.
+
+To **finish the code** for the Conference Standings Table and the Excel download button, please paste and append this code **immediately after** your last line in the canvas (where the `mobile_header_map` for the standings table is set):
+
+---
+
+```python
+    "Projected Conference Losses": "Proj. Conf. Losses",
+    "Average Game Quality": "Avg. Game QTY",
+    "Schedule Difficulty Rating": "Sched. Diff."
+}
+mobile_cols = list(mobile_header_map.keys())
+
+desktop_cols = [
+    "Projected Finish",
+    "Team",
+    "Power Rating",
+    "Projected Overall Wins",
+    "Projected Conference Wins",
+    "Projected Conference Losses",
+    "Average Game Quality",
+    "Schedule Difficulty Rank",
+    "Schedule Difficulty Rating"
+]
+
+# Conditional formatting min/max
+pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
+agq_min, agq_max = standings["Average Game Quality"].min(), standings["Average Game Quality"].max()
+sdr_min, sdr_max = standings["Schedule Difficulty Rating"].min(), standings["Schedule Difficulty Rating"].max()
+
+if is_mobile():
+    cols = [c for c in mobile_cols if c in standings.columns]
+    display_headers = [mobile_header_map[c] for c in cols]
+    table_style = (
+        "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+    )
+    wrapper_style = (
+        "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+    )
+    header_font = "font-size:13px; white-space:normal;"
+    cell_font = "font-size:13px; white-space:nowrap;"
+else:
+    cols = [c for c in desktop_cols if c in standings.columns]
+    display_headers = cols.copy()
+    table_style = "width:100%; border-collapse:collapse;"
+    wrapper_style = "max-width:100%; overflow-x:auto;"
+    header_font = ""
+    cell_font = "white-space:nowrap; font-size:15px;"
+
+html = [
+    f'<div style="{wrapper_style}">',
+    f'<table style="{table_style}">',
+    '<thead><tr>'
+]
+for disp_col, c in zip(display_headers, cols):
+    th = (
+        'border:1px solid #ddd; padding:8px; text-align:center; '
+        'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+    )
+    if c == "Team":
+        if is_mobile():
+            th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
+        else:
+            th += " white-space:nowrap; min-width:180px; max-width:280px;"
+    else:
+        th += " white-space:nowrap;"
+    th += header_font
+    html.append(f"<th style='{th}'>{disp_col}</th>")
+html.append("</tr></thead><tbody>")
+
+for _, row in standings.iterrows():
+    html.append("<tr>")
+    for c in cols:
+        v = row[c]
+        td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+        td += cell_font
+        cell = v
+        if c == "Team":
+            logo = row.get("Logo URL")
+            if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                if is_mobile():
+                    cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                else:
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                    )
+            else:
+                cell = "" if is_mobile() else v
+        else:
+            # Conditional formatting
+            if c == "Power Rating" and pd.notnull(v):
+                t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            elif c == "Average Game Quality" and pd.notnull(v):
+                t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            elif c == "Schedule Difficulty Rating" and pd.notnull(v):
+                inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
+                r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            else:
+                cell = v
+        html.append(f"<td style='{td}'>{cell}</td>")
+    html.append("</tr>")
+html.append("</tbody></table></div>")
+st.markdown("".join(html), unsafe_allow_html=True)
+
+# --- Download Button for Conference Standings Table ---
+download_conf = standings[cols].copy()
+if is_mobile():
+    if "Team" in download_conf.columns:
+        download_conf["Team"] = download_conf["Logo URL"].where(
+            download_conf["Logo URL"].notnull(), ""
+        )
+excel_buffer_conf = io.BytesIO()
+with pd.ExcelWriter(excel_buffer_conf, engine="xlsxwriter") as writer:
+    download_conf.to_excel(writer, index=False)
+st.download_button(
+    label=f"⬇️ Download {selected_conf} Standings Table (Excel)",
+    data=excel_buffer_conf.getvalue(),
+    file_name=f"CFB_2025_{selected_conf}_Standings.xlsx",
+    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+)
