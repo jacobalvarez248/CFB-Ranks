@@ -654,7 +654,7 @@ elif tab == "Charts & Graphs":
     # Properties dict for mobile/desktop
     chart_props = {
         "height": height,
-        "title": f"Team {selected_rating} by Conference (Logos Only)",
+        "title": f"Team {selected_rating} by Conference",
         "padding": {"left": left_pad, "top": 6, "right": 6, "bottom": 6}
     }
     if not is_mobile():
