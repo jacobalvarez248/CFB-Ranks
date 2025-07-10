@@ -108,7 +108,7 @@ for col in ["Power Rating", "Average Game Quality", "Schedule Difficulty Rating"
 # --- Sidebar & Tabs ---
 tab = st.sidebar.radio(
     "Navigation",
-    ["Rankings", "Conference Overviews", "Team Dashboards", "Charts & Graphs"]
+    ["Rankings", "Conference Overviews", "Industry Composit Ranking", "Team Dashboards", "Charts & Graphs"]
 )
 
 # ------ Rankings ------
@@ -490,3 +490,118 @@ for _, row in standings.iterrows():
 html.append("</tbody></table></div>")
 st.markdown("".join(html), unsafe_allow_html=True)
 
+# ------ Industry Composite Ranking ------
+elif tab == "Industry Composite Ranking":
+    st.header("📊 Industry Composite Ranking")
+
+    # Load the Industry Composite sheet
+    df_comp = load_sheet(data_path, "Industry Composite", header=1)
+    df_comp["Team"] = df_comp["Team"].str.strip()
+    # Merge logos
+    logos_df["Team"] = logos_df["Team"].str.strip()
+    df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+    # Mobile/desktop columns and headers
+    mobile_header_map = {
+        "Composite Rank": "Rank",
+        "Team": "Team",
+        "Conference": "Conf.",
+        "Composite": "Composite",
+        "JPR": "JPR",
+        "SP+": "SP+",
+        "FPI": "FPI",
+        "Kford": "Kford"
+    }
+    desktop_cols = df_comp.columns.tolist()
+    mobile_cols = [c for c in ["Composite Rank","Team","Conference","Composite","JPR","SP+","FPI","Kford"] if c in df_comp.columns]
+    display_cols = desktop_cols if not is_mobile() else mobile_cols
+    display_headers = [mobile_header_map.get(c, c) for c in display_cols]
+
+    # Filtering & sorting
+    team_filter = st.text_input("Filter by team...", "")
+    conf_filter = st.text_input("Filter by conference...", "")
+    sort_col = st.selectbox(
+        "Sort by column", display_cols, display_cols.index("Composite Rank") if "Composite Rank" in display_cols else 0
+    )
+    asc = st.checkbox("Ascending order", False)
+
+    df_show = df_comp.copy()
+    if team_filter:
+        df_show = df_show[df_show["Team"].str.contains(team_filter, case=False, na=False)]
+    if conf_filter and "Conference" in df_show.columns:
+        df_show = df_show[df_show["Conference"].str.contains(conf_filter, case=False, na=False)]
+    df_show = df_show.sort_values(by=sort_col, ascending=asc if not sort_col=="Composite Rank" else True)
+
+    # Color scale for Composite Rank
+    cr_min, cr_max = df_show["Composite Rank"].min(), df_show["Composite Rank"].max()
+
+    if is_mobile():
+        table_style = (
+            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+        )
+        wrapper_style = (
+            "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+        )
+        header_font = "font-size:13px; white-space:normal;"
+        cell_font = "font-size:13px; white-space:nowrap;"
+    else:
+        table_style = "width:100%; border-collapse:collapse;"
+        wrapper_style = "max-width:100%; overflow-x:auto;"
+        header_font = ""
+        cell_font = "white-space:nowrap; font-size:15px;"
+
+    html = [
+        f'<div style="{wrapper_style}">',
+        f'<table style="{table_style}">',
+        '<thead><tr>'
+    ]
+    # Compact columns (for desktop)
+    compact_cols = ["Composite Rank", "Conference", "Composite","JPR","SP+","FPI","Kford"]
+    for disp_col, c in zip(display_headers, display_cols):
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; '
+            'position:sticky; top:0; z-index:2;'
+        )
+        if c == "Team":
+            if is_mobile():
+                th += " white-space:nowrap; min-width:48px; max-width:48px;"
+            else:
+                th += " white-space:nowrap; min-width:160px; max-width:240px;"
+        elif not is_mobile() and c in compact_cols:
+            th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
+        else:
+            th += " white-space:nowrap;"
+        th += header_font
+        html.append(f"<th style='{th}'>{disp_col}</th>")
+    html.append("</tr></thead><tbody>")
+
+    for _, row in df_show.iterrows():
+        html.append("<tr>")
+        for c in display_cols:
+            v = row[c]
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td += cell_font
+            cell = v
+            if c == "Team":
+                logo = row.get("Logo URL")
+                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                    if is_mobile():
+                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                    else:
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                        )
+                else:
+                    cell = "" if is_mobile() else v
+            elif c == "Composite Rank" and pd.notnull(v):
+                # Color scale (blue at top, red at bottom), bold
+                t = (v - cr_min) / (cr_max - cr_min) if cr_max > cr_min else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; font-weight:bold;"
+                cell = f"{int(v)}"
+            else:
+                cell = v
+            html.append(f"<td style='{td}'>{cell}</td>")
+        html.append("</tr>")
+    html.append("</tbody></table></div>")
+    st.markdown("".join(html), unsafe_allow_html=True)
