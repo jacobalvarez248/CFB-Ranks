@@ -592,24 +592,24 @@ elif tab == "Charts & Graphs":
     )
     line_df["Conference"] = pd.Categorical(line_df["Conference"], categories=conf_order, ordered=True)
 
+    # Set chart display variables based on device
     if is_mobile():
-        # --- MOBILE VERSION: Tiny logos, tiny text, minimal padding, nearly square ---
-        width = None  # Let Streamlit use full width
+        # --- MOBILE VERSION: Tiny logos, minimal padding, nearly square ---
         logo_size = 10
         line_size = 5
         font_size = 9
         left_pad = 0
         point_opacity = 0.96
-        # Height is a function of number of conferences but not too tall
+        # Height: auto, but not too tall
         height = max(220, 17 * len(conf_order))
     else:
-        width = 1000
-        height = 95*len(conf_order) + 120
         logo_size = 34
         line_size = 14
         font_size = 15
         left_pad = 170
         point_opacity = 1
+        height = 95*len(conf_order) + 120
+        width = 1000
 
     base = alt.Chart(df).encode(
         y=alt.Y("Conference:N", sort=conf_order, title="Conference", axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
@@ -650,13 +650,18 @@ elif tab == "Charts & Graphs":
         text="label"
     )
 
-    chart = (rules + texts + hlines + points).properties(
-        width=width,
-        height=height,
-        title=f"Team {selected_rating} by Conference (Logos Only)",
-        padding={"left": left_pad, "top": 6, "right": 6, "bottom": 6}
-    )
+    # Properties dict for mobile/desktop
+    chart_props = {
+        "height": height,
+        "title": f"Team {selected_rating} by Conference (Logos Only)",
+        "padding": {"left": left_pad, "top": 6, "right": 6, "bottom": 6}
+    }
+    if not is_mobile():
+        chart_props["width"] = width  # Only set width on desktop
+
+    chart = (rules + texts + hlines + points).properties(**chart_props)
 
     st.altair_chart(chart, use_container_width=True)
+
 
 
