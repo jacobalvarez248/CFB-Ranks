@@ -381,10 +381,15 @@ elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
     df_comp = load_sheet(data_path, "Industry Composite", header=0)
     df_comp.columns = [str(c).strip() for c in df_comp.columns]
+    # Prepare for merge
     logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
     df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
     df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-    
+    # Remove Logo URL from display
+    if "Logo URL" in df_comp.columns:
+        df_comp = df_comp.drop(columns=["Logo URL"])
+
+    # Columns and headers for mobile/desktop
     mobile_header_map = {
         "Composite Rank": "Rank",
         "Team": "Team",
@@ -395,26 +400,32 @@ elif tab == "Industry Composite Ranking":
         "FPI": "FPI",
         "Kford": "Kford"
     }
-    desktop_cols = df_comp.columns.tolist()
-    mobile_cols = [c for c in ["Composite Rank","Team","Conference","Composite","JPR","SP+","FPI","Kford"] if c in df_comp.columns]
+    all_metrics = ["Composite", "JPR", "SP+", "FPI", "Kford"]
+    desktop_cols = [c for c in ["Composite Rank", "Team", "Conference"] + all_metrics if c in df_comp.columns]
+    mobile_cols = [c for c in ["Composite Rank","Team","Conference"] + all_metrics if c in df_comp.columns]
     display_cols = desktop_cols if not is_mobile() else mobile_cols
     display_headers = [mobile_header_map.get(c, c) for c in display_cols]
-    
-    # --- Sidebar filters ---
+
+    # Sidebar filters!
     team_filter = st.sidebar.text_input("Filter by team...", "")
     conf_filter = st.sidebar.text_input("Filter by conference...", "")
     sort_col = st.sidebar.selectbox(
         "Sort by column", display_cols, display_cols.index("Composite Rank") if "Composite Rank" in display_cols else 0
     )
     asc = st.sidebar.checkbox("Ascending order", False)
-    
+
     df_show = df_comp.copy()
     if team_filter:
         df_show = df_show[df_show["Team"].str.contains(team_filter, case=False, na=False)]
     if conf_filter and "Conference" in df_show.columns:
         df_show = df_show[df_show["Conference"].str.contains(conf_filter, case=False, na=False)]
-    df_show = df_show.sort_values(by=sort_col, ascending=asc if not sort_col=="Composite Rank" else True)
-    cr_min, cr_max = df_show["Composite Rank"].min(), df_show["Composite Rank"].max()
+    df_show = df_show.sort_values(by=sort_col, ascending=asc if not sort_col == "Composite Rank" else True)
+
+    # For conditional formatting (metrics only, not Rank/Team/Conference)
+    format_cols = [c for c in all_metrics if c in df_show.columns]
+    col_min = {c: df_show[c].min() for c in format_cols}
+    col_max = {c: df_show[c].max() for c in format_cols}
+
     if is_mobile():
         table_style = (
             "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
@@ -429,6 +440,7 @@ elif tab == "Industry Composite Ranking":
         wrapper_style = "max-width:100%; overflow-x:auto;"
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
+
     html = [
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
@@ -459,26 +471,41 @@ elif tab == "Industry Composite Ranking":
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
             td += cell_font
             cell = v
-            if c == "Team":
-                logo = row.get("Logo URL")
-                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    if is_mobile():
-                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+
+            # Rank/Team/Conference: no formatting
+            if c in ["Composite Rank", "Team", "Conference"]:
+                if c == "Team":
+                    logo = row.get("Logo URL")
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        if is_mobile():
+                            cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                        else:
+                            cell = (
+                                f'<div style="display:flex;align-items:center;">'
+                                f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                            )
                     else:
-                        cell = (
-                            f'<div style="display:flex;align-items:center;">'
-                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                        )
+                        cell = "" if is_mobile() else v
+                elif c == "Composite Rank":
+                    cell = f"{int(v)}"
                 else:
-                    cell = "" if is_mobile() else v
-            elif c == "Composite Rank" and pd.notnull(v):
-                t = (v - cr_min) / (cr_max - cr_min) if cr_max > cr_min else 0
+                    cell = v
+            elif c in format_cols and pd.notnull(v):
+                # Blue color scale and 1 decimal
+                mn, mx = col_min[c], col_max[c]
+                t = (v - mn) / (mx - mn) if mx > mn else 0
                 r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; font-weight:bold;"
-                cell = f"{int(v)}"
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                val_str = f"{v:.1f}"
+                if c == "Composite":
+                    cell = f"<b>{val_str}</b>"
+                else:
+                    cell = val_str
             else:
+                # Any other (non-numeric) value, just show
                 cell = v
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
