@@ -667,26 +667,18 @@ elif tab == "Charts & Graphs":
 st.markdown("---")
 st.header("Team Power Ratings Bar Chart")
 
-# ---- Independent rating filter for this chart ----
 selected_bar_rating = st.selectbox(
     "Choose a rating for bar chart:",
     pr_choices,
-    index=0,  # Default to JPR
+    index=0,
     key="bar_chart_rating_select"
 )
 bar_rating_col = pr_cols[selected_bar_rating]
 
-# ... previous code to build bar_df ...
-
-# Remove teams with missing names/logos
-bar_df = bar_df[bar_df["Team"].notnull() & bar_df["Logo URL"].notnull()]
-
-# Ensure team names are unique
-if bar_df["Team"].duplicated().any():
-    st.error("Duplicate team names found in bar chart data!")
-    bar_df = bar_df.drop_duplicates(subset=["Team"])
-
-team_order = bar_df["Team"].tolist()
+# Clean data: remove nulls, enforce uniqueness
+bar_df = df_comp.dropna(subset=["Team", bar_rating_col, "Conference", "Logo URL"]).copy()
+bar_df = bar_df.drop_duplicates(subset=["Team"])
+team_order = bar_df["Team"].astype(str).tolist()
 bar_df["Team"] = pd.Categorical(bar_df["Team"], categories=team_order, ordered=True)
 
 conf_list = bar_df["Conference"].unique().tolist()
@@ -698,6 +690,7 @@ if is_mobile():
     bar_font_size = 9
     bar_title_size = 14
     bar_legend = None
+    # Horizontal bars
     x_axis = alt.X(f"{bar_rating_col}:Q", title=selected_bar_rating)
     y_axis = alt.Y('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False), band=1.0)
     bar_chart = alt.Chart(bar_df).mark_bar(
@@ -733,6 +726,7 @@ else:
     bar_width = 900
     bar_title_size = 19
     bar_legend = alt.Legend(title="Conference")
+    # Vertical bars
     x_axis = alt.X('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False))
     y_axis = alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating)
     bar_props = dict(
@@ -769,4 +763,5 @@ final_bar_chart = (bar_chart + logo_points).configure_axis(
 )
 
 st.altair_chart(final_bar_chart, use_container_width=True)
+
 
