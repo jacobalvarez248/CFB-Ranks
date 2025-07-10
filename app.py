@@ -380,10 +380,8 @@ elif tab == "Conference Overviews":
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
     df_comp = load_sheet(data_path, "Industry Composite", header=0)
-    st.write("Columns in df_comp:", df_comp.columns.tolist())
     df_comp.columns = [str(c).strip() for c in df_comp.columns]
     logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
-    st.write("Columns in logos_df:", logos_df.columns.tolist())
     df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
     # Debug lines, uncomment for troubleshooting
     # st.write("Industry Composite cols:", df_comp.columns.tolist())
