@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 from pathlib import Path
 import altair as alt
+import io   # NEW
 
 # Helper to load Excel sheets via xlwings or pandas/openpyxl
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
@@ -29,28 +30,21 @@ df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 
 # Normalize logo column
-# Trim whitespace on team names to ensure clean merge
 logos_df["Team"] = logos_df["Team"].str.strip()
 df_expected["Team"] = df_expected["Team"].str.strip()
-# Rename Image URL -> Logo URL for consistency
 if "Image URL" in logos_df.columns:
     logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
 
-# Prepare separate team logos and conference logos
 team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]].copy()
-# Merge team logos into df_expected
-# (so conference-logo entries in logos_df won't mix into team tables)
 df_expected = df_expected.merge(team_logos, on="Team", how="left")
 
 # --- Streamlit Config ---
 import streamlit.components.v1 as components
 
-# Only call this ONCE at the top, never inside a function or repeatedly
 FORCE_MOBILE = st.sidebar.checkbox("Mobile View", False)
 def is_mobile():
     return FORCE_MOBILE
 
-# Use collapsed sidebar if mobile
 if is_mobile():
     st.set_page_config(
         page_title="CFB 2025 Preview",
@@ -69,7 +63,6 @@ else:
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
 # --- Data Cleaning & Renaming ---
-# Normalize Conference names in df_expected to match logo sheet (drop hyphens & uppercase)
 df_expected["Conference"] = (
     df_expected["Conference"].astype(str)
     .str.strip()
@@ -94,21 +87,17 @@ rename_map = {
     "Final 2022 Rank": "Final 2024 Rank",
 }
 df_expected.rename(columns=rename_map, inplace=True)
-# Add Preseason Rank if missing
 if "Preseason Rank" not in df_expected.columns:
     df_expected.insert(0, "Preseason Rank", list(range(1, len(df_expected) + 1)))
-# Format probabilities
 if "Undefeated Probability" in df_expected.columns:
     df_expected["Undefeated Probability"] = (
         df_expected["Undefeated Probability"].apply(
             lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
         )
     )
-# Round numeric cols except ranks
 drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
 numeric_cols = [c for c in df_expected.select_dtypes(include=["number"]).columns if c not in drop_ranks]
 df_expected[numeric_cols] = df_expected[numeric_cols].round(1)
-# Ensure types
 for col in ["Preseason Rank", "Final 2024 Rank"]:
     if col in df_expected.columns:
         df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').fillna(0).astype(int)
@@ -143,18 +132,16 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
-            # --- Rankings Table Setup ---
-    # Short column headers for mobile
     mobile_header_map = {
-    "Preseason Rank": "Rank",
-    "Team": "Team",
-    "Power Rating": "Pwr. Rtg.",
-    "Projected Overall Wins": "Proj. Wins",
-    "Projected Overall Losses": "Proj. Losses",
-    "OVER/UNDER Pick": "OVER/ UNDER",
-    "Average Game Quality": "Avg. Game Qty",
-    "Schedule Difficulty Rating": "Sched. Diff.",
-}
+        "Preseason Rank": "Rank",
+        "Team": "Team",
+        "Power Rating": "Pwr. Rtg.",
+        "Projected Overall Wins": "Proj. Wins",
+        "Projected Overall Losses": "Proj. Losses",
+        "OVER/UNDER Pick": "OVER/ UNDER",
+        "Average Game Quality": "Avg. Game Qty",
+        "Schedule Difficulty Rating": "Sched. Diff.",
+    }
     mobile_cols = list(mobile_header_map.keys())
 
     if is_mobile():
@@ -185,7 +172,6 @@ if tab == "Rankings":
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
-    # Use display_headers for headers, always "Team" for the team column
     for disp_col, c in zip(display_headers, cols_rank):
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
@@ -202,8 +188,6 @@ if tab == "Rankings":
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
 
-
-    # For coloring (same as before)
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
@@ -228,7 +212,6 @@ if tab == "Rankings":
                 else:
                     cell = "" if is_mobile() else v
             else:
-                # (conditional formatting as before)
                 if c == "OVER/UNDER Pick" and isinstance(v, str):
                     if v.upper().startswith("OVER"): td += " background-color:#28a745; color:white;"
                     elif v.upper().startswith("UNDER"): td += " background-color:#dc3545; color:white;"
@@ -255,6 +238,18 @@ if tab == "Rankings":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
+    # --- Download Button for Rankings Table --- # NEW
+    download_rankings = df.copy()
+    download_rankings.reset_index(drop=True, inplace=True)
+    excel_buffer = io.BytesIO()
+    with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+        download_rankings.to_excel(writer, index=False)
+    st.download_button(
+        label="⬇️ Download Rankings Table (Excel)",
+        data=excel_buffer.getvalue(),
+        file_name="CFB_2025_Rankings.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # ------ Conference Overviews ------
 elif tab == "Conference Overviews":
@@ -301,12 +296,11 @@ elif tab == "Conference Overviews":
     agq_min, agq_max = summary["Avg. Game Quality"].min(), summary["Avg. Game Quality"].max()
     sdr_min, sdr_max = summary["Avg. Schedule Difficulty"].min(), summary["Avg. Schedule Difficulty"].max()
 
-    # --- Side-by-side Table and Scatterplot ---
     left, right = st.columns([1, 1])
 
     with left:
         html_sum = [
-    '<div style="overflow-x:auto;">',
+            '<div style="overflow-x:auto;">',
             '<table style="width:100%; border-collapse:collapse;">',
             '<thead><tr>'
         ]
@@ -334,8 +328,6 @@ elif tab == "Conference Overviews":
                         f'<div style="display:flex;align-items:center;">'
                         f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
                     )
-
-
                 elif c in ["Avg. Power Rating", "Avg. Game Quality", "Avg. Schedule Difficulty"]:
                     mn, mx = (
                         (pr_min, pr_max) if c == "Avg. Power Rating" else
@@ -358,3 +350,28 @@ elif tab == "Conference Overviews":
     with right:
         st.markdown("#### Conference Overview Chart Placeholder")
         # (Add chart/plot code here as needed)
+
+    # --- Conference Standings Table --- # NEW
+    st.markdown("#### Conference Standings")
+
+    conference_options = sorted(df_expected["Conference"].dropna().unique())
+    default_conf = conference_options[0] if conference_options else ""
+    selected_conf = st.selectbox(
+        "Select Conference",
+        conference_options,
+        index=0
+    )
+
+    standings = df_expected[df_expected["Conference"] == selected_conf].copy()
+    standings = standings.sort_values(
+        by="Projected Conference Wins", ascending=False
+    ).reset_index(drop=True)
+    standings.insert(0, "Projected Finish", standings.index + 1)
+
+    mobile_header_map = {
+        "Projected Finish": "Conf. Standings",
+        "Team": "Team",
+        "Power Rating": "Pwr. Rtg.",
+        "Projected Overall Wins": "Proj. Wins",
+        "Projected Conference Wins": "Proj. Conf. Wins",
+        "Projected Conference Losses":
