@@ -355,140 +355,140 @@ elif tab == "Conference Overviews":
             # (Add chart/plot code here as needed)
 
     # --- Conference Standings Table ---
-st.markdown("#### Conference Standings")
+    st.markdown("#### Conference Standings")
 
-conference_options = sorted(df_expected["Conference"].dropna().unique())
-default_conf = conference_options[0] if conference_options else ""
-selected_conf = st.selectbox(
-    "Select Conference",
-    conference_options,
-    index=0
-)
-
-standings = df_expected[df_expected["Conference"] == selected_conf].copy()
-standings = standings.sort_values(
-    by="Projected Conference Wins", ascending=False
-).reset_index(drop=True)
-standings.insert(0, "Projected Finish", standings.index + 1)
-
-mobile_header_map = {
-    "Projected Finish": "Conf. Standings",
-    "Team": "Team",
-    "Power Rating": "Pwr. Rtg.",
-    "Projected Overall Wins": "Proj. Wins",
-    "Projected Conference Wins": "Proj. Conf. Wins",
-    "Projected Conference Losses": "Proj. Conf. Losses",
-    "Average Game Quality": "Avg. Game QTY",
-    "Schedule Difficulty Rating": "Sched. Diff."
-}
-mobile_cols = list(mobile_header_map.keys())
-
-desktop_cols = [
-    "Projected Finish",
-    "Team",
-    "Power Rating",
-    "Projected Overall Wins",
-    "Projected Conference Wins",
-    "Projected Conference Losses",
-    "Average Game Quality",
-    "Schedule Difficulty Rank",
-    "Schedule Difficulty Rating"
-]
-
-# Conditional formatting min/max
-pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
-agq_min, agq_max = standings["Average Game Quality"].min(), standings["Average Game Quality"].max()
-sdr_min, sdr_max = standings["Schedule Difficulty Rating"].min(), standings["Schedule Difficulty Rating"].max()
-
-if is_mobile():
-    cols = [c for c in mobile_cols if c in standings.columns]
-    display_headers = [mobile_header_map[c] for c in cols]
-    table_style = (
-        "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+    conference_options = sorted(df_expected["Conference"].dropna().unique())
+    default_conf = conference_options[0] if conference_options else ""
+    selected_conf = st.selectbox(
+        "Select Conference",
+        conference_options,
+        index=0
     )
-    wrapper_style = (
-        "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
-    )
-    header_font = "font-size:13px; white-space:normal;"
-    cell_font = "font-size:13px; white-space:nowrap;"
-else:
-    cols = [c for c in desktop_cols if c in standings.columns]
-    display_headers = cols.copy()
-    table_style = "width:100%; border-collapse:collapse;"
-    wrapper_style = "max-width:100%; overflow-x:auto;"
-    header_font = ""
-    cell_font = "white-space:nowrap; font-size:15px;"
 
-html = [
-    f'<div style="{wrapper_style}">',
-    f'<table style="{table_style}">',
-    '<thead><tr>'
-]
+    standings = df_expected[df_expected["Conference"] == selected_conf].copy()
+    standings = standings.sort_values(
+        by="Projected Conference Wins", ascending=False
+    ).reset_index(drop=True)
+    standings.insert(0, "Projected Finish", standings.index + 1)
 
-compact_cols_conf = [
-    "Projected Finish", "Power Rating", "Projected Overall Wins", "Projected Conference Wins",
-    "Projected Overall Losses", "Projected Conference Losses", "Average Game Quality",
-    "Schedule Difficulty Rank", "Schedule Difficulty Rating"
-]
-for disp_col, c in zip(display_headers, cols):
-    th = (
-        'border:1px solid #ddd; padding:8px; text-align:center; '
-        'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-    )
-    if c == "Team":
-        if is_mobile():
-            th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
-        else:
-            th += " white-space:nowrap; min-width:180px; max-width:240px;"
-    elif not is_mobile() and c in compact_cols_conf:
-        th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
+    mobile_header_map = {
+        "Projected Finish": "Conf. Standings",
+        "Team": "Team",
+        "Power Rating": "Pwr. Rtg.",
+        "Projected Overall Wins": "Proj. Wins",
+        "Projected Conference Wins": "Proj. Conf. Wins",
+        "Projected Conference Losses": "Proj. Conf. Losses",
+        "Average Game Quality": "Avg. Game QTY",
+        "Schedule Difficulty Rating": "Sched. Diff."
+    }
+    mobile_cols = list(mobile_header_map.keys())
+
+    desktop_cols = [
+        "Projected Finish",
+        "Team",
+        "Power Rating",
+        "Projected Overall Wins",
+        "Projected Conference Wins",
+        "Projected Conference Losses",
+        "Average Game Quality",
+        "Schedule Difficulty Rank",
+        "Schedule Difficulty Rating"
+    ]
+
+    # Conditional formatting min/max
+    pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
+    agq_min, agq_max = standings["Average Game Quality"].min(), standings["Average Game Quality"].max()
+    sdr_min, sdr_max = standings["Schedule Difficulty Rating"].min(), standings["Schedule Difficulty Rating"].max()
+
+    if is_mobile():
+        cols = [c for c in mobile_cols if c in standings.columns]
+        display_headers = [mobile_header_map[c] for c in cols]
+        table_style = (
+            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+        )
+        wrapper_style = (
+            "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+        )
+        header_font = "font-size:13px; white-space:normal;"
+        cell_font = "font-size:13px; white-space:nowrap;"
     else:
-        th += " white-space:nowrap;"
-    th += header_font
-    html.append(f"<th style='{th}'>{disp_col}</th>")
+        cols = [c for c in desktop_cols if c in standings.columns]
+        display_headers = cols.copy()
+        table_style = "width:100%; border-collapse:collapse;"
+        wrapper_style = "max-width:100%; overflow-x:auto;"
+        header_font = ""
+        cell_font = "white-space:nowrap; font-size:15px;"
 
-for _, row in standings.iterrows():
-    html.append("<tr>")
-    for c in cols:
-        v = row[c]
-        td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-        td += cell_font
-        cell = v
+    html = [
+        f'<div style="{wrapper_style}">',
+        f'<table style="{table_style}">',
+        '<thead><tr>'
+    ]
+
+    compact_cols_conf = [
+        "Projected Finish", "Power Rating", "Projected Overall Wins", "Projected Conference Wins",
+        "Projected Overall Losses", "Projected Conference Losses", "Average Game Quality",
+        "Schedule Difficulty Rank", "Schedule Difficulty Rating"
+    ]
+    for disp_col, c in zip(display_headers, cols):
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; '
+            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+        )
         if c == "Team":
-            logo = row.get("Logo URL")
-            if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                if is_mobile():
-                    cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
-                else:
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                    )
+            if is_mobile():
+                th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
             else:
-                cell = "" if is_mobile() else v
+                th += " white-space:nowrap; min-width:180px; max-width:240px;"
+        elif not is_mobile() and c in compact_cols_conf:
+            th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
         else:
-            # Conditional formatting
-            if c == "Power Rating" and pd.notnull(v):
-                t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
-                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            elif c == "Average Game Quality" and pd.notnull(v):
-                t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
-                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                cell = f"{v:.1f}"
-            elif c == "Schedule Difficulty Rating" and pd.notnull(v):
-                inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
-                r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
-                cell = f"{v:.1f}"
+            th += " white-space:nowrap;"
+        th += header_font
+        html.append(f"<th style='{th}'>{disp_col}</th>")
+
+    for _, row in standings.iterrows():
+        html.append("<tr>")
+        for c in cols:
+            v = row[c]
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td += cell_font
+            cell = v
+            if c == "Team":
+                logo = row.get("Logo URL")
+                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                    if is_mobile():
+                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                    else:
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                        )
+                else:
+                    cell = "" if is_mobile() else v
             else:
-                cell = v
-        html.append(f"<td style='{td}'>{cell}</td>")
-    html.append("</tr>")
-html.append("</tbody></table></div>")
-st.markdown("".join(html), unsafe_allow_html=True)
+                # Conditional formatting
+                if c == "Power Rating" and pd.notnull(v):
+                    t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                elif c == "Average Game Quality" and pd.notnull(v):
+                    t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
+                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                elif c == "Schedule Difficulty Rating" and pd.notnull(v):
+                    inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
+                    r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                else:
+                    cell = v
+            html.append(f"<td style='{td}'>{cell}</td>")
+        html.append("</tr>")
+    html.append("</tbody></table></div>")
+    st.markdown("".join(html), unsafe_allow_html=True)
 
 # ------ Industry Composite Ranking ------
 elif tab == "Industry Composite Ranking":
@@ -605,3 +605,4 @@ elif tab == "Industry Composite Ranking":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
