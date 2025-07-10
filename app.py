@@ -429,7 +429,6 @@ elif tab == "Industry Composite Ranking":
         df_show = df_show[df_show["Conference"].str.contains(conf_filter, case=False, na=False)]
     df_show = df_show.sort_values(by=sort_col, ascending=asc if not sort_col == "Composite Rank" else True)
 
-    # For color scales
     metric_cols = [c for c in all_metrics if c in df_show.columns]
     composite_min, composite_max = df_show["Composite"].min(), df_show["Composite"].max()
     other_metric_cols = [c for c in metric_cols if c != "Composite"]
@@ -514,16 +513,17 @@ elif tab == "Industry Composite Ranking":
             elif c == "Composite" and pd.notnull(v):
                 # Green color scale (light gray to #548235)
                 t = (v - composite_min) / (composite_max - composite_min) if composite_max > composite_min else 0
-                # Start from light gray (e.g., #eaeaea), go to dark green #548235
                 r1, g1, b1 = 234, 234, 234  # light gray
                 r2, g2, b2 = 84, 130, 53    # #548235
                 r = int(r1 + (r2 - r1) * t)
                 g = int(g1 + (g2 - g1) * t)
                 b = int(b1 + (b2 - b1) * t)
-                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:white; font-weight:bold;"
+                # text color: black for light backgrounds, white for dark
+                yiq = ((r*299)+(g*587)+(b*114))/1000
+                text_color = "black" if yiq > 140 else "white"
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{text_color}; font-weight:bold;"
                 cell = f"<b>{v:.1f}</b>"
             elif c in other_metric_cols and pd.notnull(v):
-                # Blue color scale for all others
                 mn, mx = col_min[c], col_max[c]
                 t = (v - mn) / (mx - mn) if mx > mn else 0
                 r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
@@ -535,3 +535,4 @@ elif tab == "Industry Composite Ranking":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
