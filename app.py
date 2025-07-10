@@ -424,6 +424,11 @@ elif tab == "Conference Overviews":
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
+        compact_cols_conf = [
+        "Projected Finish", "Power Rating", "Projected Overall Wins", "Projected Conference Wins",
+        "Projected Overall Losses", "Projected Conference Losses", "Average Game Quality",
+        "Schedule Difficulty Rank", "Schedule Difficulty Rating"
+    ]
     for disp_col, c in zip(display_headers, cols):
         th = (
             'border:1px solid #ddd; padding:8px; text-align:center; '
@@ -433,12 +438,14 @@ elif tab == "Conference Overviews":
             if is_mobile():
                 th += " white-space:nowrap; min-width:48px; max-width:48px;"  # tight for logo
             else:
-                th += " white-space:nowrap; min-width:180px; max-width:280px;"
+                th += " white-space:nowrap; min-width:180px; max-width:240px;"
+        elif not is_mobile() and c in compact_cols_conf:
+            th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
         else:
             th += " white-space:nowrap;"
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
-    html.append("</tr></thead><tbody>")
+
 
     for _, row in standings.iterrows():
         html.append("<tr>")
