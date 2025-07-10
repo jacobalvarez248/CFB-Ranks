@@ -664,4 +664,48 @@ elif tab == "Charts & Graphs":
 
     st.altair_chart(chart, use_container_width=True)
 
+# Order teams by selected rating (descending: left=highest)
+bar_df = bar_df.sort_values(by=bar_rating_col, ascending=False).reset_index(drop=True)
+
+# Use team names as x (unique!) and order them:
+team_order = bar_df["Team"].tolist()
+bar_df["Team"] = pd.Categorical(bar_df["Team"], categories=team_order, ordered=True)
+
+# Rest of your config...
+# Build bar chart
+bar_chart = alt.Chart(bar_df).mark_bar(
+    color="gray",
+    stroke="black",
+    strokeWidth=1.3
+).encode(
+    x=alt.X('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False)),
+    y=alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating),
+    color=alt.Color("Conference:N", scale=palette, legend=alt.Legend(title="Conference")),
+    tooltip=["Team", bar_rating_col, "Conference"]
+).properties(
+    width=bar_width,
+    height=bar_height,
+    title=alt.TitleParams(
+        f"{selected_bar_rating} Ratings by Team",
+        fontSize=bar_title_size,
+        fontWeight="bold"
+    )
+)
+
+# Add logos at the end of each bar (even smaller now)
+logo_points = alt.Chart(bar_df).mark_image(
+    width=bar_logo_size,
+    height=bar_logo_size
+).encode(
+    x=alt.X('Team:N', sort=team_order),
+    y=alt.Y(f"{bar_rating_col}:Q"),
+    url="Logo URL:N"
+)
+
+final_bar_chart = (bar_chart + logo_points).configure_axis(
+    labelFontSize=bar_font_size,
+    titleFontSize=bar_font_size + 2
+)
+
+st.altair_chart(final_bar_chart, use_container_width=True)
 
