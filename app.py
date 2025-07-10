@@ -676,33 +676,35 @@ selected_bar_rating = st.selectbox(
 )
 bar_rating_col = pr_cols[selected_bar_rating]
 
-# Data prep for bar chart
-bar_df = df_comp.dropna(subset=[bar_rating_col, "Conference", "Logo URL"]).copy()
-# Order teams by selected rating (descending: highest first)
-bar_df = bar_df.sort_values(by=bar_rating_col, ascending=False).reset_index(drop=True)
+# ... previous code to build bar_df ...
+
+# Remove teams with missing names/logos
+bar_df = bar_df[bar_df["Team"].notnull() & bar_df["Logo URL"].notnull()]
+
+# Ensure team names are unique
+if bar_df["Team"].duplicated().any():
+    st.error("Duplicate team names found in bar chart data!")
+    bar_df = bar_df.drop_duplicates(subset=["Team"])
+
 team_order = bar_df["Team"].tolist()
 bar_df["Team"] = pd.Categorical(bar_df["Team"], categories=team_order, ordered=True)
 
-# Conference color mapping
 conf_list = bar_df["Conference"].unique().tolist()
 palette = alt.Scale(scheme="category10", domain=conf_list)
 
 if is_mobile():
-    # --- MOBILE: Horizontal bar chart, as tall as needed, tiny logos, no legend, skinny bars with no gap ---
-    bar_height = max(240, 32 * len(bar_df))  # auto-height, 32px per team
+    bar_height = max(240, 32 * len(bar_df))
     bar_logo_size = 14
     bar_font_size = 9
     bar_title_size = 14
     bar_legend = None
     x_axis = alt.X(f"{bar_rating_col}:Q", title=selected_bar_rating)
-    # BAND=1.0 (no gap), size=logo width
     y_axis = alt.Y('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False), band=1.0)
-
     bar_chart = alt.Chart(bar_df).mark_bar(
         color="gray",
         stroke="black",
         strokeWidth=1.2,
-        size=bar_logo_size  # Bars are as skinny as logos
+        size=bar_logo_size
     ).encode(
         x=x_axis,
         y=y_axis,
@@ -716,18 +718,15 @@ if is_mobile():
             fontWeight="bold"
         )
     )
-
     logo_points = alt.Chart(bar_df).mark_image(
         width=bar_logo_size,
         height=bar_logo_size
     ).encode(
         x=alt.X(f"{bar_rating_col}:Q"),
-        y=alt.Y('Team:N', sort=team_order, band=0.5),  # Center logo in the bar
+        y=alt.Y('Team:N', sort=team_order, band=0.5),
         url="Logo URL:N"
     )
-
 else:
-    # --- DESKTOP: Vertical bar chart, legend on ---
     bar_height = 470
     bar_logo_size = 15
     bar_font_size = 11
@@ -736,7 +735,6 @@ else:
     bar_legend = alt.Legend(title="Conference")
     x_axis = alt.X('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False))
     y_axis = alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating)
-
     bar_props = dict(
         height=bar_height,
         title=alt.TitleParams(
@@ -746,7 +744,6 @@ else:
         ),
         width=bar_width
     )
-
     bar_chart = alt.Chart(bar_df).mark_bar(
         color="gray",
         stroke="black",
@@ -757,7 +754,6 @@ else:
         color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
         tooltip=["Team", bar_rating_col, "Conference"]
     ).properties(**bar_props)
-
     logo_points = alt.Chart(bar_df).mark_image(
         width=bar_logo_size,
         height=bar_logo_size
@@ -773,3 +769,4 @@ final_bar_chart = (bar_chart + logo_points).configure_axis(
 )
 
 st.altair_chart(final_bar_chart, use_container_width=True)
+
