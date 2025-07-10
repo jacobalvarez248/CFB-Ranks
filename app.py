@@ -663,6 +663,7 @@ elif tab == "Charts & Graphs":
     chart = (rules + texts + hlines + points).properties(**chart_props)
 
     st.altair_chart(chart, use_container_width=True)
+
 st.markdown("---")
 st.header("Team Power Ratings Bar Chart")
 
@@ -722,10 +723,10 @@ bar_chart = alt.Chart(bar_df).mark_bar(
         fontSize=bar_title_size,
         fontWeight="bold"
     ),
-    padding={'left': x_pad, 'right': x_pad}   # <-- ensures logos at ends aren't cut off
+    padding={'left': x_pad, 'right': x_pad}
 )
 
-# Add logos at the end of each bar (even smaller now)
+# Add logos at the end of each bar (do NOT set properties here)
 logo_points = alt.Chart(bar_df).mark_image(
     width=bar_logo_size,
     height=bar_logo_size
@@ -741,5 +742,6 @@ final_bar_chart = (bar_chart + logo_points).configure_axis(
 )
 
 st.altair_chart(final_bar_chart, use_container_width=True)
+
 
 
