@@ -246,14 +246,15 @@ if tab == "Rankings":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
-# ------ Conference Overviews ------
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
-    # [Summary Table code ...]
-    # [Mobile/desktop wrapper styles ...]
-    # [Your summary table for conferences goes here, unchanged]
 
-    # Hide chart column on mobile
+    # ... summary prep code above ...
+    left, right = st.columns([1, 1])
+    with left:
+        # ... summary table rendering ...
+        pass  # your summary table code here
+
     if not is_mobile():
         with right:
             st.markdown("#### Conference Overview Chart Placeholder")
@@ -261,15 +262,8 @@ elif tab == "Conference Overviews":
 
     # --- Conference Standings Table ---
     st.markdown("#### Conference Standings")
-
     conference_options = sorted(df_expected["Conference"].dropna().unique())
-    default_conf = conference_options[0] if conference_options else ""
-    selected_conf = st.selectbox(
-        "Select Conference",
-        conference_options,
-        index=0
-    )
-
+    selected_conf = st.selectbox("Select Conference", conference_options, index=0)
     standings = df_expected[df_expected["Conference"] == selected_conf].copy()
     standings = standings.sort_values(
         by="Projected Conference Wins", ascending=False
@@ -287,19 +281,11 @@ elif tab == "Conference Overviews":
         "Schedule Difficulty Rating": "Sched. Diff."
     }
     mobile_cols = list(mobile_header_map.keys())
-
     desktop_cols = [
-        "Projected Finish",
-        "Team",
-        "Power Rating",
-        "Projected Overall Wins",
-        "Projected Conference Wins",
-        "Projected Conference Losses",
-        "Average Game Quality",
-        "Schedule Difficulty Rank",
-        "Schedule Difficulty Rating"
+        "Projected Finish", "Team", "Power Rating", "Projected Overall Wins",
+        "Projected Conference Wins", "Projected Conference Losses",
+        "Average Game Quality", "Schedule Difficulty Rank", "Schedule Difficulty Rating"
     ]
-
     pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
     agq_min, agq_max = standings["Average Game Quality"].min(), standings["Average Game Quality"].max()
     sdr_min, sdr_max = standings["Schedule Difficulty Rating"].min(), standings["Schedule Difficulty Rating"].max()
@@ -328,7 +314,6 @@ elif tab == "Conference Overviews":
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
-
     compact_cols_conf = [
         "Projected Finish", "Power Rating", "Projected Overall Wins", "Projected Conference Wins",
         "Projected Overall Losses", "Projected Conference Losses", "Average Game Quality",
@@ -350,7 +335,6 @@ elif tab == "Conference Overviews":
             th += " white-space:nowrap;"
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
-
     for _, row in standings.iterrows():
         html.append("<tr>")
         for c in cols:
@@ -371,7 +355,6 @@ elif tab == "Conference Overviews":
                 else:
                     cell = "" if is_mobile() else v
             else:
-                # Conditional formatting
                 if c == "Power Rating" and pd.notnull(v):
                     t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
                     r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
@@ -394,16 +377,13 @@ elif tab == "Conference Overviews":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
-# ------ Industry Composite Ranking ------
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
-
-    # Load the Industry Composite sheet
     df_comp = load_sheet(data_path, "Industry Composite", header=1)
-    df_comp["Team"] = df_comp["Team"].str.strip()
+    df_comp.columns = [str(c).strip() for c in df_comp.columns]  # <- column clean!
     logos_df["Team"] = logos_df["Team"].str.strip()
+    # st.write(df_comp.columns.tolist())  # Uncomment for debugging
     df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-
     mobile_header_map = {
         "Composite Rank": "Rank",
         "Team": "Team",
@@ -418,23 +398,19 @@ elif tab == "Industry Composite Ranking":
     mobile_cols = [c for c in ["Composite Rank","Team","Conference","Composite","JPR","SP+","FPI","Kford"] if c in df_comp.columns]
     display_cols = desktop_cols if not is_mobile() else mobile_cols
     display_headers = [mobile_header_map.get(c, c) for c in display_cols]
-
     team_filter = st.text_input("Filter by team...", "")
     conf_filter = st.text_input("Filter by conference...", "")
     sort_col = st.selectbox(
         "Sort by column", display_cols, display_cols.index("Composite Rank") if "Composite Rank" in display_cols else 0
     )
     asc = st.checkbox("Ascending order", False)
-
     df_show = df_comp.copy()
     if team_filter:
         df_show = df_show[df_show["Team"].str.contains(team_filter, case=False, na=False)]
     if conf_filter and "Conference" in df_show.columns:
         df_show = df_show[df_show["Conference"].str.contains(conf_filter, case=False, na=False)]
     df_show = df_show.sort_values(by=sort_col, ascending=asc if not sort_col=="Composite Rank" else True)
-
     cr_min, cr_max = df_show["Composite Rank"].min(), df_show["Composite Rank"].max()
-
     if is_mobile():
         table_style = (
             "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
@@ -449,7 +425,6 @@ elif tab == "Industry Composite Ranking":
         wrapper_style = "max-width:100%; overflow-x:auto;"
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
-
     html = [
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
@@ -473,7 +448,6 @@ elif tab == "Industry Composite Ranking":
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
-
     for _, row in df_show.iterrows():
         html.append("<tr>")
         for c in display_cols:
@@ -504,5 +478,3 @@ elif tab == "Industry Composite Ranking":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
-
-
