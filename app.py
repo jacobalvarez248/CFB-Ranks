@@ -383,6 +383,7 @@ elif tab == "Industry Composite Ranking":
     st.write("Columns in df_comp:", df_comp.columns.tolist())
     df_comp.columns = [str(c).strip() for c in df_comp.columns]
     logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+    st.write("Columns in logos_df:", logos_df.columns.tolist())
     df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
     # Debug lines, uncomment for troubleshooting
     # st.write("Industry Composite cols:", df_comp.columns.tolist())
