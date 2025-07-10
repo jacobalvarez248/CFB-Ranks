@@ -277,18 +277,23 @@ elif tab == "Conference Overviews":
         "Projected Overall Wins": "Proj. Wins",
         "Projected Conference Wins": "Proj. Conf. Wins",
         "Projected Conference Losses": "Proj. Conf. Losses",
-        "Average Game Quality": "Avg. Game QTY",
-        "Schedule Difficulty Rating": "Sched. Diff."
+        "Average Conference Game Quality": "Avg. Conf. Game Qty",
+        "Schedule Difficulty Rank": "Sched. Diff. Rk",
+        "Average Conference Schedule Difficulty": "Conf. Sched. Diff.",
     }
-    mobile_cols = list(mobile_header_map.keys())
+    mobile_cols = [
+        "Projected Finish", "Team", "Power Rating", "Projected Overall Wins",
+        "Projected Conference Wins", "Projected Conference Losses",
+        "Average Conference Game Quality", "Average Conference Schedule Difficulty"
+    ]
     desktop_cols = [
         "Projected Finish", "Team", "Power Rating", "Projected Overall Wins",
         "Projected Conference Wins", "Projected Conference Losses",
-        "Average Game Quality", "Schedule Difficulty Rank", "Schedule Difficulty Rating"
+        "Average Conference Game Quality", "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
     ]
     pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
-    agq_min, agq_max = standings["Average Game Quality"].min(), standings["Average Game Quality"].max()
-    sdr_min, sdr_max = standings["Schedule Difficulty Rating"].min(), standings["Schedule Difficulty Rating"].max()
+    acgq_min, acgq_max = standings["Average Conference Game Quality"].min(), standings["Average Conference Game Quality"].max()
+    acsd_min, acsd_max = standings["Average Conference Schedule Difficulty"].min(), standings["Average Conference Schedule Difficulty"].max()
 
     if is_mobile():
         cols = [c for c in mobile_cols if c in standings.columns]
@@ -316,8 +321,8 @@ elif tab == "Conference Overviews":
     ]
     compact_cols_conf = [
         "Projected Finish", "Power Rating", "Projected Overall Wins", "Projected Conference Wins",
-        "Projected Overall Losses", "Projected Conference Losses", "Average Game Quality",
-        "Schedule Difficulty Rank", "Schedule Difficulty Rating"
+        "Projected Conference Losses", "Average Conference Game Quality",
+        "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
     ]
     for disp_col, c in zip(display_headers, cols):
         th = (
@@ -335,6 +340,7 @@ elif tab == "Conference Overviews":
             th += " white-space:nowrap;"
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
+    html.append("</tr></thead><tbody>")
     for _, row in standings.iterrows():
         html.append("<tr>")
         for c in cols:
@@ -360,13 +366,13 @@ elif tab == "Conference Overviews":
                     r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                     td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                     cell = f"{v:.1f}"
-                elif c == "Average Game Quality" and pd.notnull(v):
-                    t = (v - agq_min) / (agq_max - agq_min) if agq_max > agq_min else 0
+                elif c == "Average Conference Game Quality" and pd.notnull(v):
+                    t = (v - acgq_min) / (acgq_max - acgq_min) if acgq_max > acgq_min else 0
                     r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                     td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                     cell = f"{v:.1f}"
-                elif c == "Schedule Difficulty Rating" and pd.notnull(v):
-                    inv = 1 - ((v - sdr_min) / (sdr_max - sdr_min) if sdr_max > sdr_min else 0)
+                elif c == "Average Conference Schedule Difficulty" and pd.notnull(v):
+                    inv = 1 - ((v - acsd_min) / (acsd_max - acsd_min) if acsd_max > acsd_min else 0)
                     r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
                     td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
                     cell = f"{v:.1f}"
@@ -376,6 +382,7 @@ elif tab == "Conference Overviews":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
 
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
