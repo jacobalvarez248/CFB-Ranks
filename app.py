@@ -584,13 +584,14 @@ elif tab == "Charts & Graphs":
         tooltip=["Team", "Power Rating", "Conference"]
     )
 
-    # Horizontal trendlines per conference
+    # Horizontal colored/shaded trendlines per conference
     hlines = alt.Chart(line_df).mark_rule(
-        color="#2066b1", size=6, opacity=0.65
+        size=14, opacity=0.22
     ).encode(
         y=alt.Y("Conference:N", sort=conf_order),
         x="xmin:Q",
-        x2="xmax:Q"
+        x2="xmax:Q",
+        color=alt.Color("Conference:N", scale=alt.Scale(scheme="category10"), legend=None)
     )
 
     # Quartile lines (vertical) and their labels
