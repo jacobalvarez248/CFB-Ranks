@@ -720,32 +720,81 @@ bar_props = dict(
 if not is_mobile():
     bar_props["width"] = bar_width
 
-bar_chart = alt.Chart(bar_df).mark_bar(
-    color="gray",
-    stroke="black",
-    strokeWidth=1.2,
-    size=bar_logo_size  # <<--- make bar as skinny as the logo
-).encode(
-    x=x_axis,
-    y=y_axis,
-    color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
-    tooltip=["Team", bar_rating_col, "Conference"]
-).properties(**bar_props)
 
 
 # Logos at the end of the bar
 if is_mobile():
-    # Mobile: logos on x at end of horizontal bar
+    # --- MOBILE: Horizontal bar chart, as tall as needed, tiny logos, no legend, skinny bars with no gap ---
+    bar_height = max(240, 32 * len(bar_df))  # auto-height, 32px per team
+    bar_logo_size = 14
+    bar_font_size = 9
+    bar_width = None
+    bar_title_size = 14
+    bar_legend = None
+    x_axis = alt.X(f"{bar_rating_col}:Q", title=selected_bar_rating)
+    # BAND=1.0 (no gap), size=logo width
+    y_axis = alt.Y('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False), band=1.0)
+
+    bar_chart = alt.Chart(bar_df).mark_bar(
+        color="gray",
+        stroke="black",
+        strokeWidth=1.2,
+        size=bar_logo_size  # Bars are as skinny as logos
+    ).encode(
+        x=x_axis,
+        y=y_axis,
+        color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
+        tooltip=["Team", bar_rating_col, "Conference"]
+    ).properties(
+        height=bar_height,
+        title=alt.TitleParams(
+            f"{selected_bar_rating} Ratings by Team",
+            fontSize=bar_title_size,
+            fontWeight="bold"
+        )
+    )
+
     logo_points = alt.Chart(bar_df).mark_image(
         width=bar_logo_size,
         height=bar_logo_size
     ).encode(
         x=alt.X(f"{bar_rating_col}:Q"),
-        y=alt.Y('Team:N', sort=team_order),
+        y=alt.Y('Team:N', sort=team_order, band=0.5),  # Center logo in the bar
         url="Logo URL:N"
     )
+
 else:
-    # Desktop: logos on y at end of vertical bar
+    # --- DESKTOP: Vertical bar chart, legend on ---
+    bar_height = 470
+    bar_logo_size = 15
+    bar_font_size = 11
+    bar_width = 900
+    bar_title_size = 19
+    bar_legend = alt.Legend(title="Conference")
+    x_axis = alt.X('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False))
+    y_axis = alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating)
+
+    bar_props = dict(
+        height=bar_height,
+        title=alt.TitleParams(
+            f"{selected_bar_rating} Ratings by Team",
+            fontSize=bar_title_size,
+            fontWeight="bold"
+        ),
+        width=bar_width
+    )
+
+    bar_chart = alt.Chart(bar_df).mark_bar(
+        color="gray",
+        stroke="black",
+        strokeWidth=1.2
+    ).encode(
+        x=x_axis,
+        y=y_axis,
+        color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
+        tooltip=["Team", bar_rating_col, "Conference"]
+    ).properties(**bar_props)
+
     logo_points = alt.Chart(bar_df).mark_image(
         width=bar_logo_size,
         height=bar_logo_size
@@ -761,4 +810,5 @@ final_bar_chart = (bar_chart + logo_points).configure_axis(
 )
 
 st.altair_chart(final_bar_chart, use_container_width=True)
+
 
