@@ -581,7 +581,7 @@ elif tab == "Charts & Graphs":
     q1, med, q3 = np.percentile(df[rating_col], [25, 50, 75])
     rule_data = pd.DataFrame({
         rating_col: [q1, med, q3],
-        "label": ["25th Percentile", "Median", "75th Percentile"]
+        "label": ["Q1", "Med.", "Q3"]
     })
 
     # Data for horizontal conference "trendlines" (min to max for each conf)
