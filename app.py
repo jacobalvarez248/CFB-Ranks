@@ -601,7 +601,8 @@ elif tab == "Charts & Graphs":
         left_pad = 0
         point_opacity = 0.96
         # Height: auto, but not too tall
-        height = max(220, 17 * len(conf_order))
+        width = st.get_option("browser.clientWidth")
+        height = width if width else 340
 
     else:
         logo_size = 34
