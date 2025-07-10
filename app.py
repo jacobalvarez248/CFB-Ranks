@@ -3,6 +3,7 @@ import streamlit as st
 from pathlib import Path
 import altair as alt
 import io
+import numpy as np
 
 # Helper to load Excel sheets via xlwings or pandas/openpyxl
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
