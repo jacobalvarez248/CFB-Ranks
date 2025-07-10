@@ -376,6 +376,7 @@ elif tab == "Conference Overviews":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
     df_comp = load_sheet(data_path, "Industry Composite", header=0)
@@ -460,11 +461,11 @@ elif tab == "Industry Composite Ranking":
         )
         if c == "Team":
             if is_mobile():
-                th += " white-space:nowrap; min-width:180px; max-width:280px;"
+                th += " white-space:nowrap; min-width:60vw; max-width:80vw;"  # super-wide for mobile!
             else:
                 th += " white-space:nowrap; min-width:180px; max-width:260px;"
         elif is_mobile() and c in all_metrics:
-            th += " min-width:56px; max-width:60px; white-space:normal; font-size:12px; line-height:1.1;"
+            th += " min-width:38px; max-width:50px; white-space:normal; font-size:12px; line-height:1.1;"
         elif not is_mobile() and c in compact_cols:
             th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
         else:
@@ -480,7 +481,7 @@ elif tab == "Industry Composite Ranking":
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
             td += cell_font
             if is_mobile() and c in all_metrics:
-                td += " font-size:12px; padding:6px;"
+                td += " font-size:12px; padding:4px;"
             cell = v
             if c == "Team":
                 logo = row.get("Logo URL")
@@ -511,6 +512,3 @@ elif tab == "Industry Composite Ranking":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
-
-
-
