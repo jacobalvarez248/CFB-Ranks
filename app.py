@@ -723,13 +723,15 @@ if not is_mobile():
 bar_chart = alt.Chart(bar_df).mark_bar(
     color="gray",
     stroke="black",
-    strokeWidth=1.2
+    strokeWidth=1.2,
+    size=bar_logo_size  # <<--- make bar as skinny as the logo
 ).encode(
     x=x_axis,
     y=y_axis,
     color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
     tooltip=["Team", bar_rating_col, "Conference"]
 ).properties(**bar_props)
+
 
 # Logos at the end of the bar
 if is_mobile():
