@@ -108,7 +108,7 @@ for col in ["Power Rating", "Average Game Quality", "Schedule Difficulty Rating"
 # --- Sidebar & Tabs ---
 tab = st.sidebar.radio(
     "Navigation",
-    ["Rankings", "Conference Overviews", "Industry Composit Ranking", "Team Dashboards", "Charts & Graphs"]
+    ["Rankings", "Conference Overviews", "Industry Composite Ranking", "Team Dashboards", "Charts & Graphs"]
 )
 
 # ------ Rankings ------
