@@ -383,12 +383,8 @@ elif tab == "Industry Composite Ranking":
     df_comp.columns = [str(c).strip() for c in df_comp.columns]
     logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
     df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
-    # Debug lines, uncomment for troubleshooting
-    # st.write("Industry Composite cols:", df_comp.columns.tolist())
-    # st.write("Logos cols:", logos_df.columns.tolist())
-    # st.write("Sample Teams in Industry Composite:", df_comp["Team"].head())
-    # st.write("Sample Teams in Logos:", logos_df["Team"].head())
     df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+    
     mobile_header_map = {
         "Composite Rank": "Rank",
         "Team": "Team",
@@ -403,12 +399,15 @@ elif tab == "Industry Composite Ranking":
     mobile_cols = [c for c in ["Composite Rank","Team","Conference","Composite","JPR","SP+","FPI","Kford"] if c in df_comp.columns]
     display_cols = desktop_cols if not is_mobile() else mobile_cols
     display_headers = [mobile_header_map.get(c, c) for c in display_cols]
-    team_filter = st.text_input("Filter by team...", "")
-    conf_filter = st.text_input("Filter by conference...", "")
-    sort_col = st.selectbox(
+    
+    # --- Sidebar filters ---
+    team_filter = st.sidebar.text_input("Filter by team...", "")
+    conf_filter = st.sidebar.text_input("Filter by conference...", "")
+    sort_col = st.sidebar.selectbox(
         "Sort by column", display_cols, display_cols.index("Composite Rank") if "Composite Rank" in display_cols else 0
     )
-    asc = st.checkbox("Ascending order", False)
+    asc = st.sidebar.checkbox("Ascending order", False)
+    
     df_show = df_comp.copy()
     if team_filter:
         df_show = df_show[df_show["Team"].str.contains(team_filter, case=False, na=False)]
