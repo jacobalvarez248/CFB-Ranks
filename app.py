@@ -376,20 +376,14 @@ elif tab == "Conference Overviews":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
-
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
     df_comp = load_sheet(data_path, "Industry Composite", header=0)
     df_comp.columns = [str(c).strip() for c in df_comp.columns]
-    # Prepare for merge
     logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
     df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
     df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-    # Remove Logo URL from display
-    if "Logo URL" in df_comp.columns:
-        df_comp = df_comp.drop(columns=["Logo URL"])
 
-    # Columns and headers for mobile/desktop
     mobile_header_map = {
         "Composite Rank": "Rank",
         "Team": "Team",
@@ -401,8 +395,9 @@ elif tab == "Industry Composite Ranking":
         "Kford": "Kford"
     }
     all_metrics = ["Composite", "JPR", "SP+", "FPI", "Kford"]
-    desktop_cols = [c for c in ["Composite Rank", "Team", "Conference"] + all_metrics if c in df_comp.columns]
-    mobile_cols = [c for c in ["Composite Rank","Team","Conference"] + all_metrics if c in df_comp.columns]
+    main_cols = ["Composite Rank", "Team", "Conference"] + all_metrics
+    desktop_cols = [c for c in main_cols if c in df_comp.columns]
+    mobile_cols = [c for c in main_cols if c in df_comp.columns]
     display_cols = desktop_cols if not is_mobile() else mobile_cols
     display_headers = [mobile_header_map.get(c, c) for c in display_cols]
 
@@ -421,7 +416,7 @@ elif tab == "Industry Composite Ranking":
         df_show = df_show[df_show["Conference"].str.contains(conf_filter, case=False, na=False)]
     df_show = df_show.sort_values(by=sort_col, ascending=asc if not sort_col == "Composite Rank" else True)
 
-    # For conditional formatting (metrics only, not Rank/Team/Conference)
+    # Conditional formatting for metrics only
     format_cols = [c for c in all_metrics if c in df_show.columns]
     col_min = {c: df_show[c].min() for c in format_cols}
     col_max = {c: df_show[c].max() for c in format_cols}
@@ -471,7 +466,6 @@ elif tab == "Industry Composite Ranking":
             td = 'border:1px solid #ddd; padding:8px; text-align:center;'
             td += cell_font
             cell = v
-
             # Rank/Team/Conference: no formatting
             if c in ["Composite Rank", "Team", "Conference"]:
                 if c == "Team":
@@ -502,10 +496,11 @@ elif tab == "Industry Composite Ranking":
                 else:
                     cell = val_str
             else:
-                # Any other (non-numeric) value, just show
                 cell = v
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
+
 
