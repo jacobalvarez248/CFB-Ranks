@@ -548,16 +548,21 @@ elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
 
-    # Add the filter above the chart
+    # --- Load Industry Composite if not already loaded ---
+    df_comp = load_sheet(data_path, "Industry Composite", header=0)
+    df_comp.columns = [str(c).strip() for c in df_comp.columns]
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+    df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
+    df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+
     pr_cols = {
-        "JPR": "Power Rating",
+        "JPR": "JPR",
         "Composite": "Composite",
         "SP+": "SP+",
         "FPI": "FPI",
         "KFord": "Kford"
     }
-    # Only keep columns that exist in your df
-    pr_choices = [k for k, v in pr_cols.items() if v in df_expected.columns]
+    pr_choices = [k for k, v in pr_cols.items() if v in df_comp.columns]
     selected_rating = st.selectbox(
         "Choose a rating to plot:",
         pr_choices,
@@ -566,7 +571,7 @@ elif tab == "Charts & Graphs":
     rating_col = pr_cols[selected_rating]
 
     # Prepare data
-    df = df_expected.dropna(subset=[rating_col, "Conference", "Logo URL"]).copy()
+    df = df_comp.dropna(subset=[rating_col, "Conference", "Logo URL"]).copy()
     conf_means = df.groupby("Conference", as_index=False)[rating_col].mean()
     conf_means = conf_means.sort_values(rating_col, ascending=False).reset_index(drop=True)
     conf_order = conf_means["Conference"].tolist()
@@ -634,4 +639,3 @@ elif tab == "Charts & Graphs":
     )
 
     st.altair_chart(chart, use_container_width=True)
-
