@@ -623,7 +623,7 @@ elif tab == "Team Dashboards":
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
 
         # Build HTML table with custom styles
-        headers = ["Game", "Date", "Opponent", "Opponent Rank", "Spread", "Win Probability", "Game Quality"]
+        headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
         header_style = (
             "background-color:#002060; color:white; text-align:center; padding:8px; "
             "position:sticky; top:0; z-index:2; font-weight:bold;"
