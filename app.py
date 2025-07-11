@@ -641,12 +641,13 @@ elif tab == "Team Dashboards":
         pad = 0
         logo_size = 10
         table_style = (
-            f"font-size:{font_size}px; width:100vw; min-width:100vw; max-width:100vw; "
+            f"font-size:{font_size}px; width:100%; min-width:100%; max-width:100%; "
             "table-layout:fixed; border-collapse:collapse; border:none; margin:0; box-sizing:border-box;"
         )
         wrapper_style = (
-            "width:100vw; min-width:100vw; max-width:100vw; margin:0; padding:0; overflow:hidden; box-sizing:border-box;"
+            "width:100%; min-width:100%; max-width:100%; margin:0; padding:0; overflow:hidden; box-sizing:border-box;"
         )
+
         visible_wins = list(range(num_games + 1))
         cell_base_style = (
             f"padding:{pad}px; box-sizing:border-box; "
@@ -664,9 +665,13 @@ elif tab == "Team Dashboards":
         pad = 2
         logo_size = 26
         table_style = (
-            "font-size:12px; width:100%; border-collapse:collapse; table-layout:fixed;"
+            f"font-size:{font_size}px; width:100%; min-width:100%; max-width:100%; "
+            "table-layout:fixed; border-collapse:collapse; border:none; margin:0; box-sizing:border-box;"
         )
-        wrapper_style = "width:100%; max-width:100vw; overflow-x:auto;"
+        wrapper_style = (
+            "width:100%; min-width:100%; max-width:100%; margin:0; padding:0; overflow:hidden; box-sizing:border-box;"
+        )
+
         visible_wins = list(range(num_games + 1))
         cell_base_style = "text-align:center; min-width:28px; max-width:40px; white-space:nowrap; overflow:hidden; border:1px solid #bbb;"
         cell_last_style = cell_base_style
