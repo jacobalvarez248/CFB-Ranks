@@ -926,8 +926,61 @@ elif tab == "Charts & Graphs":
         height=bar_height,
         title=alt.TitleParams(
             f"{selected_bar_rating} Ratings by Team",
-            fontSize=bar_title_size,
+          fontSize=bar_title_size,
             fontWeight="bold"
         )
     )
+    if not is_mobile():
+        bar_props["width"] = bar_width
 
+    if is_mobile():
+        bar_chart = alt.Chart(bar_df).mark_bar(
+            color="gray"
+        # No border on mobile: do NOT include stroke or strokeWidth
+        ).encode(
+            x=x_axis,
+            y=y_axis,
+            color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
+            tooltip=["Team", bar_rating_col, "Conference"]
+        ).properties(**bar_props)
+    else:
+        bar_chart = alt.Chart(bar_df).mark_bar(
+            color="gray",
+            stroke="black",
+            strokeWidth=1.2
+        ).encode(
+            x=x_axis,
+            y=y_axis,
+            color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
+            tooltip=["Team", bar_rating_col, "Conference"]
+        ).properties(**bar_props)
+
+
+# Logos at the end of the bar
+    if is_mobile():
+    # Mobile: logos on x at end of horizontal bar
+        logo_points = alt.Chart(bar_df).mark_image(
+            width=bar_logo_size,
+            height=bar_logo_size
+        ).encode(
+            x=alt.X(f"{bar_rating_col}:Q"),
+            y=alt.Y('Team:N', sort=team_order),
+            url="Logo URL:N"
+        )
+    else:
+    # Desktop: logos on y at end of vertical bar
+        logo_points = alt.Chart(bar_df).mark_image(
+            width=bar_logo_size,
+            height=bar_logo_size
+        ).encode(
+            x=alt.X('Team:N', sort=team_order),
+            y=alt.Y(f"{bar_rating_col}:Q"),
+            url="Logo URL:N"
+        )
+
+    final_bar_chart = (bar_chart + logo_points).configure_axis(
+        labelFontSize=bar_font_size,
+        titleFontSize=bar_font_size + 2
+    )
+    
+    st.altair_chart(final_bar_chart, use_container_width=True)
