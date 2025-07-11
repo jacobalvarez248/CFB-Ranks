@@ -639,7 +639,12 @@ elif tab == "Team Dashboards":
                 )
             except Exception:
                 return f'<div style="width:100%; text-align:center; font-weight:600; color:#111;">{pct_str}</div>'
-        
+        header_style = (
+            "background-color:#002060; color:white; text-align:center; padding:8px; "
+            "position:sticky; top:0; z-index:2; font-weight:bold;"
+        )
+        cell_style = "border:1px solid #ddd; padding:8px; text-align:center;"
+
         headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
 
         html = [
