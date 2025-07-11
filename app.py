@@ -620,22 +620,20 @@ elif tab == "Team Dashboards":
         rows.append(row)
 
     # --- Responsive Settings ---
-    n_cols = 2 + num_games + 1  # Game + Opp + wins 0–12
+    n_cols = 2 + num_games + 1  # Game + Opp + win columns (should be 15 for 12 games)
     col_pct = 100 / n_cols
-
     fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
 
     if is_mobile():
         font_size = 7
-        pad = 0.5
-        logo_size = 16
+        pad = 0.1
+        logo_size = 13
         table_style = (
-            f"font-size:{font_size}px; width:100vw; max-width:100vw; table-layout:fixed; border-collapse:collapse;"
+            f"font-size:{font_size}px; width:100vw; max-width:100vw; min-width:100vw; table-layout:fixed; border-collapse:collapse; margin:0;"
         )
-        wrapper_style = "max-width:100vw; overflow-x:hidden; margin:0;"
-        visible_wins = list(range(num_games + 1))  # This is 0–12 for 12 games!
-        show_extra = False
-        opp_col_style = f"text-align:center; width:{col_pct:.2f}vw;"
+        wrapper_style = "width:100vw; max-width:100vw; overflow-x:hidden; margin:0;"
+        visible_wins = list(range(num_games + 1))
+        opp_col_style = f"text-align:center; width:{col_pct:.4f}vw; max-width:{col_pct:.4f}vw; min-width:{col_pct:.4f}vw; overflow:hidden;"
     else:
         font_size = 13
         pad = 4
@@ -643,7 +641,6 @@ elif tab == "Team Dashboards":
         table_style = f"font-size:{font_size}px; width:100%; border-collapse:collapse;"
         wrapper_style = "overflow-x:auto; max-width:100vw;"
         visible_wins = list(range(num_games + 1))
-        show_extra = False
         opp_col_style = "min-width:130px; max-width:190px; white-space:nowrap; text-align:left;"
 
     def cell_color(p):
@@ -679,12 +676,12 @@ elif tab == "Team Dashboards":
         "<thead><tr>"
     ]
     table_html.append(
-        f'<th style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#eaf1fa; text-align:center; width:{col_pct:.2f}vw;">Game</th>')
+        f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; text-align:center; width:{col_pct:.4f}vw; max-width:{col_pct:.4f}vw; min-width:{col_pct:.4f}vw;">Game</th>')
     table_html.append(
-        f'<th style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#eaf1fa; {opp_col_style}">Opp</th>')
+        f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {opp_col_style}">Opp</th>')
     for w in visible_wins:
         table_html.append(
-            f'<th style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#d4e4f7; text-align:center; width:{col_pct:.2f}vw;">{w}</th>'
+            f'<th style="border:1px solid #bbb; padding:{pad}px; background:#d4e4f7; text-align:center; width:{col_pct:.4f}vw; max-width:{col_pct:.4f}vw; min-width:{col_pct:.4f}vw;">{w}</th>'
         )
     table_html.append("</tr></thead><tbody>")
 
@@ -692,7 +689,7 @@ elif tab == "Team Dashboards":
         table_html.append("<tr>")
         # Game number
         table_html.append(
-            f'<td style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#f8fafb; text-align:center; font-weight:bold; width:{col_pct:.2f}vw;">{row["Game"]}</td>')
+            f'<td style="border:1px solid #bbb; padding:{pad}px; background:#f8fafb; text-align:center; font-weight:bold; width:{col_pct:.4f}vw; max-width:{col_pct:.4f}vw; min-width:{col_pct:.4f}vw;">{row["Game"]}</td>')
         # Opponent logo (mobile: just logo; desktop: logo+name)
         logo_url = opponent_logos[i]
         if is_mobile():
@@ -700,21 +697,21 @@ elif tab == "Team Dashboards":
         else:
             logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="vertical-align:middle;margin-right:5px;"> {row["Opponent"]}'
         table_html.append(
-            f'<td style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#f8fafb; {opp_col_style}">{logo_html}</td>'
+            f'<td style="border:1px solid #bbb; padding:{pad}px; background:#f8fafb; {opp_col_style}">{logo_html}</td>'
         )
         game_num = row["Game"]
         for w in visible_wins:
             if w > game_num:
                 cell_style = (
-                    f"border:1px solid #bbb; padding:{pad}px {pad+1}px; text-align:center; "
-                    f"background-color:#444; color:#fff; font-family:Arial; width:{col_pct:.2f}vw;"
+                    f"border:1px solid #bbb; padding:{pad}px; text-align:center; "
+                    f"background-color:#444; color:#fff; font-family:Arial; width:{col_pct:.4f}vw; max-width:{col_pct:.4f}vw; min-width:{col_pct:.4f}vw;"
                 )
                 cell_text = ""
             else:
                 val = row.get(w, 0.0)
                 pct = val * 100
                 cell_style = (
-                    f"border:1px solid #bbb; padding:{pad}px {pad+1}px; text-align:center; font-family:Arial; width:{col_pct:.2f}vw;"
+                    f"border:1px solid #bbb; padding:{pad}px; text-align:center; font-family:Arial; width:{col_pct:.4f}vw; max-width:{col_pct:.4f}vw; min-width:{col_pct:.4f}vw;"
                     + cell_color(val)
                     + ("color:#333; font-weight:bold;" if pct > 50 else "color:#222;")
                 )
