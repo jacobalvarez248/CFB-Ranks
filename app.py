@@ -669,8 +669,12 @@ elif tab == "Team Dashboards":
             f'<table style="{table_style}">',
             '<thead><tr>'
         ]
-        for h in headers:
-            html.append(f'<th style="{header_style}{header_font}">{h}</th>')
+        for i, h in enumerate(headers):
+            # Make "Opp." (Opponent) column wider on mobile
+            if h == "Opp.":
+                html.append(f'<th style="{header_style}{header_font} min-width:68px; max-width:102px;">{h}</th>')
+            else:
+                html.append(f'<th style="{header_style}{header_font}">{h}</th>')
         html.append('</tr></thead><tbody>')
 
         for _, row in sched.iterrows():
@@ -706,6 +710,9 @@ elif tab == "Team Dashboards":
                     except Exception:
                         pass
 
+                # Widen only the Opponent column on mobile
+                if is_mobile() and col == "Opponent":
+                    style += "min-width:68px; max-width:102px;"
                 html.append(f'<td style="{style}">{val}</td>')
             html.append('</tr>')
         html.append('</tbody></table></div>')
