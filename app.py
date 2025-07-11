@@ -658,6 +658,9 @@ elif tab == "Team Dashboards":
             f"width:{col_pct:.6f}%; min-width:{col_pct:.6f}%; max-width:{col_pct:.6f}%; "
             "overflow:hidden; white-space:nowrap; border-bottom:0.5px solid #bbb;"
         )
+        # Define these for mobile as well!
+        game_col_style = cell_base_style
+        opp_col_style = cell_base_style
     else:
         font_size = 12
         pad = 2
@@ -676,6 +679,7 @@ elif tab == "Team Dashboards":
         win_col_style = f"text-align:center; width:{win_col_pct:.4f}%; min-width:24px; max-width:40px; white-space:nowrap; overflow:hidden;"
         cell_base_style = win_col_style
         cell_last_style = win_col_style
+
 
     def cell_color(p):
         if p <= 0:
