@@ -648,7 +648,7 @@ elif tab == "Team Dashboards":
             '<thead><tr>'
         ]
         for h in headers:
-            html.append(f'<th style="{header_style}">{h}</th>')
+        html.append(f'<th style="{header_style}">{h}</th>')
         html.append('</tr></thead><tbody>')
         
         for _, row in sched.iterrows():
