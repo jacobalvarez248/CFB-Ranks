@@ -840,8 +840,10 @@ elif tab == "Team Dashboards":
     # --- Header row ---
     table_html.append(
         f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {game_col_style}">Game</th>')
+    opp_header_text = "Opponent" if not is_mobile() else "Opp"
     table_html.append(
-        f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {opp_col_style}">Opp</th>')
+        f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {opp_col_style}">{opp_header_text}</th>')
+
     for w in visible_wins:
         table_html.append(
             f'<th style="border:1px solid #bbb; padding:{pad}px; background:#d4e4f7; {win_col_style}">{w}</th>'
