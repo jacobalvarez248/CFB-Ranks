@@ -639,9 +639,9 @@ elif tab == "Team Dashboards":
         # Red (low) to blue (high) gradient
         if p == 0:
             return "background-color:#fff;"
-        # Red: 255,85,85; Blue: 41,91,255
+        # Red: 255,85,85; Blue: 0,32,96
         r1, g1, b1 = 255, 85, 85
-        r2, g2, b2 = 41, 91, 255
+        r2, g2, b2 = 0, 32, 96
         t = min(max(p, 0), 1)  # Clamp 0-1
         r = int(r1 + (r2 - r1) * t)
         g = int(g1 + (g2 - g1) * t)
