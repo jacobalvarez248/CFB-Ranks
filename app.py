@@ -590,123 +590,63 @@ elif tab == "Team Dashboards":
         )
 
     # ---- Team Schedule Table ----
+    # Make sure at the top of your file: df_schedule = load_sheet(data_path, "Schedule", header=1)
 
-def round_to_half(x):
-    return round(x * 2) / 2
+    def round_to_half(x):
+        return round(x * 2) / 2
 
-team_col = [col for col in df_schedule.columns if "Team" in col][0]
-sched = df_schedule[df_schedule[team_col] == selected_team].copy()
+    team_col = [col for col in df_schedule.columns if "Team" in col][0]
+    sched = df_schedule[df_schedule[team_col] == selected_team].copy()
 
-if not sched.empty:
-    sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
-    def format_opp_rank(x):
-        if pd.isnull(x):
-            return ""
-        try:
-            val = float(x)
-            return "FCS" if val <= 0 else f"{int(round(val))}"
-        except Exception:
-            return str(x)
-    sched["Opponent Rank"] = sched["Opponent Ranking"].apply(format_opp_rank)
-    sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
-    def format_spread(x):
-        if pd.isnull(x):
-            return ""
-        spread = -round_to_half(x)
-        if spread > 0:
-            return f"+{spread:.1f}"
-        else:
-            return f"{spread:.1f}"
-    sched["Projected Spread"] = sched["Spread"].apply(format_spread)
-    sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
-
-    gq_vals = pd.to_numeric(sched["Game Quality"], errors='coerce')
-    gq_min, gq_max = gq_vals.min(), gq_vals.max()
+    if not sched.empty:
+        # Format the Date column to "Aug-31"
+        sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
     
-    def win_prob_data_bar(pct_str):
-        try:
-            pct = float(pct_str.strip('%'))
-            bar_width = pct
-            # Text above the bar, black color, centered
-            return (
-                f'<div style="width:100%; text-align:center; font-weight:600; color:#111; font-size:11px;">{pct_str}</div>'
-                f'<div style="background:#d6eaff; width:100%; height:11px; border-radius:3px; margin-top:-2px;">'
-                f'<div style="background:#007bff; width:{bar_width}%; height:11px; border-radius:3px;"></div>'
-                f'</div>'
-            )
-        except Exception:
-            return f'<div style="width:100%; text-align:center; font-weight:600; color:#111;">{pct_str}</div>'
+        # Format Opponent Rank to whole numbers except "FCS"
+        def format_opp_rank(x):
+            if pd.isnull(x):
+                return ""
+            try:
+                val = float(x)
+                return "FCS" if val <= 0 else f"{int(round(val))}"
+            except Exception:
+                return str(x)
+        sched["Opponent Rank"] = sched["Opponent Ranking"].apply(format_opp_rank)
+    
+        # Prepare Win Probability as percentage string
+        sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
+    
+        # Prepare Projected Spread with conditional styling in HTML
+        sched["Projected Spread"] = sched["Spread"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
+        
+        # Create a display column for Game Quality (from Game Score)
+        sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
 
-    if is_mobile():
-        # --- MOBILE VERSION ---
-        mobile_headers = ["Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
-        mobile_header_names = {
-            "Date": "Date",
-            "Opponent": "Opp.",
-            "Opponent Rank": "Opp. Rank",
-            "Projected Spread": "Proj. Spread",
-            "Win Probability": "Win Prob.",
-            "Game Quality": "Game Qty"
-        }
-        # Cell width and font for mobile
-        header_style = (
-            "background-color:#002060; color:white; text-align:center; padding:6px; "
-            "font-size:11px; min-width:44px; max-width:70px;"
-        )
-        cell_style = (
-            "border:1px solid #ddd; padding:6px; text-align:center; font-size:11px; "
-            "min-width:44px; max-width:70px; white-space:nowrap;"
-        )
-        html = [
-            '<div style="overflow-x:hidden; width:100vw;">',
-            '<table style="border-collapse:collapse; width:100vw; table-layout:fixed;">',
-            '<thead><tr>'
-        ]
-        for col in mobile_headers:
-            html.append(f'<th style="{header_style}">{mobile_header_names[col]}</th>')
-        html.append('</tr></thead><tbody>')
-        for _, row in sched.iterrows():
-            html.append('<tr>')
-            for col in mobile_headers:
-                val = row[col]
-                style = cell_style
-                # Projected Spread color
-                if col == "Projected Spread":
-                    try:
-                        val_float = float(val)
-                        if val_float < 0:
-                            style += "background-color:#004085; color:white; font-weight:bold;"
-                        elif val_float > 0:
-                            style += "background-color:#a71d2a; color:white; font-weight:bold;"
-                    except Exception:
-                        pass
-                # Win Probability bar
-                if col == "Win Probability":
-                    val = win_prob_data_bar(val)
-                    html.append(f'<td style="position:relative; {style} width:60px; min-width:60px; max-width:72px; vertical-align:middle;">{val}</td>')
-                    continue
-                # Game Quality color scale
-                if col == "Game Quality":
-                    try:
-                        v = float(val)
-                        t = (v - gq_min) / (gq_max - gq_min) if gq_max > gq_min else 0
-                        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                        style += f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'}; font-weight:600;"
-                    except Exception:
-                        pass
-                html.append(f'<td style="{style}">{val}</td>')
-            html.append('</tr>')
-        html.append('</tbody></table></div>')
-        st.markdown("".join(html), unsafe_allow_html=True)
-
-    else:
-        # --- DESKTOP VERSION (unchanged from before) ---
+        # Color scale for Game Quality (just like Power Rating on Rankings)
+        gq_vals = pd.to_numeric(sched["Game Quality"], errors='coerce')
+        gq_min, gq_max = gq_vals.min(), gq_vals.max()
+        
+        def win_prob_data_bar(pct_str):
+            try:
+                pct = float(pct_str.strip('%'))
+                bar_width = pct
+                # Text above the bar, black color, centered
+                return (
+                    f'<div style="width:100%; text-align:center; font-weight:600; color:#111;">{pct_str}</div>'
+                    f'<div style="background:#d6eaff; width:100%; height:13px; border-radius:4px; margin-top:-2px;">'
+                    f'<div style="background:#007bff; width:{bar_width}%; height:13px; border-radius:4px;"></div>'
+                    f'</div>'
+                )
+            except Exception:
+                return f'<div style="width:100%; text-align:center; font-weight:600; color:#111;">{pct_str}</div>'
         header_style = (
             "background-color:#002060; color:white; text-align:center; padding:8px; "
             "position:sticky; top:0; z-index:2; font-weight:bold;"
         )
         cell_style = "border:1px solid #ddd; padding:8px; text-align:center;"
+
         headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
+
         html = [
             '<div style="overflow-x:auto;">',
             '<table style="border-collapse:collapse; width:100%;">',
@@ -715,11 +655,14 @@ if not sched.empty:
         for h in headers:
             html.append(f'<th style="{header_style}">{h}</th>')
         html.append('</tr></thead><tbody>')
+        
         for _, row in sched.iterrows():
             html.append('<tr>')
             for col in headers:
                 val = row[col]
                 style = cell_style
+        
+                # Projected Spread styling
                 if col == "Projected Spread":
                     try:
                         val_float = float(val)
@@ -729,10 +672,14 @@ if not sched.empty:
                             style += "background-color:#a71d2a; color:white; font-weight:bold;"
                     except Exception:
                         pass
+        
+                # Win Probability: text above the bar, black text
                 if col == "Win Probability":
                     val = win_prob_data_bar(val)
                     html.append(f'<td style="position:relative; {style} width:90px; min-width:90px; max-width:150px; vertical-align:middle;">{val}</td>')
                     continue
+        
+                # Game Quality: blue color scale background, same as Power Rating
                 if col == "Game Quality":
                     try:
                         v = float(val)
@@ -741,11 +688,12 @@ if not sched.empty:
                         style += f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'}; font-weight:600;"
                     except Exception:
                         pass
+        
                 html.append(f'<td style="{style}">{val}</td>')
             html.append('</tr>')
         html.append('</tbody></table></div>')
+        
         st.markdown("".join(html), unsafe_allow_html=True)
-
  
     # Add all team-specific tables/charts below; use selected_team/team_row as filter.
 
