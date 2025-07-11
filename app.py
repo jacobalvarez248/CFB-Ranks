@@ -29,7 +29,7 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
-df_schedule = load_sheet(data_path, "Schedule", header=1)   # <--- HERE
+df_schedule = load_sheet(data_path, "Schedule", header=0)
 
 # Normalize logo column
 logos_df["Team"] = logos_df["Team"].str.strip()
