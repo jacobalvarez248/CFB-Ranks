@@ -542,13 +542,17 @@ elif tab == "Industry Composite Ranking":
                 t = (v - mn) / (mx - mn) if mx > mn else 0
                 r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                 td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                # Highlight highest with green border, lowest with red border (only for JPR, SP+, FPI, Kford)
+                # Bold the highest, gray the lowest (only for JPR, SP+, FPI, Kford)
                 if c in ["JPR", "SP+", "FPI", "Kford"]:
                     if high_val is not None and abs(v - high_val) < 1e-8:
-                        td += " border:2.5px solid #39d353;"  # Green border
+                        cell = f"<b>{v:.1f}</b>"
                     elif low_val is not None and abs(v - low_val) < 1e-8:
-                        td += " border:2.5px solid #e55353;"  # Red border
-                cell = f"{v:.1f}"
+                        td += " color:#bbb;"
+                        cell = f"{v:.1f}"
+                    else:
+                        cell = f"{v:.1f}"
+                else:
+                    cell = f"{v:.1f}"
             else:
                 cell = v
             html.append(f"<td style='{td}'>{cell}</td>")
