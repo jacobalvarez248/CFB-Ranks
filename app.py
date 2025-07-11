@@ -662,13 +662,20 @@ elif tab == "Team Dashboards":
         font_size = 12
         pad = 2
         logo_size = 26
+        n_win_cols = num_games + 1
+        opp_col_pct = 20
+        game_col_pct = 7
+        win_col_pct = (100 - opp_col_pct - game_col_pct) / n_win_cols
         table_style = (
             "font-size:12px; width:100%; border-collapse:collapse; table-layout:fixed;"
         )
         wrapper_style = "width:100%; max-width:100vw; overflow-x:auto;"
         visible_wins = list(range(num_games + 1))
-        cell_base_style = "text-align:center; min-width:28px; max-width:40px; white-space:nowrap; overflow:hidden; border:1px solid #bbb;"
-        cell_last_style = cell_base_style
+        game_col_style = f"text-align:center; width:{game_col_pct:.4f}%; min-width:38px; max-width:54px; white-space:nowrap;"
+        opp_col_style = f"text-align:left; width:{opp_col_pct:.4f}%; min-width:120px; max-width:270px; white-space:nowrap; overflow:hidden;"
+        win_col_style = f"text-align:center; width:{win_col_pct:.4f}%; min-width:24px; max-width:40px; white-space:nowrap; overflow:hidden;"
+        cell_base_style = win_col_style
+        cell_last_style = win_col_style
 
     def cell_color(p):
         if p <= 0:
@@ -688,11 +695,13 @@ elif tab == "Team Dashboards":
     table_html = [f'<div style="{wrapper_style}">', f'<table style="{table_style}">', "<thead><tr>"]
 
     # Header row
-    for col_i, col_label in enumerate(['Game', 'Opp'] + visible_wins):
-        style = cell_last_style if col_i == n_cols-1 else cell_base_style
-        color = '#eaf1fa' if col_i < 2 else '#d4e4f7'
+    table_html.append(
+        f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {game_col_style}">Game</th>')
+    table_html.append(
+        f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {opp_col_style}">Opp</th>')
+    for w in visible_wins:
         table_html.append(
-            f'<th style="{style}background:{color};text-align:center;">{col_label}</th>'
+            f'<th style="border:1px solid #bbb; padding:{pad}px; background:#d4e4f7; {win_col_style}">{w}</th>'
         )
     table_html.append("</tr></thead><tbody>")
 
@@ -700,15 +709,21 @@ elif tab == "Team Dashboards":
     for i, row in enumerate(rows):
         table_html.append("<tr>")
         # Game number
-        style = cell_base_style
-        table_html.append(f'<td style="{style}background:#f8fafb; font-weight:bold; text-align:center;">{row["Game"]}</td>')
+        if is_mobile():
+            style_game = cell_base_style
+            style_opp = cell_base_style
+        else:
+            style_game = game_col_style
+            style_opp = opp_col_style
+        table_html.append(f'<td style="{style_game}background:#f8fafb; font-weight:bold; text-align:center;">{row["Game"]}</td>')
         # Opponent logo
         logo_url = opponent_logos[i]
         if is_mobile():
             logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="display:block;margin:auto;" alt="">'
         else:
             logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="vertical-align:middle;margin-right:3px;"> {row["Opponent"]}'
-        table_html.append(f'<td style="{cell_base_style}background:#f8fafb; text-align:center;">{logo_html}</td>')
+        table_html.append(f'<td style="{style_opp}background:#f8fafb; text-align:center;">{logo_html}</td>')
+
         game_num = row["Game"]
         for j, w in enumerate(visible_wins):
             is_last = (j == len(visible_wins) - 1)
