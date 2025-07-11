@@ -861,7 +861,7 @@ elif tab == "Team Dashboards":
             logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="display:block;margin:auto;" alt="">'
         else:
             logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="vertical-align:middle;margin-right:3px;"> {row["Opponent"]}'
-        table_html.append(f'<td style="{opp_col_style}background:#f8fafb; text-align:center;">{logo_html}</td>')
+        table_html.append(f'<td style="{opp_col_style}background:#f8fafb;">{logo_html}</td>')
         game_num = row["Game"]
         for j, w in enumerate(visible_wins):
             is_last = (j == len(visible_wins) - 1)
