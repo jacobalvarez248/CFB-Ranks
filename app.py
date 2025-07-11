@@ -617,7 +617,16 @@ elif tab == "Team Dashboards":
         sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
     
         # Prepare Projected Spread with conditional styling in HTML
-        sched["Projected Spread"] = sched["Spread"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
+        def format_spread(x):
+            if pd.isnull(x):
+                return ""
+            spread = -round_to_half(x)
+            if spread > 0:
+                return f"+{spread:.1f}"
+            else:
+                return f"{spread:.1f}"
+        sched["Projected Spread"] = sched["Spread"].apply(format_spread)
+
         
         # Create a display column for Game Quality (from Game Score)
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
