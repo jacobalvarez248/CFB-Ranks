@@ -619,17 +619,27 @@ elif tab == "Team Dashboards":
             row[w] = dp[g, w]
         rows.append(row)
 
-    # --- Responsive Settings ---
+    # --- Opponent logos (place above table rendering!) ---
+    fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
+    opponent_logos = []
+    for opp in opponents:
+        logo_url = fallback_logo_url
+        try:
+            matches = logos_df["Team"].str.lower() == str(opp).strip().lower()
+            if matches.any():
+                logo_url = logos_df.loc[matches, "Logo URL"].values[0]
+        except Exception:
+            pass
+        opponent_logos.append(logo_url)
+
+    # --- Responsive, NO SIDE SCROLL Table HTML ---
     n_cols = 2 + num_games + 1
     col_pct = 100 / n_cols
-    fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
 
     if is_mobile():
         font_size = 6
         pad = 0
         logo_size = 10
-        n_cols = 2 + num_games + 1
-        col_pct = 100 / n_cols
         table_style = (
             f"font-size:{font_size}px; width:100vw; min-width:100vw; max-width:100vw; "
             "table-layout:fixed; border-collapse:collapse; border:none; margin:0; box-sizing:border-box;"
@@ -695,7 +705,10 @@ elif tab == "Team Dashboards":
         table_html.append(f'<td style="{style}background:#f8fafb; font-weight:bold; text-align:center;">{row["Game"]}</td>')
         # Opponent logo
         logo_url = opponent_logos[i]
-        logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="display:block;margin:auto;" alt="">'
+        if is_mobile():
+            logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="display:block;margin:auto;" alt="">'
+        else:
+            logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="vertical-align:middle;margin-right:3px;"> {row["Opponent"]}'
         table_html.append(f'<td style="{cell_base_style}background:#f8fafb; text-align:center;">{logo_html}</td>')
         game_num = row["Game"]
         for j, w in enumerate(visible_wins):
@@ -718,6 +731,7 @@ elif tab == "Team Dashboards":
 
     st.markdown("#### Probability Distribution of Wins After Each Game")
     st.markdown("".join(table_html), unsafe_allow_html=True)
+
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
