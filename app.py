@@ -647,17 +647,15 @@ elif tab == "Team Dashboards":
         wrapper_style = (
             "width:100%; min-width:100%; max-width:100%; margin:0; padding:0; overflow:hidden; box-sizing:border-box;"
         )
-
         visible_wins = list(range(num_games + 1))
         cell_base_style = (
             f"padding:{pad}px; box-sizing:border-box; "
-            f"width:{col_pct:.6f}vw; min-width:{col_pct:.6f}vw; max-width:{col_pct:.6f}vw; "
+            f"width:{col_pct:.6f}%; min-width:{col_pct:.6f}%; max-width:{col_pct:.6f}%; "
             "overflow:hidden; white-space:nowrap; border-right:0.5px solid #bbb; border-bottom:0.5px solid #bbb;"
         )
-        # For the last cell in the row (last win), don't add border-right:
         cell_last_style = (
             f"padding:{pad}px; box-sizing:border-box; "
-            f"width:{col_pct:.6f}vw; min-width:{col_pct:.6f}vw; max-width:{col_pct:.6f}vw; "
+            f"width:{col_pct:.6f}%; min-width:{col_pct:.6f}%; max-width:{col_pct:.6f}%; "
             "overflow:hidden; white-space:nowrap; border-bottom:0.5px solid #bbb;"
         )
     else:
@@ -665,13 +663,9 @@ elif tab == "Team Dashboards":
         pad = 2
         logo_size = 26
         table_style = (
-            f"font-size:{font_size}px; width:100%; min-width:100%; max-width:100%; "
-            "table-layout:fixed; border-collapse:collapse; border:none; margin:0; box-sizing:border-box;"
+            "font-size:12px; width:100%; border-collapse:collapse; table-layout:fixed;"
         )
-        wrapper_style = (
-            "width:100%; min-width:100%; max-width:100%; margin:0; padding:0; overflow:hidden; box-sizing:border-box;"
-        )
-
+        wrapper_style = "width:100%; max-width:100vw; overflow-x:auto;"
         visible_wins = list(range(num_games + 1))
         cell_base_style = "text-align:center; min-width:28px; max-width:40px; white-space:nowrap; overflow:hidden; border:1px solid #bbb;"
         cell_last_style = cell_base_style
@@ -736,7 +730,6 @@ elif tab == "Team Dashboards":
 
     st.markdown("#### Probability Distribution of Wins After Each Game")
     st.markdown("".join(table_html), unsafe_allow_html=True)
-
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
