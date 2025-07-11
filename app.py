@@ -563,22 +563,34 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # Team filter and logo in one row
-    col1, col2 = st.columns([3, 1])  # Wider filter, narrow logo
+    team_options = df_expected["Team"].sort_values().unique().tolist()
+    selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
+    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
 
-    with col1:
-        team_options = df_expected["Team"].sort_values().unique().tolist()
-        selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
-        team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
-
-    with col2:
-        logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
-        if logo_url:
-            st.image(logo_url, width=80)
-        else:
-            st.write("")  # blank if no logo
+    if is_mobile():
+        # Show filter and logo inline using HTML/CSS
+        html = f'''
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6em;">
+            <div style="flex: 1;"> </div>
+            <div style="margin-left:8px;">
+                {'<img src="' + logo_url + '" width="56" style="vertical-align:middle;"/>' if logo_url else ''}
+            </div>
+        </div>
+        '''
+        st.markdown(html, unsafe_allow_html=True)
+    else:
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            pass  # The selectbox is already above
+        with col2:
+            if logo_url:
+                st.image(logo_url, width=80)
+            else:
+                st.write("")
 
     st.markdown(f"### Dashboard for **{selected_team}**")
+
     # Add all team-specific tables/charts below; use selected_team/team_row as filter.
 
 elif tab == "Charts & Graphs":
