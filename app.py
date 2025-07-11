@@ -874,7 +874,7 @@ elif tab == "Team Dashboards":
                 pct = val * 100
                 cell_style = (
                     f"{style}{cell_color(val)}"
-                    + "color:#333; text-align:center;"
+                    + "color:#333; text-align:left;"
                 )
                 cell_text = f"{pct:.1f}%"
             table_html.append(f'<td style="{cell_style}">{cell_text}</td>')
