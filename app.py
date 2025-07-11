@@ -605,7 +605,15 @@ elif tab == "Team Dashboards":
                 return str(x)
         sched["Opponent Rank"] = sched["Opponent Ranking"].apply(format_opp_rank)
         sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
-        sched["Projected Spread"] = sched["Spread"].apply(lambda x: f"{-round(x * 2) / 2:.1f}" if pd.notnull(x) else "")
+        def fmt_spread(x):
+            if pd.isnull(x):
+                return ""
+            val = -round(x * 2) / 2
+            if val > 0:
+                return f"+{val:.1f}"
+            else:
+                return f"{val:.1f}"
+        sched["Projected Spread"] = sched["Spread"].apply(fmt_spread)
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
 
         # MOBILE header/column maps
