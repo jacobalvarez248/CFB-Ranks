@@ -894,6 +894,47 @@ elif tab == "Team Dashboards":
         st.markdown("#### Probability Distribution of Wins After Each Game")
         st.markdown("".join(table_html), unsafe_allow_html=True)
 
+    # --- Get win distribution after last game ---
+    final_row = rows[-1]  # Last row is after final game
+    win_counts = list(range(num_games + 1))
+    win_probs = [final_row.get(w, 0.0) for w in win_counts]
+    win_probs_pct = [p * 100 for p in win_probs]
+
+    import pandas as pd
+    df_win_dist = pd.DataFrame({
+        "Wins": win_counts,
+        "Probability": win_probs_pct
+    })
+
+    import altair as alt
+
+    bar = alt.Chart(df_win_dist).mark_bar(
+        color="#1976d2"
+    ).encode(
+        x=alt.X("Wins:O", axis=alt.Axis(title="Wins", labelAngle=0)),
+        y=alt.Y("Probability:Q", axis=alt.Axis(title="Probability (%)")),
+        tooltip=[alt.Tooltip("Wins:O"), alt.Tooltip("Probability:Q", format=".1f")]
+    )
+
+    text = bar.mark_text(
+        align='center',
+        baseline='bottom',
+        dy=-2,
+        color='black',
+        fontSize=13,
+        fontWeight="bold"
+    ).encode(
+        text=alt.Text("Probability:Q", format=".1f")
+    )
+
+    final_chart = (bar + text).properties(
+        width=500,
+        height=260,
+        title="Win Probability Distribution"
+    )
+
+    st.altair_chart(final_chart, use_container_width=True)
+
 elif tab == "Charts & Graphs":
 
     st.header("📈 Charts & Graphs")
