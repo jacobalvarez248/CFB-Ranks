@@ -31,8 +31,6 @@ df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
-st.write("Schedule columns:", df_schedule.columns.tolist())   # (For future debugging, safe to remove after)
-
 
 
 # Normalize logo column
