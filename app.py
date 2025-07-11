@@ -603,7 +603,7 @@ elif tab == "Team Dashboards":
         sched["Date"] = sched["Date"]
         sched["Opponent"] = sched.apply(lambda row: f"{row['Location'].strip()} {row['Opponent']}", axis=1)
         sched["Opponent Rank"] = sched["Opponent Ranking"].apply(
-            lambda x: f"{float(x):.1f}" if pd.notnull(x) and str(x).replace('.','',1).replace('-','',1).isdigit() else ""
+            lambda x: f"{float(x):.1f}" if pd.notnull(x) and str(x).replace('.','',1).replace('-','',1).isdigit() else "FCS"
         )
 
         sched["Projected Spread"] = sched["Spread"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
