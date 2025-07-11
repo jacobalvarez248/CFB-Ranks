@@ -584,6 +584,32 @@ elif tab == "Team Dashboards":
             unsafe_allow_html=True
         )
 
+# ---- Team Schedule Table ----
+# Load the schedule sheet at the top of your file if you haven't:
+# df_schedule = load_sheet(data_path, "Schedule", header=1)
+
+def round_to_half(x):
+    return round(x * 2) / 2
+
+sched = df_schedule[df_schedule["Team"] == selected_team].copy()
+
+if not sched.empty:
+    sched["Game"] = sched["C"].apply(lambda x: f"Game {int(x)}" if pd.notnull(x) else "")
+    sched["Date"] = sched["Y"]
+    sched["Opponent"] = sched.apply(lambda row: f"{'at' if str(row['E']).strip().lower() == 'at' else 'vs'} {row['F']}", axis=1)
+    sched["Opponent Rank"] = sched["H"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
+    sched["Projected Spread"] = sched["K"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
+    sched["Win Probability"] = sched["N"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
+    sched["Game Quality"] = sched["AC"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
+
+    display_cols = [
+        "Game", "Date", "Opponent", "Opponent Rank",
+        "Projected Spread", "Win Probability", "Game Quality"
+    ]
+    st.markdown("#### Schedule")
+    st.dataframe(sched[display_cols], hide_index=True)
+else:
+    st.info("No schedule data found for this team.")
 
     st.markdown(f"### Dashboard for **{selected_team}**")
 
