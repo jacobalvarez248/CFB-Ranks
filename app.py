@@ -569,14 +569,14 @@ elif tab == "Team Dashboards":
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
 
     if logo_url:
-    st.markdown(
-        f'''
-        <div style="display: flex; align-items: center; justify-content: flex-end; margin-top:0px; margin-bottom:8px; height:38px;">
-            <img src="{logo_url}" width="48" style="margin-left:10px; margin-top:0px; display:inline-block;"/>
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
+        st.markdown(
+            f'''
+            <div style="display: flex; align-items: center; justify-content: flex-end; margin-top:0px; margin-bottom:8px; height:38px;">
+                <img src="{logo_url}" width="48" style="margin-left:10px; margin-top:0px; display:inline-block;"/>
+            </div>
+            ''',
+            unsafe_allow_html=True
+        )
 
 
     st.markdown(f"### Dashboard for **{selected_team}**")
