@@ -619,14 +619,16 @@ elif tab == "Team Dashboards":
             row[w] = dp[g, w]
         rows.append(row)
 
-    # --- Responsive Table Rendering for Streamlit ---
+    # --- Responsive Settings ---
     if is_mobile():
-        font_size = 11
-        pad = 2
-        min_opp_width = 68
-        min_num_width = 28
-        table_style = f"font-size:{font_size}px; min-width:540px;"
+        font_size = 9
+        pad = 1
+        min_opp_width = 48
+        min_num_width = 22
+        table_style = f"font-size:{font_size}px; min-width:270px;"
         wrapper_style = "overflow-x:auto; max-width:100vw;"
+        visible_wins = list(range(min(num_games + 1, 8)))  # 0-7 for mobile
+        show_extra = num_games > 7
     else:
         font_size = 13
         pad = 4
@@ -634,7 +636,10 @@ elif tab == "Team Dashboards":
         min_num_width = 38
         table_style = f"font-size:{font_size}px; min-width:800px;"
         wrapper_style = "overflow-x:auto; max-width:100vw;"
+        visible_wins = list(range(num_games + 1))
+        show_extra = False
 
+    # --- Blue-Heavy Gradient, Impossible Cells Dark Grey ---
     def cell_color(p):
         # Stronger blue gradient: Red -> Light Blue -> Deep Blue
         if p <= 0:
@@ -653,16 +658,21 @@ elif tab == "Team Dashboards":
             b = int(238 + (255-238)*t)  # 238 -> 255
         return f"background-color:rgb({r},{g},{b});"
 
+    # --- Build Table HTML ---
     table_html = [
         f'<div style="{wrapper_style}">',
         f'<table style="border-collapse:collapse; {table_style}">',
         "<thead><tr>"
     ]
-    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px 5px; background:#eaf1fa; text-align:center;">Game</th>')
-    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px 5px; background:#eaf1fa; text-align:left; min-width:{min_opp_width}px;">Opponent</th>')
-    for w in range(num_games + 1):
+    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px 3px; background:#eaf1fa; text-align:center;">Game</th>')
+    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px 3px; background:#eaf1fa; text-align:left; min-width:{min_opp_width}px;">Opponent</th>')
+    for w in visible_wins:
         table_html.append(
-            f'<th style="border:1px solid #bbb; padding:{pad}px 4px; background:#d4e4f7; text-align:center; min-width:{min_num_width}px;">{w}</th>'
+            f'<th style="border:1px solid #bbb; padding:{pad}px 2px; background:#d4e4f7; text-align:center; min-width:{min_num_width}px;">{w}</th>'
+        )
+    if is_mobile() and show_extra:
+        table_html.append(
+            f'<th style="border:1px solid #bbb; padding:{pad}px 2px; background:#d4e4f7; text-align:center;">...</th>'
         )
     table_html.append("</tr></thead><tbody>")
 
@@ -699,6 +709,7 @@ elif tab == "Team Dashboards":
 
     st.markdown("#### Probability Distribution of Wins After Each Game")
     st.markdown("".join(table_html), unsafe_allow_html=True)
+
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
