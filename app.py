@@ -596,6 +596,7 @@ elif tab == "Team Dashboards":
         return round(x * 2) / 2
 
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
+    sched = df_schedule[df_schedule[team_col] == selected_team].copy()
 
     if not sched.empty:
         sched["Game"] = sched["C"].apply(lambda x: f"Game {int(x)}" if pd.notnull(x) else "")
