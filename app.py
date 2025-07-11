@@ -658,27 +658,10 @@ elif tab == "Team Dashboards":
             f"width:{col_pct:.6f}%; min-width:{col_pct:.6f}%; max-width:{col_pct:.6f}%; "
             "overflow:hidden; white-space:nowrap; border-bottom:0.5px solid #bbb;"
         )
-        # Define these for mobile as well!
+        # --- ADD THESE ---
         game_col_style = cell_base_style
         opp_col_style = cell_base_style
-    else:
-        font_size = 12
-        pad = 2
-        logo_size = 26
-        n_win_cols = num_games + 1
-        opp_col_pct = 20
-        game_col_pct = 7
-        win_col_pct = (100 - opp_col_pct - game_col_pct) / n_win_cols
-        table_style = (
-            "font-size:12px; width:100%; border-collapse:collapse; table-layout:fixed;"
-        )
-        wrapper_style = "width:100%; max-width:100vw; overflow-x:auto;"
-        visible_wins = list(range(num_games + 1))
-        game_col_style = f"text-align:center; width:{game_col_pct:.4f}%; min-width:38px; max-width:54px; white-space:nowrap;"
-        opp_col_style = f"text-align:left; width:{opp_col_pct:.4f}%; min-width:120px; max-width:270px; white-space:nowrap; overflow:hidden;"
-        win_col_style = f"text-align:center; width:{win_col_pct:.4f}%; min-width:24px; max-width:40px; white-space:nowrap; overflow:hidden;"
-        cell_base_style = win_col_style
-        cell_last_style = win_col_style
+        win_col_style = cell_base_style   # <--- This is needed!
 
 
     def cell_color(p):
