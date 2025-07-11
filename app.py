@@ -602,7 +602,10 @@ elif tab == "Team Dashboards":
         sched["Game"] = sched["Game"].apply(lambda x: f"Game {int(x)}" if pd.notnull(x) else "")
         sched["Date"] = sched["Date"]
         sched["Opponent"] = sched.apply(lambda row: f"{row['Location'].strip()} {row['Opponent']}", axis=1)
-        sched["Opponent Rank"] = sched["Opponent Ranking"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")  # <--- pulls from "Opponent Ranking"
+        sched["Opponent Rank"] = sched["Opponent Ranking"].apply(
+            lambda x: f"{float(x):.1f}" if pd.notnull(x) and str(x).replace('.','',1).replace('-','',1).isdigit() else ""
+        )
+
         sched["Projected Spread"] = sched["Spread"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
         sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
