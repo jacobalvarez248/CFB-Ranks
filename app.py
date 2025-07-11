@@ -633,7 +633,7 @@ elif tab == "Team Dashboards":
                 "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
             )
             header_font = "font-size:13px; white-space:normal;"
-            cell_font = "font-size:10px; white-space:nowrap;"
+            cell_font = "font-size:10px; white-space:normal;"
         else:
             headers = desktop_headers
             use_cols = desktop_headers
