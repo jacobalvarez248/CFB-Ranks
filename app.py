@@ -384,7 +384,7 @@ elif tab == "Conference Overviews":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
-# --- Industry Composite Ranking ---
+
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
     df_comp = load_sheet(data_path, "Industry Composite", header=0)
@@ -490,74 +490,72 @@ elif tab == "Industry Composite Ranking":
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
 
-  for _, row in df_show.iterrows():
-    # Get min/max among JPR, SP+, FPI, Kford for this row
-    metric_values = {col: row[col] for col in other_metric_cols if pd.notnull(row[col])}
-    if metric_values:
-        row_max = max(metric_values.values())
-        row_min = min(metric_values.values())
-    else:
-        row_max = row_min = None
+    for _, row in df_show.iterrows():
+        # Find the highest and lowest among JPR, SP+, FPI, Kford for this row
+        highlight_metrics = [col for col in ["JPR", "SP+", "FPI", "Kford"] if col in df_show.columns]
+        values = {col: row[col] for col in highlight_metrics if pd.notnull(row[col])}
+        high_val = max(values.values()) if values else None
+        low_val = min(values.values()) if values else None
 
-    html.append("<tr>")
-    for c in display_cols:
-        v = row[c]
-        td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-        td += cell_font
-        if is_mobile() and c in all_metrics:
-            td += " font-size:12px; padding:4px;"
-        cell = v
-        if c == "Team":
-            logo = row.get("Logo URL")
-            # MOBILE: logo only; DESKTOP: logo+name
-            if is_mobile():
-                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
-                else:
-                    cell = ""
-            else:
-                team_name = v
-                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                    cell = (
-                        f'<div style="display:flex;align-items:center;">'
-                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{team_name}</div>'
-                    )
-                else:
-                    cell = team_name
-        elif c == "Composite Rank":
-            cell = f"{int(v)}"
-        elif c == "Composite" and pd.notnull(v):
-            # Green color scale (light gray to #548235)
-            t = (v - composite_min) / (composite_max - composite_min) if composite_max > composite_min else 0
-            r1, g1, b1 = 234, 234, 234  # light gray
-            r2, g2, b2 = 84, 130, 53    # #548235
-            r = int(r1 + (r2 - r1) * t)
-            g = int(g1 + (g2 - g1) * t)
-            b = int(b1 + (b2 - b1) * t)
-            # text color: black for light backgrounds, white for dark
-            yiq = ((r*299)+(g*587)+(b*114))/1000
-            text_color = "black" if yiq > 140 else "white"
-            td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{text_color}; font-weight:bold;"
-            cell = f"<b>{v:.1f}</b>"
-        elif c in other_metric_cols and pd.notnull(v):
-            mn, mx = col_min[c], col_max[c]
-            t = (v - mn) / (mx - mn) if mx > mn else 0
-            r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-            td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-            # Add green border if highest, red if lowest (in this row)
-            if row_max is not None and abs(v - row_max) < 1e-8:
-                td += " border:2.5px solid #39d353;"  # Green border
-            elif row_min is not None and abs(v - row_min) < 1e-8:
-                td += " border:2.5px solid #e55353;"  # Red border
-            cell = f"{v:.1f}"
-        else:
+        html.append("<tr>")
+        for c in display_cols:
+            v = row[c]
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td += cell_font
+            if is_mobile() and c in all_metrics:
+                td += " font-size:12px; padding:4px;"
             cell = v
-        html.append(f"<td style='{td}'>{cell}</td>")
-    html.append("</tr>")
+            if c == "Team":
+                logo = row.get("Logo URL")
+                # MOBILE: logo only; DESKTOP: logo+name
+                if is_mobile():
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                    else:
+                        cell = ""
+                else:
+                    team_name = v
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{team_name}</div>'
+                        )
+                    else:
+                        cell = team_name
+            elif c == "Composite Rank":
+                cell = f"{int(v)}"
+            elif c == "Composite" and pd.notnull(v):
+                # Green color scale (light gray to #548235)
+                t = (v - composite_min) / (composite_max - composite_min) if composite_max > composite_min else 0
+                r1, g1, b1 = 234, 234, 234  # light gray
+                r2, g2, b2 = 84, 130, 53    # #548235
+                r = int(r1 + (r2 - r1) * t)
+                g = int(g1 + (g2 - g1) * t)
+                b = int(b1 + (b2 - b1) * t)
+                # text color: black for light backgrounds, white for dark
+                yiq = ((r*299)+(g*587)+(b*114))/1000
+                text_color = "black" if yiq > 140 else "white"
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{text_color}; font-weight:bold;"
+                cell = f"<b>{v:.1f}</b>"
+            elif c in other_metric_cols and pd.notnull(v):
+                mn, mx = col_min[c], col_max[c]
+                t = (v - mn) / (mx - mn) if mx > mn else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                # Highlight highest with green border, lowest with red border (only for JPR, SP+, FPI, Kford)
+                if c in ["JPR", "SP+", "FPI", "Kford"]:
+                    if high_val is not None and abs(v - high_val) < 1e-8:
+                        td += " border:2.5px solid #39d353;"  # Green border
+                    elif low_val is not None and abs(v - low_val) < 1e-8:
+                        td += " border:2.5px solid #e55353;"  # Red border
+                cell = f"{v:.1f}"
+            else:
+                cell = v
+            html.append(f"<td style='{td}'>{cell}</td>")
+        html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
-# --- Charts & Graphs ---
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
