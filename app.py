@@ -924,3 +924,10 @@ elif tab == "Charts & Graphs":
 # Properties dict for width only on desktop
     bar_props = dict(
         height=bar_height,
+        title=alt.TitleParams(
+            f"{selected_bar_rating} Ratings by Team",
+            fontSize=bar_title_size,
+            fontWeight="bold"
+        )
+    )
+
