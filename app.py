@@ -620,19 +620,30 @@ elif tab == "Team Dashboards":
         rows.append(row)
 
     # --- Responsive Settings ---
+    n_cols = 2 + num_games + 1
+    col_pct = 100 / n_cols
+
     if is_mobile():
         font_size = 8
         pad = 1
         min_opp_width = 34
         min_num_width = 12
-        n_cols = 2 + num_games + 1  # Game + Opponent + win columns
-        col_pct = 100 / n_cols      # percentage width per column
         table_style = (
             f"font-size:{font_size}px; width:100vw; max-width:100vw; table-layout:fixed; border-collapse:collapse;"
         )
         wrapper_style = "max-width:100vw; overflow-x:hidden; margin:0;"
         visible_wins = list(range(num_games + 1))
         show_extra = False
+    else:
+        font_size = 13
+        pad = 4
+        min_opp_width = 110
+        min_num_width = 38
+        table_style = f"font-size:{font_size}px; min-width:800px;"
+        wrapper_style = "overflow-x:auto; max-width:100vw;"
+        visible_wins = list(range(num_games + 1))
+        show_extra = False
+
     else:
         font_size = 13
         pad = 4
