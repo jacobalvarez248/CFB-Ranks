@@ -563,20 +563,23 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # Put filter and logo in a single row, shorter selectbox
-    col1, col2 = st.columns([1.6, 0.6])  # Filter:Logo ratio
-    with col1:
-        team_options = df_expected["Team"].sort_values().unique().tolist()
-        selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
-        team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
-    with col2:
-        logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
-        if logo_url:
-            st.image(logo_url, width=56)
-        else:
-            st.write("")
+    team_options = df_expected["Team"].sort_values().unique().tolist()
+    selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
+    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
+
+    if logo_url:
+        st.markdown(
+            f'''
+            <div style="display: flex; align-items: center; justify-content: flex-end; margin-top:-40px; margin-bottom:10px;">
+                <img src="{logo_url}" width="50" style="margin-left:8px;"/>
+            </div>
+            ''',
+            unsafe_allow_html=True
+        )
 
     st.markdown(f"### Dashboard for **{selected_team}**")
+
 
 
     # Add all team-specific tables/charts below; use selected_team/team_row as filter.
