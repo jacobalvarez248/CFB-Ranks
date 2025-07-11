@@ -196,6 +196,7 @@ if tab == "Rankings":
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
 
+
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
     sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
@@ -243,7 +244,7 @@ if tab == "Rankings":
 
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
-    html.append("</tbody></table></div>)
+    html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
 elif tab == "Conference Overviews":
@@ -299,4 +300,481 @@ elif tab == "Conference Overviews":
         cols = [c for c in mobile_cols if c in standings.columns]
         display_headers = [mobile_header_map[c] for c in cols]
         table_style = (
-            
+            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+        )
+        wrapper_style = (
+            "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+        )
+        header_font = "font-size:13px; white-space:normal;"
+        cell_font = "font-size:13px; white-space:nowrap;"
+    else:
+        cols = [c for c in desktop_cols if c in standings.columns]
+        display_headers = cols.copy()
+        table_style = "width:100%; border-collapse:collapse;"
+        wrapper_style = "max-width:100%; overflow-x:auto;"
+        header_font = ""
+        cell_font = "white-space:nowrap; font-size:15px;"
+
+    html = [
+        f'<div style="{wrapper_style}">',
+        f'<table style="{table_style}">',
+        '<thead><tr>'
+    ]
+    compact_cols_conf = [
+        "Projected Finish", "Power Rating", "Projected Overall Wins", "Projected Conference Wins",
+        "Projected Conference Losses", "Average Conference Game Quality",
+        "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
+    ]
+    for disp_col, c in zip(display_headers, cols):
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; '
+            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+        )
+        if c == "Team":
+            if is_mobile():
+                th += " white-space:nowrap; min-width:48px; max-width:48px;"
+            else:
+                th += " white-space:nowrap; min-width:180px; max-width:240px;"
+        elif not is_mobile() and c in compact_cols_conf:
+            th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
+        else:
+            th += " white-space:nowrap;"
+        th += header_font
+        html.append(f"<th style='{th}'>{disp_col}</th>")
+    html.append("</tr></thead><tbody>")
+    for _, row in standings.iterrows():
+        html.append("<tr>")
+        for c in cols:
+            v = row[c]
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td += cell_font
+            cell = v
+            if c == "Team":
+                logo = row.get("Logo URL")
+                if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                    if is_mobile():
+                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                    else:
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                        )
+                else:
+                    cell = "" if is_mobile() else v
+            else:
+                if c == "Power Rating" and pd.notnull(v):
+                    t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                elif c == "Average Conference Game Quality" and pd.notnull(v):
+                    t = (v - acgq_min) / (acgq_max - acgq_min) if acgq_max > acgq_min else 0
+                    r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                elif c == "Average Conference Schedule Difficulty" and pd.notnull(v):
+                    inv = 1 - ((v - acsd_min) / (acsd_max - acsd_min) if acsd_max > acsd_min else 0)
+                    r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                    td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
+                    cell = f"{v:.1f}"
+                else:
+                    cell = v
+            html.append(f"<td style='{td}'>{cell}</td>")
+        html.append("</tr>")
+    html.append("</tbody></table></div>")
+    st.markdown("".join(html), unsafe_allow_html=True)
+
+
+elif tab == "Industry Composite Ranking":
+    st.header("📊 Industry Composite Ranking")
+    df_comp = load_sheet(data_path, "Industry Composite", header=0)
+    df_comp.columns = [str(c).strip() for c in df_comp.columns]
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+    df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
+    df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+
+    all_metrics = ["Composite", "JPR", "SP+", "FPI", "Kford"]
+    if is_mobile():
+        main_cols = ["Composite Rank", "Team"] + all_metrics
+        mobile_header_map = {
+            "Composite Rank": "Rank",
+            "Team": "Team",
+            "Composite": "Comp.",
+            "JPR": "JPR",
+            "SP+": "SP+",
+            "FPI": "FPI",
+            "Kford": "Kford"
+        }
+        display_headers = [mobile_header_map.get(c, c) for c in main_cols]
+    else:
+        main_cols = ["Composite Rank", "Team", "Conference"] + all_metrics
+        desktop_header_map = {
+            "Composite Rank": "Rank",
+            "Team": "Team",
+            "Conference": "Conference",
+            "Composite": "Composite",
+            "JPR": "JPR",
+            "SP+": "SP+",
+            "FPI": "FPI",
+            "Kford": "Kford"
+        }
+        display_headers = [desktop_header_map.get(c, c) for c in main_cols]
+
+    display_cols = [c for c in main_cols if c in df_comp.columns]
+
+    # Sidebar filters
+    team_filter = st.sidebar.text_input("Filter by team...", "")
+    conf_filter = st.sidebar.text_input("Filter by conference...", "")
+    sort_col = st.sidebar.selectbox(
+        "Sort by column", display_cols, display_cols.index("Composite Rank") if "Composite Rank" in display_cols else 0
+    )
+    asc = st.sidebar.checkbox("Ascending order", False)
+
+    df_show = df_comp.copy()
+    if team_filter:
+        df_show = df_show[df_show["Team"].str.contains(team_filter, case=False, na=False)]
+    if conf_filter and "Conference" in df_show.columns:
+        df_show = df_show[df_show["Conference"].str.contains(conf_filter, case=False, na=False)]
+    df_show = df_show.sort_values(by=sort_col, ascending=asc if not sort_col == "Composite Rank" else True)
+
+    metric_cols = [c for c in all_metrics if c in df_show.columns]
+    composite_min, composite_max = df_show["Composite"].min(), df_show["Composite"].max()
+    other_metric_cols = [c for c in metric_cols if c != "Composite"]
+    col_min = {c: df_show[c].min() for c in other_metric_cols}
+    col_max = {c: df_show[c].max() for c in other_metric_cols}
+
+    if is_mobile():
+        table_style = (
+            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+        )
+        wrapper_style = (
+            "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+        )
+        header_font = "font-size:13px; white-space:normal;"
+        cell_font = "font-size:13px; white-space:nowrap;"
+    else:
+        table_style = "width:100%; border-collapse:collapse;"
+        wrapper_style = "max-width:100%; overflow-x:auto;"
+        header_font = ""
+        cell_font = "white-space:nowrap; font-size:15px;"
+
+    html = [
+        f'<div style="{wrapper_style}">',
+        f'<table style="{table_style}">',
+        '<thead><tr>'
+    ]
+    compact_cols = ["Composite Rank", "Conference", "Composite", "JPR", "SP+", "FPI", "Kford"]
+    for disp_col, c in zip(display_headers, display_cols):
+        if c == "Composite":
+            th = (
+                'border:1px solid #ddd; padding:8px; text-align:center; background-color:#548235; color:white; '
+                'position:sticky; top:0; z-index:2;'
+            )
+        else:
+            th = (
+                'border:1px solid #ddd; padding:8px; text-align:center; background-color:#002060; color:white; '
+                'position:sticky; top:0; z-index:2;'
+            )
+        if c == "Team":
+            if is_mobile():
+                th += " white-space:nowrap; min-width:60vw; max-width:80vw;"
+            else:
+                th += " white-space:nowrap; min-width:180px; max-width:260px;"
+        elif is_mobile() and c in all_metrics:
+            th += " min-width:38px; max-width:50px; white-space:normal; font-size:12px; line-height:1.1;"
+        elif not is_mobile() and c in compact_cols:
+            th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
+        else:
+            th += " white-space:nowrap;"
+        th += header_font
+        html.append(f"<th style='{th}'>{disp_col}</th>")
+    html.append("</tr></thead><tbody>")
+
+    for _, row in df_show.iterrows():
+        html.append("<tr>")
+        for c in display_cols:
+            v = row[c]
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td += cell_font
+            if is_mobile() and c in all_metrics:
+                td += " font-size:12px; padding:4px;"
+            cell = v
+            if c == "Team":
+                logo = row.get("Logo URL")
+                # MOBILE: logo only; DESKTOP: logo+name
+                if is_mobile():
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                    else:
+                        cell = ""
+                else:
+                    team_name = v
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo}" width="24" style="margin-right:8px;"/>{team_name}</div>'
+                        )
+                    else:
+                        cell = team_name
+            elif c == "Composite Rank":
+                cell = f"{int(v)}"
+            elif c == "Composite" and pd.notnull(v):
+                # Green color scale (light gray to #548235)
+                t = (v - composite_min) / (composite_max - composite_min) if composite_max > composite_min else 0
+                r1, g1, b1 = 234, 234, 234  # light gray
+                r2, g2, b2 = 84, 130, 53    # #548235
+                r = int(r1 + (r2 - r1) * t)
+                g = int(g1 + (g2 - g1) * t)
+                b = int(b1 + (b2 - b1) * t)
+                # text color: black for light backgrounds, white for dark
+                yiq = ((r*299)+(g*587)+(b*114))/1000
+                text_color = "black" if yiq > 140 else "white"
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{text_color}; font-weight:bold;"
+                cell = f"<b>{v:.1f}</b>"
+            elif c in other_metric_cols and pd.notnull(v):
+                mn, mx = col_min[c], col_max[c]
+                t = (v - mn) / (mx - mn) if mx > mn else 0
+                r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                cell = f"{v:.1f}"
+            else:
+                cell = v
+            html.append(f"<td style='{td}'>{cell}</td>")
+        html.append("</tr>")
+    html.append("</tbody></table></div>")
+    st.markdown("".join(html), unsafe_allow_html=True)
+
+elif tab == "Charts & Graphs":
+    st.header("📈 Charts & Graphs")
+    import altair as alt
+
+    # --- Load Industry Composite if not already loaded ---
+    df_comp = load_sheet(data_path, "Industry Composite", header=0)
+    df_comp.columns = [str(c).strip() for c in df_comp.columns]
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+    df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
+    df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+
+    pr_cols = {
+        "JPR": "JPR",
+        "Composite": "Composite",
+        "SP+": "SP+",
+        "FPI": "FPI",
+        "KFord": "Kford"
+    }
+    pr_choices = [k for k, v in pr_cols.items() if v in df_comp.columns]
+    selected_rating = st.selectbox(
+        "Choose a rating to plot:",
+        pr_choices,
+        index=0  # JPR as default
+    )
+    rating_col = pr_cols[selected_rating]
+
+    # Prepare data
+    df = df_comp.dropna(subset=[rating_col, "Conference", "Logo URL"]).copy()
+    conf_means = df.groupby("Conference", as_index=False)[rating_col].mean()
+    conf_means = conf_means.sort_values(rating_col, ascending=False).reset_index(drop=True)
+    conf_order = conf_means["Conference"].tolist()
+    df["Conference"] = pd.Categorical(df["Conference"], categories=conf_order, ordered=True)
+
+    # Quartile lines
+    q1, med, q3 = np.percentile(df[rating_col], [25, 50, 75])
+    rule_data = pd.DataFrame({
+        rating_col: [q1, med, q3],
+        "label": ["Q1", "Med.", "Q3"]
+    })
+
+    # Data for horizontal conference "trendlines" (min to max for each conf)
+    line_df = (
+        df.groupby("Conference")
+        .agg(xmin=(rating_col, "min"), xmax=(rating_col, "max"))
+        .reset_index()
+    )
+    line_df["Conference"] = pd.Categorical(line_df["Conference"], categories=conf_order, ordered=True)
+
+    # Set chart display variables based on device
+    if is_mobile():
+        # --- MOBILE VERSION: Tiny logos, minimal padding, perfectly square ---
+        logo_size = 10
+        line_size = 5
+        font_size = 9
+        left_pad = 0
+        point_opacity = 0.96
+        # Hardcode the height for square shape (Altair/Streamlit auto-fills width)
+        height = 340
+    else:
+        logo_size = 34
+        line_size = 14
+        font_size = 15
+        left_pad = 170
+        point_opacity = 1
+        height = 95*len(conf_order) + 120
+        width = 1000
+
+
+    base = alt.Chart(df).encode(
+        y=alt.Y("Conference:N", sort=conf_order, title="Conference", axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
+        x=alt.X(f"{rating_col}:Q", title=selected_rating, axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
+    )
+
+    points = base.mark_image(
+        width=logo_size,
+        height=logo_size,
+        opacity=point_opacity
+    ).encode(
+        url="Logo URL:N",
+        tooltip=["Team", rating_col, "Conference"]
+    )
+
+    hlines = alt.Chart(line_df).mark_rule(
+        size=line_size, opacity=0.22
+    ).encode(
+        y=alt.Y("Conference:N", sort=conf_order),
+        x="xmin:Q",
+        x2="xmax:Q",
+        color=alt.Color("Conference:N", scale=alt.Scale(scheme="category10"), legend=None)
+    )
+
+    rules = alt.Chart(rule_data).mark_rule(
+        strokeDash=[6,4], color="#9067b8", size=2
+    ).encode(
+        x=f"{rating_col}:Q"
+    )
+    texts = alt.Chart(rule_data).mark_text(
+        dy=-8 if is_mobile() else -16,
+        fontWeight="bold",
+        fontSize=font_size if is_mobile() else 15,
+        color="#9067b8"
+    ).encode(
+        x=f"{rating_col}:Q",
+        y=alt.value(-7 if is_mobile() else -10),
+        text="label"
+    )
+
+    # Properties dict for mobile/desktop
+    chart_props = {
+        "height": height,
+        "title": f"Team {selected_rating} by Conference",
+        "padding": {"left": left_pad, "top": 6, "right": 6, "bottom": 6}
+    }
+    if not is_mobile():
+        chart_props["width"] = width  # Only set width on desktop
+
+    chart = (rules + texts + hlines + points).properties(**chart_props)
+
+    st.altair_chart(chart, use_container_width=True)
+
+st.markdown("---")
+st.header("Team Power Ratings Bar Chart")
+
+# ---- Independent rating filter for this chart ----
+selected_bar_rating = st.selectbox(
+    "Choose a rating for bar chart:",
+    pr_choices,
+    index=0,  # Default to JPR
+    key="bar_chart_rating_select"
+)
+bar_rating_col = pr_cols[selected_bar_rating]
+
+# Data prep for bar chart
+bar_df = df_comp.dropna(subset=[bar_rating_col, "Conference", "Logo URL"]).copy()
+# Order teams by selected rating (descending: highest first)
+bar_df = bar_df.sort_values(by=bar_rating_col, ascending=False).reset_index(drop=True)
+team_order = bar_df["Team"].tolist()
+bar_df["Team"] = pd.Categorical(bar_df["Team"], categories=team_order, ordered=True)
+
+# Conference color mapping
+conf_list = bar_df["Conference"].unique().tolist()
+palette = alt.Scale(scheme="category10", domain=conf_list)
+
+if is_mobile():
+    # --- MOBILE: Horizontal bar chart, minimal gap, skinny bars ---
+    bar_logo_size = 14
+    bar_font_size = 9
+    bar_title_size = 14
+    bar_legend = None
+    bar_width = None
+    bar_size = 10  # Skinny bars!
+    bar_height = max(90, bar_size * len(bar_df))  # bar_size per team; reduces gaps
+    x_axis = alt.X(f"{bar_rating_col}:Q", title=selected_bar_rating)
+    y_axis = alt.Y(
+        'Team:N',
+        sort=team_order,
+        title=None,
+        axis=alt.Axis(labels=False, ticks=False)
+    )
+
+else:
+    # --- DESKTOP: Vertical bar chart, legend on ---
+    bar_height = 470
+    bar_logo_size = 15
+    bar_font_size = 11
+    bar_width = 900
+    bar_title_size = 19
+    bar_legend = alt.Legend(title="Conference")
+    x_axis = alt.X('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False))
+    y_axis = alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating)
+
+# Properties dict for width only on desktop
+bar_props = dict(
+    height=bar_height,
+    title=alt.TitleParams(
+        f"{selected_bar_rating} Ratings by Team",
+        fontSize=bar_title_size,
+        fontWeight="bold"
+    )
+)
+if not is_mobile():
+    bar_props["width"] = bar_width
+
+if is_mobile():
+    bar_chart = alt.Chart(bar_df).mark_bar(
+        color="gray"
+        # No border on mobile: do NOT include stroke or strokeWidth
+    ).encode(
+        x=x_axis,
+        y=y_axis,
+        color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
+        tooltip=["Team", bar_rating_col, "Conference"]
+    ).properties(**bar_props)
+else:
+    bar_chart = alt.Chart(bar_df).mark_bar(
+        color="gray",
+        stroke="black",
+        strokeWidth=1.2
+    ).encode(
+        x=x_axis,
+        y=y_axis,
+        color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
+        tooltip=["Team", bar_rating_col, "Conference"]
+    ).properties(**bar_props)
+
+
+# Logos at the end of the bar
+if is_mobile():
+    # Mobile: logos on x at end of horizontal bar
+    logo_points = alt.Chart(bar_df).mark_image(
+        width=bar_logo_size,
+        height=bar_logo_size
+    ).encode(
+        x=alt.X(f"{bar_rating_col}:Q"),
+        y=alt.Y('Team:N', sort=team_order),
+        url="Logo URL:N"
+    )
+else:
+    # Desktop: logos on y at end of vertical bar
+    logo_points = alt.Chart(bar_df).mark_image(
+        width=bar_logo_size,
+        height=bar_logo_size
+    ).encode(
+        x=alt.X('Team:N', sort=team_order),
+        y=alt.Y(f"{bar_rating_col}:Q"),
+        url="Logo URL:N"
+    )
+
+final_bar_chart = (bar_chart + logo_points).configure_axis(
+    labelFontSize=bar_font_size,
+    titleFontSize=bar_font_size + 2
+)
+
+st.altair_chart(final_bar_chart, use_container_width=True)
