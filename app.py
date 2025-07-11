@@ -687,13 +687,7 @@ elif tab == "Team Dashboards":
         html.append('</tbody></table></div>')
         
         st.markdown("".join(html), unsafe_allow_html=True)
-        
-            else:
-                st.info("No schedule data found for this team.")
-
-
-
-
+ 
     # Add all team-specific tables/charts below; use selected_team/team_row as filter.
 
 elif tab == "Charts & Graphs":
