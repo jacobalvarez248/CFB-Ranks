@@ -622,7 +622,6 @@ elif tab == "Team Dashboards":
     # --- Responsive Settings ---
     n_cols = 2 + num_games + 1
     col_pct = 100 / n_cols
-
     if is_mobile():
         font_size = 8
         pad = 1
@@ -643,17 +642,6 @@ elif tab == "Team Dashboards":
         wrapper_style = "overflow-x:auto; max-width:100vw;"
         visible_wins = list(range(num_games + 1))
         show_extra = False
-
-    else:
-        font_size = 13
-        pad = 4
-        min_opp_width = 110
-        min_num_width = 38
-        table_style = f"font-size:{font_size}px; min-width:800px;"
-        wrapper_style = "overflow-x:auto; max-width:100vw;"
-        visible_wins = list(range(num_games + 1))
-        show_extra = False
-
 
     # --- Blue-Heavy Gradient, Impossible Cells Dark Grey ---
     def cell_color(p):
