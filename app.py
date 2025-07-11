@@ -490,7 +490,7 @@ elif tab == "Industry Composite Ranking":
         html.append(f"<th style='{th}'>{disp_col}</th>")
     html.append("</tr></thead><tbody>")
 
-    for _, row in df_show.iterrows():
+  for _, row in df_show.iterrows():
     # Get min/max among JPR, SP+, FPI, Kford for this row
     metric_values = {col: row[col] for col in other_metric_cols if pd.notnull(row[col])}
     if metric_values:
