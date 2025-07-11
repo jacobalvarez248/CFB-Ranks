@@ -867,48 +867,36 @@ elif tab == "Team Dashboards":
             is_last = (j == len(visible_wins) - 1)
             style = cell_last_style if is_last else win_col_style
             if w > game_num:
-                cell_style = f"{style}background-color:#444; color:#fff; font-family:Arial;"
+                cell_style = f"{style}background-color:#444; color:#fff; font-family:Arial; text-align:center;"
                 cell_text = ""
             else:
                 val = row.get(w, 0.0)
                 pct = val * 100
                 cell_style = (
                     f"{style}{cell_color(val)}"
-                    + "color:#333; text-align:left;"
+                    + "color:#222; text-align:center;"
                 )
                 cell_text = f"{pct:.1f}%"
             table_html.append(f'<td style="{cell_style}">{cell_text}</td>')
         table_html.append("</tr>")
     table_html.append("</tbody></table></div>")
 
-    # --- Show table: Left half of desktop, full width on mobile ---
-    if not is_mobile():
-        left_col, right_col = st.columns([1, 1])
-        with left_col:
-            st.markdown("#### Probability Distribution of Wins After Each Game")
-            st.markdown("".join(table_html), unsafe_allow_html=True)
-        with right_col:
-            # (Optional: charts/notes/etc.)
-            pass
-    else:
-        st.markdown("#### Probability Distribution of Wins After Each Game")
-        st.markdown("".join(table_html), unsafe_allow_html=True)
-
-    # --- Calculate win probabilities for final game ---
+    # --- Prepare chart data (final win distribution) ---
     final_row = rows[-1]
     win_counts = list(range(num_games + 1))
     win_probs = [final_row.get(w, 0.0) for w in win_counts]
     win_probs_pct = [p * 100 for p in win_probs]
 
+    import pandas as pd
+    import altair as alt
+
     df_win_dist = pd.DataFrame({
         "Wins": win_counts,
         "Probability": win_probs_pct
     })
-
-    # Format for Altair percentage display
     df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
 
-    # --- Desktop: Use columns, mobile: stack ---
+    # --- Show table & chart: side by side on desktop, stacked on mobile ---
     if not is_mobile():
         left_col, right_col = st.columns([1, 1])
         with left_col:
@@ -936,7 +924,7 @@ elif tab == "Team Dashboards":
                 text="Label"
             )
             final_chart = (bar + text).properties(
-                width=350,  # adjust for half screen
+                width=350,
                 height=260,
                 title=""
             )
