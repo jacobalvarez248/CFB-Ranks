@@ -600,13 +600,12 @@ elif tab == "Team Dashboards":
 
     if not sched.empty:
         sched["Game"] = sched["Game"].apply(lambda x: f"Game {int(x)}" if pd.notnull(x) else "")
-        sched["Date"] = sched["Date"]  # or whatever your actual date column is named
-        sched["Opponent"] = sched.apply(lambda row: f"{row['E'].strip()} {row['Opponent']}", axis=1)
+        sched["Date"] = sched["Date"]
+        sched["Opponent"] = sched.apply(lambda row: f"{row['Location'].strip()} {row['Opponent']}", axis=1)
         sched["Opponent Rank"] = sched["Opponent Rank"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
-        sched["Spread"] = sched["Rank"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
-        sched["Win Prob"] = sched["N"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
-        sched["Game Score"] = sched["AC"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
-
+        sched["Projected Spread"] = sched["Spread"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
+        sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
+        sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
 
         display_cols = [
             "Game", "Date", "Opponent", "Opponent Rank",
@@ -616,6 +615,7 @@ elif tab == "Team Dashboards":
         st.dataframe(sched[display_cols], hide_index=True)
     else:
         st.info("No schedule data found for this team.")
+
 
     # Add all team-specific tables/charts below; use selected_team/team_row as filter.
 
