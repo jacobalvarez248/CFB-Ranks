@@ -621,14 +621,18 @@ elif tab == "Team Dashboards":
 
     # --- Responsive Settings ---
     if is_mobile():
-        font_size = 9
+        font_size = 8
         pad = 1
-        min_opp_width = 48
-        min_num_width = 22
-        table_style = f"font-size:{font_size}px; min-width:270px;"
-        wrapper_style = "overflow-x:auto; max-width:100vw;"
-        visible_wins = list(range(min(num_games + 1, 8)))  # 0-7 for mobile
-        show_extra = num_games > 7
+        min_opp_width = 34
+        min_num_width = 12
+        n_cols = 2 + num_games + 1  # Game + Opponent + win columns
+        col_pct = 100 / n_cols      # percentage width per column
+        table_style = (
+            f"font-size:{font_size}px; width:100vw; max-width:100vw; table-layout:fixed; border-collapse:collapse;"
+        )
+        wrapper_style = "max-width:100vw; overflow-x:hidden; margin:0;"
+        visible_wins = list(range(num_games + 1))
+        show_extra = False
     else:
         font_size = 13
         pad = 4
@@ -638,6 +642,7 @@ elif tab == "Team Dashboards":
         wrapper_style = "overflow-x:auto; max-width:100vw;"
         visible_wins = list(range(num_games + 1))
         show_extra = False
+
 
     # --- Blue-Heavy Gradient, Impossible Cells Dark Grey ---
     def cell_color(p):
@@ -661,20 +666,17 @@ elif tab == "Team Dashboards":
     # --- Build Table HTML ---
     table_html = [
         f'<div style="{wrapper_style}">',
-        f'<table style="border-collapse:collapse; {table_style}">',
+        f'<table style="{table_style}">',
         "<thead><tr>"
     ]
-    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px 3px; background:#eaf1fa; text-align:center;">Game</th>')
-    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px 3px; background:#eaf1fa; text-align:left; min-width:{min_opp_width}px;">Opponent</th>')
+    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#eaf1fa; text-align:center; width:{col_pct:.2f}vw;">Game</th>')
+    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#eaf1fa; text-align:left; width:{col_pct:.2f}vw;">Opponent</th>')
     for w in visible_wins:
         table_html.append(
-            f'<th style="border:1px solid #bbb; padding:{pad}px 2px; background:#d4e4f7; text-align:center; min-width:{min_num_width}px;">{w}</th>'
-        )
-    if is_mobile() and show_extra:
-        table_html.append(
-            f'<th style="border:1px solid #bbb; padding:{pad}px 2px; background:#d4e4f7; text-align:center;">...</th>'
+            f'<th style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#d4e4f7; text-align:center; width:{col_pct:.2f}vw;">{w}</th>'
         )
     table_html.append("</tr></thead><tbody>")
+
 
     for row in rows:
         table_html.append("<tr>")
@@ -686,22 +688,22 @@ elif tab == "Team Dashboards":
         game_num = row["Game"]
         for w in visible_wins:
             if w > game_num:
-                # Impossible win count: show blank, dark grey
                 cell_style = (
-                    f"border:1px solid #bbb; padding:{pad}px 2px; text-align:center; "
-                    "background-color:#444; color:#fff; font-family:Arial;"
+                    f"border:1px solid #bbb; padding:{pad}px 1px; text-align:center; "
+                    f"background-color:#444; color:#fff; font-family:Arial; width:{col_pct:.2f}vw;"
                 )
                 cell_text = ""
             else:
                 val = row.get(w, 0.0)
                 pct = val * 100
                 cell_style = (
-                    f"border:1px solid #bbb; padding:{pad}px 2px; text-align:center; font-family:Arial;"
+                    f"border:1px solid #bbb; padding:{pad}px 1px; text-align:center; font-family:Arial; width:{col_pct:.2f}vw;"
                     + cell_color(val)
                     + ("color:#333; font-weight:bold;" if pct > 50 else "color:#222;")
                 )
                 cell_text = f"{pct:.1f}%"
             table_html.append(f'<td style="{cell_style}">{cell_text}</td>')
+
         if is_mobile() and show_extra:
             table_html.append(f'<td style="border:1px solid #bbb; background:#eee;"></td>')
         table_html.append("</tr>")
