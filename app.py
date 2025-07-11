@@ -669,22 +669,43 @@ elif tab == "Team Dashboards":
             f'<table style="{table_style}">',
             '<thead><tr>'
         ]
-        for i, h in enumerate(headers):
-            # Give Opp. column extra width
-            if h == "Opp.":
-                html.append(f'<th style="{header_style}{header_font} min-width:66px; max-width:94px;">{h}</th>')
-            else:
-                html.append(f'<th style="{header_style}{header_font}">{h}</th>')
+        for h in headers:
+            html.append(f'<th style="{header_style}{header_font}">{h}</th>')
+        html.append('</tr></thead><tbody>')
 
         for _, row in sched.iterrows():
             html.append('<tr>')
             for col in use_cols:
                 val = row[col]
                 style = cell_style + cell_font
-                # If Opponent column, widen it
-                if is_mobile() and col == "Opponent":
-                    style += "min-width:66px; max-width:94px;"
-                ...
+
+                # Projected Spread styling
+                if col == "Projected Spread":
+                    try:
+                        val_float = float(val)
+                        if val_float < 0:
+                            style += "background-color:#004085; color:white; font-weight:bold;"
+                        elif val_float > 0:
+                            style += "background-color:#a71d2a; color:white; font-weight:bold;"
+                    except Exception:
+                        pass
+
+                # Win Probability: text above the bar, black text
+                if col == "Win Probability":
+                    val = win_prob_data_bar(val)
+                    html.append(f'<td style="position:relative; {style} width:90px; min-width:70px; max-width:120px; vertical-align:middle;">{val}</td>')
+                    continue
+
+                # Game Quality: blue color scale background, same as Power Rating
+                if col == "Game Quality":
+                    try:
+                        v = float(val)
+                        t = (v - gq_min) / (gq_max - gq_min) if gq_max > gq_min else 0
+                        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                        style += f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'}; font-weight:600;"
+                    except Exception:
+                        pass
+
                 html.append(f'<td style="{style}">{val}</td>')
             html.append('</tr>')
         html.append('</tbody></table></div>')
