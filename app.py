@@ -640,6 +640,8 @@ elif tab == "Team Dashboards":
             except Exception:
                 return f'<div style="width:100%; text-align:center; font-weight:600; color:#111;">{pct_str}</div>'
         
+        headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
+
         html = [
             '<div style="overflow-x:auto;">',
             '<table style="border-collapse:collapse; width:100%;">',
