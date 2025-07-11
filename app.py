@@ -881,8 +881,18 @@ elif tab == "Team Dashboards":
         table_html.append("</tr>")
     table_html.append("</tbody></table></div>")
 
-    st.markdown("#### Probability Distribution of Wins After Each Game")
-    st.markdown("".join(table_html), unsafe_allow_html=True)
+    # --- Show table: Left half of desktop, full width on mobile ---
+    if not is_mobile():
+        left_col, right_col = st.columns([1, 1])
+        with left_col:
+            st.markdown("#### Probability Distribution of Wins After Each Game")
+            st.markdown("".join(table_html), unsafe_allow_html=True)
+        with right_col:
+            # (Optional: charts/notes/etc.)
+            pass
+    else:
+        st.markdown("#### Probability Distribution of Wins After Each Game")
+        st.markdown("".join(table_html), unsafe_allow_html=True)
 
 elif tab == "Charts & Graphs":
 
