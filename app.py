@@ -569,16 +569,20 @@ elif tab == "Team Dashboards":
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
 
     if logo_url:
-        conference = team_row["Conference"] if "Conference" in team_row else ""
-        st.markdown(
-            f'''
-            <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
-                <img src="{logo_url}" width="48" style="display:inline-block;"/>
-                <span style="font-size:1.7em; font-weight:600; line-height:48px; vertical-align:middle;">{conference}</span>
-            </div>
-            ''',
-            unsafe_allow_html=True
-        )
+    conference = team_row["Conference"] if "Conference" in team_row else ""
+    # Find conference logo from logos_df
+    conf_logo_url = None
+    if conference in logos_df["Team"].values:
+        conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
+    st.markdown(
+        f'''
+        <div style="display: flex; align-items: center; gap:18px; margin-top:8px; margin-bottom:10px;">
+            <img src="{logo_url}" width="48" style="display:inline-block;"/>
+            {f"<img src='{conf_logo_url}' width='48' style='display:inline-block;'/>" if conf_logo_url else ""}
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
 
     st.markdown(f"### Dashboard for **{selected_team}**")
