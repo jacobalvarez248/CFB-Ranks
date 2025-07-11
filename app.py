@@ -552,7 +552,8 @@ elif tab == "Industry Composite Ranking":
             cell = f"{v:.1f}"
         else:
             cell = v
-        html.append(f"<td style='{td}'>{cell}</td>")html.append("</tr>")
+        html.append(f"<td style='{td}'>{cell}</td>")
+    html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
