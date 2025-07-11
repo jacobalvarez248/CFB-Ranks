@@ -670,9 +670,11 @@ elif tab == "Team Dashboards":
             '<thead><tr>'
         ]
         for i, h in enumerate(headers):
-            # Make "Opp." (Opponent) column wider on mobile
-            if h == "Opp.":
-                html.append(f'<th style="{header_style}{header_font} min-width:68px; max-width:102px;">{h}</th>')
+            # Make "Opp." (Opponent) column wider and allow wrapping on mobile
+            if is_mobile() and h == "Opp.":
+                html.append(f'<th style="{header_style}{header_font} min-width:30vw; max-width:38vw; word-break:break-word;">{h}</th>')
+            elif is_mobile():
+                html.append(f'<th style="{header_style}{header_font} min-width:11vw; max-width:19vw;">{h}</th>')
             else:
                 html.append(f'<th style="{header_style}{header_font}">{h}</th>')
         html.append('</tr></thead><tbody>')
@@ -681,38 +683,17 @@ elif tab == "Team Dashboards":
             html.append('<tr>')
             for col in use_cols:
                 val = row[col]
-                style = cell_style + cell_font
-
-                # Projected Spread styling
-                if col == "Projected Spread":
-                    try:
-                        val_float = float(val)
-                        if val_float < 0:
-                            style += "background-color:#004085; color:white; font-weight:bold;"
-                        elif val_float > 0:
-                            style += "background-color:#a71d2a; color:white; font-weight:bold;"
-                    except Exception:
-                        pass
-
-                # Win Probability: text above the bar, black text
+                style = cell_style + cell_font + "padding:4px;"
+                # For mobile, custom width for Opponent column
+                if is_mobile() and col == "Opponent":
+                    style += "min-width:30vw; max-width:38vw; word-break:break-word; font-size:12px;"
+                elif is_mobile():
+                    style += "min-width:11vw; max-width:19vw; font-size:11px;"
+                # Keep all your existing per-column logic here!
                 if col == "Win Probability":
                     val = win_prob_data_bar(val)
-                    html.append(f'<td style="position:relative; {style} width:90px; min-width:70px; max-width:120px; vertical-align:middle;">{val}</td>')
+                    html.append(f'<td style="position:relative; {style} width:66px; min-width:54px; max-width:80px; vertical-align:middle;">{val}</td>')
                     continue
-
-                # Game Quality: blue color scale background, same as Power Rating
-                if col == "Game Quality":
-                    try:
-                        v = float(val)
-                        t = (v - gq_min) / (gq_max - gq_min) if gq_max > gq_min else 0
-                        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                        style += f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'}; font-weight:600;"
-                    except Exception:
-                        pass
-
-                # Widen only the Opponent column on mobile
-                if is_mobile() and col == "Opponent":
-                    style += "min-width:68px; max-width:102px;"
                 html.append(f'<td style="{style}">{val}</td>')
             html.append('</tr>')
         html.append('</tbody></table></div>')
