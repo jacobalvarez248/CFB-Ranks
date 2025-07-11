@@ -622,28 +622,24 @@ elif tab == "Team Dashboards":
         # Create a display column for Game Quality (from Game Score)
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
 
-        # Build HTML table with custom styles
-        headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
-        header_style = (
-            "background-color:#002060; color:white; text-align:center; padding:8px; "
-            "position:sticky; top:0; z-index:2; font-weight:bold;"
-        )
-        cell_style = "border:1px solid #ddd; padding:8px; text-align:center;"
-    
+        # Color scale for Game Quality (just like Power Rating on Rankings)
+        gq_vals = pd.to_numeric(sched["Game Quality"], errors='coerce')
+        gq_min, gq_max = gq_vals.min(), gq_vals.max()
+        
         def win_prob_data_bar(pct_str):
             try:
                 pct = float(pct_str.strip('%'))
                 bar_width = pct
-                # Blue bar width relative to pct, max 100%
+                # Text above the bar, black color, centered
                 return (
-                    f'<div style="background:#d6eaff; width:100%; height:16px; border-radius:4px;">'
-                    f'<div style="background:#007bff; width:{bar_width}%; height:16px; border-radius:4px;"></div>'
+                    f'<div style="width:100%; text-align:center; font-weight:600; color:#111;">{pct_str}</div>'
+                    f'<div style="background:#d6eaff; width:100%; height:13px; border-radius:4px; margin-top:-2px;">'
+                    f'<div style="background:#007bff; width:{bar_width}%; height:13px; border-radius:4px;"></div>'
                     f'</div>'
-                    f'<div style="position:absolute; left:50%; transform:translateX(-50%); color:#004085; font-weight:bold;">{pct_str}</div>'
                 )
             except Exception:
-                return pct_str
-    
+                return f'<div style="width:100%; text-align:center; font-weight:600; color:#111;">{pct_str}</div>'
+        
         html = [
             '<div style="overflow-x:auto;">',
             '<table style="border-collapse:collapse; width:100%;">',
@@ -652,15 +648,14 @@ elif tab == "Team Dashboards":
         for h in headers:
             html.append(f'<th style="{header_style}">{h}</th>')
         html.append('</tr></thead><tbody>')
-    
+        
         for _, row in sched.iterrows():
             html.append('<tr>')
             for col in headers:
                 val = row[col]
-    
                 style = cell_style
-    
-                # Style Projected Spread cell background color and text color
+        
+                # Projected Spread styling
                 if col == "Projected Spread":
                     try:
                         val_float = float(val)
@@ -670,20 +665,31 @@ elif tab == "Team Dashboards":
                             style += "background-color:#a71d2a; color:white; font-weight:bold;"
                     except Exception:
                         pass
-    
-                # Render Win Probability as data bar with text overlay
+        
+                # Win Probability: text above the bar, black text
                 if col == "Win Probability":
                     val = win_prob_data_bar(val)
-                    html.append(f'<td style="position:relative; {style} width:140px;">{val}</td>')
-                else:
-                    html.append(f'<td style="{style}">{val}</td>')
-    
+                    html.append(f'<td style="position:relative; {style} width:90px; min-width:90px; max-width:150px; vertical-align:middle;">{val}</td>')
+                    continue
+        
+                # Game Quality: blue color scale background, same as Power Rating
+                if col == "Game Quality":
+                    try:
+                        v = float(val)
+                        t = (v - gq_min) / (gq_max - gq_min) if gq_max > gq_min else 0
+                        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                        style += f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'}; font-weight:600;"
+                    except Exception:
+                        pass
+        
+                html.append(f'<td style="{style}">{val}</td>')
             html.append('</tr>')
         html.append('</tbody></table></div>')
-    
+        
         st.markdown("".join(html), unsafe_allow_html=True)
-    else:
-        st.info("No schedule data found for this team.")
+        
+            else:
+                st.info("No schedule data found for this team.")
 
 
 
