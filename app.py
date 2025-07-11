@@ -33,6 +33,8 @@ df_schedule = load_sheet(data_path, "Schedule", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
 
 
+
+
 # Normalize logo column
 logos_df["Team"] = logos_df["Team"].str.strip()
 df_expected["Team"] = df_expected["Team"].str.strip()
@@ -600,19 +602,32 @@ elif tab == "Team Dashboards":
         sched["Game"] = sched["Game"].apply(lambda x: f"Game {int(x)}" if pd.notnull(x) else "")
         sched["Date"] = sched["Date"]
         sched["Opponent"] = sched.apply(lambda row: f"{row['Location'].strip()} {row['Opponent']}", axis=1)
-        sched["Opponent Rank"] = sched["Opponent Rank"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
+        sched["Opponent Rank"] = sched["Opponent Ranking"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")  # <--- pulls from "Opponent Ranking"
         sched["Projected Spread"] = sched["Spread"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
         sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
-
+    
         display_cols = [
             "Game", "Date", "Opponent", "Opponent Rank",
             "Projected Spread", "Win Probability", "Game Quality"
         ]
+        pretty_headers = {
+            "Game": "Game",
+            "Date": "Date",
+            "Opponent": "Opponent",
+            "Opponent Rank": "Opponent Rank",  # shows as "Opponent Rank"
+            "Projected Spread": "Projected Spread",
+            "Win Probability": "Win Probability",
+            "Game Quality": "Game Quality"
+        }
         st.markdown("#### Schedule")
-        st.dataframe(sched[display_cols], hide_index=True)
+        st.dataframe(
+            sched[display_cols].rename(columns=pretty_headers),
+            hide_index=True
+        )
     else:
         st.info("No schedule data found for this team.")
+
 
 
     # Add all team-specific tables/charts below; use selected_team/team_row as filter.
