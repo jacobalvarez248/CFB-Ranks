@@ -560,7 +560,20 @@ elif tab == "Industry Composite Ranking":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
+elif tab == "Team Dashboards":
+    st.header("🏈 Team Dashboards")
+
+    # Team filter dropdown
+    team_options = df_expected["Team"].sort_values().unique().tolist()
+    selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
+    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+
+    st.markdown(f"### Dashboard for **{selected_team}**")
+
+    # Add all team-specific tables/charts below; use selected_team/team_row as filter.
+
 elif tab == "Charts & Graphs":
+
     st.header("📈 Charts & Graphs")
     import altair as alt
 
