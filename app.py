@@ -942,6 +942,8 @@ elif tab == "Charts & Graphs":
             x=alt.X('Team:N', sort=team_order),
             y=alt.Y(f"{bar_rating_col}:Q"),
             url="Logo URL:N"
+        )
+
     final_bar_chart = (bar_chart + logo_points).configure_axis(
         labelFontSize=bar_font_size,
         titleFontSize=bar_font_size + 2
