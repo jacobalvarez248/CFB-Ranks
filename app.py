@@ -620,32 +620,32 @@ elif tab == "Team Dashboards":
         rows.append(row)
 
     # --- Responsive Settings ---
-    n_cols = 2 + num_games + 1  # Game + Opponent + win columns
+    n_cols = 2 + num_games + 1  # Game + Opp + wins 0–12
     col_pct = 100 / n_cols
+
+    fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
+
     if is_mobile():
         font_size = 7
         pad = 0.5
-        min_opp_width = 18
-        min_num_width = 9
+        logo_size = 16
         table_style = (
             f"font-size:{font_size}px; width:100vw; max-width:100vw; table-layout:fixed; border-collapse:collapse;"
         )
         wrapper_style = "max-width:100vw; overflow-x:hidden; margin:0;"
-        visible_wins = list(range(num_games + 1))
+        visible_wins = list(range(num_games + 1))  # This is 0–12 for 12 games!
         show_extra = False
-        logo_size = 18  # px
+        opp_col_style = f"text-align:center; width:{col_pct:.2f}vw;"
     else:
         font_size = 13
         pad = 4
-        min_opp_width = 110
-        min_num_width = 38
-        table_style = f"font-size:{font_size}px; min-width:800px;"
+        logo_size = 34
+        table_style = f"font-size:{font_size}px; width:100%; border-collapse:collapse;"
         wrapper_style = "overflow-x:auto; max-width:100vw;"
         visible_wins = list(range(num_games + 1))
         show_extra = False
-        logo_size = 34
+        opp_col_style = "min-width:130px; max-width:190px; white-space:nowrap; text-align:left;"
 
-    # --- Blue-Heavy Gradient, Impossible Cells Dark Grey ---
     def cell_color(p):
         if p <= 0:
             return "background-color:#fff;"
@@ -661,19 +661,18 @@ elif tab == "Team Dashboards":
             b = int(238 + (255-238)*t)
         return f"background-color:rgb({r},{g},{b});"
 
-    # --- Get opponent logos for each game ---
-    # Assume you have a DataFrame `logos_df` with "Team" and "Logo URL" columns
+    # Get opponent logos, falling back if not found
     opponent_logos = []
     for opp in opponents:
-        logo_url = ""
+        logo_url = fallback_logo_url
         try:
-            # Find the logo for this opponent, fallback to blank
-            logo_url = logos_df.loc[logos_df["Team"].str.lower() == str(opp).strip().lower(), "Logo URL"].values[0]
+            matches = logos_df["Team"].str.lower() == str(opp).strip().lower()
+            if matches.any():
+                logo_url = logos_df.loc[matches, "Logo URL"].values[0]
         except Exception:
-            logo_url = ""
+            pass
         opponent_logos.append(logo_url)
 
-    # --- Build Table HTML ---
     table_html = [
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
@@ -682,7 +681,7 @@ elif tab == "Team Dashboards":
     table_html.append(
         f'<th style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#eaf1fa; text-align:center; width:{col_pct:.2f}vw;">Game</th>')
     table_html.append(
-        f'<th style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#eaf1fa; text-align:center; width:{col_pct:.2f}vw;">Opp</th>')
+        f'<th style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#eaf1fa; {opp_col_style}">Opp</th>')
     for w in visible_wins:
         table_html.append(
             f'<th style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#d4e4f7; text-align:center; width:{col_pct:.2f}vw;">{w}</th>'
@@ -694,19 +693,15 @@ elif tab == "Team Dashboards":
         # Game number
         table_html.append(
             f'<td style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#f8fafb; text-align:center; font-weight:bold; width:{col_pct:.2f}vw;">{row["Game"]}</td>')
-        # Opponent logo (mobile: small and centered)
-        logo_html = ""
+        # Opponent logo (mobile: just logo; desktop: logo+name)
         logo_url = opponent_logos[i]
-        if is_mobile() and logo_url:
+        if is_mobile():
             logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="display:block;margin:auto;" alt="">'
-        elif logo_url:
-            logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="vertical-align:middle;margin-right:5px;"> {row["Opponent"]}'
         else:
-            logo_html = row["Opponent"]
+            logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="vertical-align:middle;margin-right:5px;"> {row["Opponent"]}'
         table_html.append(
-            f'<td style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#f8fafb; text-align:center; width:{col_pct:.2f}vw;">{logo_html}</td>'
+            f'<td style="border:1px solid #bbb; padding:{pad}px {pad+1}px; background:#f8fafb; {opp_col_style}">{logo_html}</td>'
         )
-
         game_num = row["Game"]
         for w in visible_wins:
             if w > game_num:
