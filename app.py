@@ -636,22 +636,23 @@ elif tab == "Team Dashboards":
         wrapper_style = "overflow-x:auto; max-width:100vw;"
 
     def cell_color(p):
-        # Heavier Blue Gradient: Red -> Blue-ish Purple -> Deep Blue
+        # Stronger blue gradient: Red -> Light Blue -> Deep Blue
         if p <= 0:
             return "background-color:#fff;"
-        elif p < 0.4:
-            # Red to blue-purple (0 to 0.4)
-            t = p / 0.4
-            r = int(224 + (113-224)*t)   # 224 -> 113
-            g = int(75 + (139-75)*t)     # 75 -> 139
-            b = int(90 + (231-90)*t)     # 90 -> 231
+        elif p < 0.25:
+            # Red to light blue
+            t = p / 0.25
+            r = int(224 + (94-224)*t)   # 224 -> 94
+            g = int(75 + (160-75)*t)    # 75 -> 160
+            b = int(90 + (238-90)*t)    # 90 -> 238
         else:
-            # Blue-purple to deep blue (0.4 to 1)
-            t = (p - 0.4) / 0.6
-            r = int(113 + (30-113)*t)    # 113 -> 30
-            g = int(139 + (80-139)*t)    # 139 -> 80
-            b = int(231 + (255-231)*t)   # 231 -> 255
+            # Light blue to deep blue
+            t = (p - 0.25) / 0.75
+            r = int(94 + (27-94)*t)     # 94 -> 27
+            g = int(160 + (60-160)*t)   # 160 -> 60
+            b = int(238 + (255-238)*t)  # 238 -> 255
         return f"background-color:rgb({r},{g},{b});"
+
 
 
 
