@@ -724,7 +724,7 @@ elif tab == "Team Dashboards":
                 val = row[col]
                 style = cell_style + cell_font + "padding:4px;"
                 if is_mobile() and col == "Opponent":
-                    style += "min-width:30vw; max-width:38vw; word-break:break-word; font-size:12px;"
+                    style += "min-width:30vw; max-width:38vw; word-break:break-word; font-size:11px;"
                 elif is_mobile():
                     style += "min-width:11vw; max-width:19vw; font-size:11px;"
                 # Projected Spread styling
