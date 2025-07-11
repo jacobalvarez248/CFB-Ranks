@@ -636,13 +636,18 @@ elif tab == "Team Dashboards":
         wrapper_style = "overflow-x:auto; max-width:100vw;"
 
     def cell_color(p):
-        # Blue for high, red for low, Excel-like gradient
+        # Red (low) to blue (high) gradient
         if p == 0:
             return "background-color:#fff;"
-        r = int(255 * (1 - p)**0.75)
-        g = int(225 * (1 - p))
-        b = int(255 * p)
+        # Red: 255,85,85; Blue: 41,91,255
+        r1, g1, b1 = 255, 85, 85
+        r2, g2, b2 = 41, 91, 255
+        t = min(max(p, 0), 1)  # Clamp 0-1
+        r = int(r1 + (r2 - r1) * t)
+        g = int(g1 + (g2 - g1) * t)
+        b = int(b1 + (b2 - b1) * t)
         return f"background-color:rgb({r},{g},{b});"
+
 
     table_html = [
         f'<div style="{wrapper_style}">',
@@ -669,7 +674,7 @@ elif tab == "Team Dashboards":
                 + cell_color(val)
                 + ("color:#333; font-weight:bold;" if pct > 50 else "color:#222;")
             )
-            cell_text = f"{pct:.1f}%" if pct > 0.09 else ""
+            cell_text = f"{pct:.1f}%"
             table_html.append(f'<td style="{cell_style}">{cell_text}</td>')
         table_html.append("</tr>")
     table_html.append("</tbody></table></div>")
