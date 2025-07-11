@@ -653,10 +653,6 @@ elif tab == "Team Dashboards":
             b = int(238 + (255-238)*t)  # 238 -> 255
         return f"background-color:rgb({r},{g},{b});"
 
-
-
-
-
     table_html = [
         f'<div style="{wrapper_style}">',
         f'<table style="border-collapse:collapse; {table_style}">',
@@ -672,18 +668,32 @@ elif tab == "Team Dashboards":
 
     for row in rows:
         table_html.append("<tr>")
-        table_html.append(f'<td style="border:1px solid #bbb; padding:{pad}px 5px; background:#f8fafb; text-align:center; font-weight:bold;">{row["Game"]}</td>')
-        table_html.append(f'<td style="border:1px solid #bbb; padding:{pad}px 5px; background:#f8fafb; text-align:left; font-weight:bold; min-width:{min_opp_width}px;">{row["Opponent"]}</td>')
-        for w in range(num_games + 1):
-            val = row.get(w, 0.0)
-            pct = val * 100
-            cell_style = (
-                f"border:1px solid #bbb; padding:{pad}px 4px; text-align:center; font-family:Arial;"
-                + cell_color(val)
-                + ("color:#333; font-weight:bold;" if pct > 50 else "color:#222;")
-            )
-            cell_text = f"{pct:.1f}%"
+        table_html.append(
+            f'<td style="border:1px solid #bbb; padding:{pad}px 3px; background:#f8fafb; text-align:center; font-weight:bold;">{row["Game"]}</td>')
+        table_html.append(
+            f'<td style="border:1px solid #bbb; padding:{pad}px 3px; background:#f8fafb; text-align:left; font-weight:bold; min-width:{min_opp_width}px;">{row["Opponent"]}</td>')
+
+        game_num = row["Game"]
+        for w in visible_wins:
+            if w > game_num:
+                # Impossible win count: show blank, dark grey
+                cell_style = (
+                    f"border:1px solid #bbb; padding:{pad}px 2px; text-align:center; "
+                    "background-color:#444; color:#fff; font-family:Arial;"
+                )
+                cell_text = ""
+            else:
+                val = row.get(w, 0.0)
+                pct = val * 100
+                cell_style = (
+                    f"border:1px solid #bbb; padding:{pad}px 2px; text-align:center; font-family:Arial;"
+                    + cell_color(val)
+                    + ("color:#333; font-weight:bold;" if pct > 50 else "color:#222;")
+                )
+                cell_text = f"{pct:.1f}%"
             table_html.append(f'<td style="{cell_style}">{cell_text}</td>')
+        if is_mobile() and show_extra:
+            table_html.append(f'<td style="border:1px solid #bbb; background:#eee;"></td>')
         table_html.append("</tr>")
     table_html.append("</tbody></table></div>")
 
