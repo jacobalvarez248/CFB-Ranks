@@ -618,9 +618,12 @@ elif tab == "Team Dashboards":
     
         # Prepare Projected Spread with conditional styling in HTML
         sched["Projected Spread"] = sched["Spread"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
-    
+        
+        # Create a display column for Game Quality (from Game Score)
+        sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
+
         # Build HTML table with custom styles
-        headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
+        headers = ["Game", "Date", "Opponent", "Opponent Rank", "Spread", "Win Probability", "Game Quality"]
         header_style = (
             "background-color:#002060; color:white; text-align:center; padding:8px; "
             "position:sticky; top:0; z-index:2; font-weight:bold;"
