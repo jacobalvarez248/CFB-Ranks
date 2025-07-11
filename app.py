@@ -599,13 +599,14 @@ elif tab == "Team Dashboards":
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
 
     if not sched.empty:
-        sched["Game"] = sched["C"].apply(lambda x: f"Game {int(x)}" if pd.notnull(x) else "")
-        sched["Date"] = sched["Y"]
-        sched["Opponent"] = sched.apply(lambda row: f"{'at' if str(row['E']).strip().lower() == 'at' else 'vs'} {row['F']}", axis=1)
-        sched["Opponent Rank"] = sched["H"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
-        sched["Projected Spread"] = sched["K"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
-        sched["Win Probability"] = sched["N"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
-        sched["Game Quality"] = sched["AC"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
+        sched["Game"] = sched["Game"].apply(lambda x: f"Game {int(x)}" if pd.notnull(x) else "")
+        sched["Date"] = sched["Date"]  # or whatever your actual date column is named
+        sched["Opponent"] = sched.apply(lambda row: f"{row['E'].strip()} {row['Opponent']}", axis=1)
+        sched["Opponent Rank"] = sched["Opponent Rank"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
+        sched["Spread"] = sched["Rank"].apply(lambda x: f"{-round_to_half(x):.1f}" if pd.notnull(x) else "")
+        sched["Win Prob"] = sched["N"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
+        sched["Game Score"] = sched["AC"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
+
 
         display_cols = [
             "Game", "Date", "Opponent", "Opponent Rank",
