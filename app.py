@@ -619,7 +619,7 @@ elif tab == "Team Dashboards":
             row[w] = dp[g, w]
         rows.append(row)
 
-    # --- Opponent logos (place above table rendering!) ---
+    # --- Opponent logos (above the table rendering) ---
     fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
     opponent_logos = []
     for opp in opponents:
@@ -632,8 +632,8 @@ elif tab == "Team Dashboards":
             pass
         opponent_logos.append(logo_url)
 
-    # --- Responsive, NO SIDE SCROLL Table HTML ---
-    n_cols = 2 + num_games + 1
+    # --- Unified Responsive Table Block ---
+    n_cols = 2 + num_games + 1  # Game + Opp + win columns
     col_pct = 100 / n_cols
 
     if is_mobile():
@@ -658,11 +658,27 @@ elif tab == "Team Dashboards":
             f"width:{col_pct:.6f}%; min-width:{col_pct:.6f}%; max-width:{col_pct:.6f}%; "
             "overflow:hidden; white-space:nowrap; border-bottom:0.5px solid #bbb;"
         )
-        # --- ADD THESE ---
         game_col_style = cell_base_style
         opp_col_style = cell_base_style
-        win_col_style = cell_base_style   # <--- This is needed!
-
+        win_col_style = cell_base_style
+    else:
+        font_size = 12
+        pad = 2
+        logo_size = 26
+        n_win_cols = num_games + 1
+        opp_col_pct = 20
+        game_col_pct = 7
+        win_col_pct = (100 - opp_col_pct - game_col_pct) / n_win_cols
+        table_style = (
+            "font-size:12px; width:100%; border-collapse:collapse; table-layout:fixed;"
+        )
+        wrapper_style = "width:100%; max-width:100vw; overflow-x:auto;"
+        visible_wins = list(range(num_games + 1))
+        game_col_style = f"text-align:center; width:{game_col_pct:.4f}%; min-width:38px; max-width:54px; white-space:nowrap;"
+        opp_col_style = f"text-align:left; width:{opp_col_pct:.4f}%; min-width:120px; max-width:270px; white-space:nowrap; overflow:hidden;"
+        win_col_style = f"text-align:center; width:{win_col_pct:.4f}%; min-width:24px; max-width:40px; white-space:nowrap; overflow:hidden;"
+        cell_base_style = win_col_style
+        cell_last_style = win_col_style
 
     def cell_color(p):
         if p <= 0:
@@ -681,7 +697,7 @@ elif tab == "Team Dashboards":
 
     table_html = [f'<div style="{wrapper_style}">', f'<table style="{table_style}">', "<thead><tr>"]
 
-    # Header row
+    # --- Header row ---
     table_html.append(
         f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {game_col_style}">Game</th>')
     table_html.append(
@@ -692,29 +708,22 @@ elif tab == "Team Dashboards":
         )
     table_html.append("</tr></thead><tbody>")
 
-    # Body rows
+    # --- Body rows ---
     for i, row in enumerate(rows):
         table_html.append("<tr>")
         # Game number
-        if is_mobile():
-            style_game = cell_base_style
-            style_opp = cell_base_style
-        else:
-            style_game = game_col_style
-            style_opp = opp_col_style
-        table_html.append(f'<td style="{style_game}background:#f8fafb; font-weight:bold; text-align:center;">{row["Game"]}</td>')
-        # Opponent logo
+        table_html.append(f'<td style="{game_col_style}background:#f8fafb; font-weight:bold; text-align:center;">{row["Game"]}</td>')
+        # Opponent logo (mobile: just logo; desktop: logo+name)
         logo_url = opponent_logos[i]
         if is_mobile():
             logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="display:block;margin:auto;" alt="">'
         else:
             logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="vertical-align:middle;margin-right:3px;"> {row["Opponent"]}'
-        table_html.append(f'<td style="{style_opp}background:#f8fafb; text-align:center;">{logo_html}</td>')
-
+        table_html.append(f'<td style="{opp_col_style}background:#f8fafb; text-align:center;">{logo_html}</td>')
         game_num = row["Game"]
         for j, w in enumerate(visible_wins):
             is_last = (j == len(visible_wins) - 1)
-            style = cell_last_style if is_last else cell_base_style
+            style = cell_last_style if is_last else win_col_style
             if w > game_num:
                 cell_style = f"{style}background-color:#444; color:#fff; font-family:Arial;"
                 cell_text = ""
