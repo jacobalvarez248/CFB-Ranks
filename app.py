@@ -30,7 +30,9 @@ data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
-st.write("Schedule columns:", df_schedule.columns.tolist())
+df_schedule.columns = df_schedule.columns.str.strip()
+st.write("Schedule columns:", df_schedule.columns.tolist())   # (For future debugging, safe to remove after)
+
 
 
 # Normalize logo column
@@ -594,7 +596,6 @@ elif tab == "Team Dashboards":
         return round(x * 2) / 2
 
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
-    sched = df_schedule[df_schedule["Team"] == selected_team].copy()
 
     if not sched.empty:
         sched["Game"] = sched["C"].apply(lambda x: f"Game {int(x)}" if pd.notnull(x) else "")
