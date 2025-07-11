@@ -263,43 +263,8 @@ elif tab == "Conference Overviews":
 
     if not is_mobile():
         with right:
-            st.markdown("#### Conference Summary Table")
-            # Custom HTML for a nice-looking table (matches your style)
-            summary_html = [
-                '<div style="max-width:100%; overflow-x:auto;"><table style="width:100%; border-collapse:collapse; font-size:15px;">',
-                '<thead><tr>',
-            ]
-            for col in ["Conference", "Average Power Rating", "Average Game Quality", "Average Schedule Difficulty"]:
-                summary_html.append(
-                    f'<th style="border:1px solid #ddd; padding:8px; background-color:#002060; color:white; position:sticky; top:0;">{col}</th>'
-                )
-            summary_html.append('</tr></thead><tbody>')
-            for _, row in conf_summary.iterrows():
-                summary_html.append("<tr>")
-                for col in ["Conference", "Average Power Rating", "Average Game Quality", "Average Schedule Difficulty"]:
-                    summary_html.append(f"<td style='border:1px solid #ddd; padding:8px; text-align:center;'>{row[col]}</td>")
-                summary_html.append("</tr>")
-            summary_html.append("</tbody></table></div>")
-            st.markdown("".join(summary_html), unsafe_allow_html=True)
-
-    # Conference Summary Table (Desktop version)
-    conf_summary = (
-        df_expected.groupby("Conference")
-        .agg({
-            "Power Rating": "mean",
-            "Average Game Quality": "mean",
-            "Schedule Difficulty Rating": "mean"
-        })
-        .reset_index()
-        .rename(columns={
-            "Power Rating": "Average Power Rating",
-            "Average Game Quality": "Average Game Quality",
-            "Schedule Difficulty Rating": "Average Schedule Difficulty"
-        })
-    )
-    # Round columns to 2 decimals for display
-    for col in ["Average Power Rating", "Average Game Quality", "Average Schedule Difficulty"]:
-        conf_summary[col] = conf_summary[col].round(2)
+            st.markdown("#### Conference Overview Chart Placeholder")
+            # (Add chart/plot code here as needed)
 
     # --- Conference Standings Table ---
     st.markdown("#### Conference Standings")
