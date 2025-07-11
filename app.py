@@ -575,7 +575,6 @@ elif tab == "Team Dashboards":
 
     if logo_url:
         conference = team_row["Conference"] if "Conference" in team_row else ""
-        # Find conference logo from logos_df
         conf_logo_url = None
         if conference in logos_df["Team"].values:
             conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
@@ -593,8 +592,95 @@ elif tab == "Team Dashboards":
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
 
+    # --- Calculate Win Distribution Table (paste here) ---
+    import numpy as np
+
+    win_probs = sched["Win Probability"].values if "Win Probability" in sched.columns else sched["Win Prob"].values
+    opponents = sched["Opponent"].tolist()
+    num_games = len(win_probs)
+
+    dp = np.zeros((num_games + 1, num_games + 1))
+    dp[0, 0] = 1.0
+
+    for g in range(1, num_games + 1):
+        p = win_probs[g-1]
+        for w in range(g+1):
+            win_part = dp[g-1, w-1] * p if w > 0 else 0
+            lose_part = dp[g-1, w] * (1 - p)
+            dp[g, w] = win_part + lose_part
+
+    rows = []
+    for g in range(1, num_games + 1):
+        row = {
+            "Game": g,
+            "Opponent": opponents[g-1]
+        }
+        for w in range(num_games + 1):
+            row[w] = dp[g, w]
+        rows.append(row)
+
+    # --- Responsive Table Rendering for Streamlit ---
+    if is_mobile():
+        font_size = 11
+        pad = 2
+        min_opp_width = 68
+        min_num_width = 28
+        table_style = f"font-size:{font_size}px; min-width:540px;"
+        wrapper_style = "overflow-x:auto; max-width:100vw;"
+    else:
+        font_size = 13
+        pad = 4
+        min_opp_width = 110
+        min_num_width = 38
+        table_style = f"font-size:{font_size}px; min-width:800px;"
+        wrapper_style = "overflow-x:auto; max-width:100vw;"
+
+    def cell_color(p):
+        # Blue for high, red for low, Excel-like gradient
+        if p == 0:
+            return "background-color:#fff;"
+        r = int(255 * (1 - p)**0.75)
+        g = int(225 * (1 - p))
+        b = int(255 * p)
+        return f"background-color:rgb({r},{g},{b});"
+
+    table_html = [
+        f'<div style="{wrapper_style}">',
+        f'<table style="border-collapse:collapse; {table_style}">',
+        "<thead><tr>"
+    ]
+    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px 5px; background:#eaf1fa; text-align:center;">Game</th>')
+    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px 5px; background:#eaf1fa; text-align:left; min-width:{min_opp_width}px;">Opponent</th>')
+    for w in range(num_games + 1):
+        table_html.append(
+            f'<th style="border:1px solid #bbb; padding:{pad}px 4px; background:#d4e4f7; text-align:center; min-width:{min_num_width}px;">{w}</th>'
+        )
+    table_html.append("</tr></thead><tbody>")
+
+    for row in rows:
+        table_html.append("<tr>")
+        table_html.append(f'<td style="border:1px solid #bbb; padding:{pad}px 5px; background:#f8fafb; text-align:center; font-weight:bold;">{row["Game"]}</td>')
+        table_html.append(f'<td style="border:1px solid #bbb; padding:{pad}px 5px; background:#f8fafb; text-align:left; font-weight:bold; min-width:{min_opp_width}px;">{row["Opponent"]}</td>')
+        for w in range(num_games + 1):
+            val = row.get(w, 0.0)
+            pct = val * 100
+            cell_style = (
+                f"border:1px solid #bbb; padding:{pad}px 4px; text-align:center; font-family:Arial;"
+                + cell_color(val)
+                + ("color:#333; font-weight:bold;" if pct > 50 else "color:#222;")
+            )
+            cell_text = f"{pct:.1f}%" if pct > 0.09 else ""
+            table_html.append(f'<td style="{cell_style}">{cell_text}</td>')
+        table_html.append("</tr>")
+    table_html.append("</tbody></table></div>")
+
+    st.markdown("#### Probability Distribution of Wins After Each Game")
+    st.markdown("".join(table_html), unsafe_allow_html=True)
+
+    # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
         sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
+
         def format_opp_rank(x):
             if pd.isnull(x):
                 return ""
@@ -603,8 +689,8 @@ elif tab == "Team Dashboards":
                 return "FCS" if val <= 0 else f"{int(round(val))}"
             except Exception:
                 return str(x)
+
         sched["Opponent Rank"] = sched["Opponent Ranking"].apply(format_opp_rank)
-        sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
         def fmt_spread(x):
             if pd.isnull(x):
                 return ""
@@ -614,6 +700,7 @@ elif tab == "Team Dashboards":
             else:
                 return f"{val:.1f}"
         sched["Projected Spread"] = sched["Spread"].apply(fmt_spread)
+        sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
 
         # MOBILE header/column maps
@@ -641,7 +728,7 @@ elif tab == "Team Dashboards":
                 "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
             )
             header_font = "font-size:13px; white-space:normal;"
-            cell_font = "font-size:10px; white-space:normal;"
+            cell_font = "font-size:13px; white-space:nowrap;"
         else:
             headers = desktop_headers
             use_cols = desktop_headers
@@ -678,9 +765,11 @@ elif tab == "Team Dashboards":
             '<thead><tr>'
         ]
         for i, h in enumerate(headers):
-            # Make "Opp." (Opponent) column wider on mobile
-            if h == "Opp.":
-                html.append(f'<th style="{header_style}{header_font} min-width:68px; max-width:102px;">{h}</th>')
+            # Wider "Opp." column on mobile
+            if is_mobile() and h == "Opp.":
+                html.append(f'<th style="{header_style}{header_font} min-width:30vw; max-width:38vw; word-break:break-word;">{h}</th>')
+            elif is_mobile():
+                html.append(f'<th style="{header_style}{header_font} min-width:11vw; max-width:19vw;">{h}</th>')
             else:
                 html.append(f'<th style="{header_style}{header_font}">{h}</th>')
         html.append('</tr></thead><tbody>')
@@ -689,8 +778,11 @@ elif tab == "Team Dashboards":
             html.append('<tr>')
             for col in use_cols:
                 val = row[col]
-                style = cell_style + cell_font
-
+                style = cell_style + cell_font + "padding:4px;"
+                if is_mobile() and col == "Opponent":
+                    style += "min-width:30vw; max-width:38vw; word-break:break-word; font-size:12px;"
+                elif is_mobile():
+                    style += "min-width:11vw; max-width:19vw; font-size:11px;"
                 # Projected Spread styling
                 if col == "Projected Spread":
                     try:
@@ -701,13 +793,11 @@ elif tab == "Team Dashboards":
                             style += "background-color:#a71d2a; color:white; font-weight:bold;"
                     except Exception:
                         pass
-
                 # Win Probability: text above the bar, black text
                 if col == "Win Probability":
                     val = win_prob_data_bar(val)
                     html.append(f'<td style="position:relative; {style} width:90px; min-width:70px; max-width:120px; vertical-align:middle;">{val}</td>')
                     continue
-
                 # Game Quality: blue color scale background, same as Power Rating
                 if col == "Game Quality":
                     try:
@@ -718,17 +808,14 @@ elif tab == "Team Dashboards":
                     except Exception:
                         pass
 
-                # Widen only the Opponent column on mobile
-                if is_mobile() and col == "Opponent":
-                    style += "min-width:68px; max-width:102px;"
                 html.append(f'<td style="{style}">{val}</td>')
             html.append('</tr>')
         html.append('</tbody></table></div>')
 
         st.markdown("".join(html), unsafe_allow_html=True)
 
- 
-    # Add all team-specific tables/charts below; use selected_team/team_row as filter.
+    # Add all team-specific tables/charts below as needed
+
 
 elif tab == "Charts & Graphs":
 
