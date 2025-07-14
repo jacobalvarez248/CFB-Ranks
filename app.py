@@ -308,6 +308,13 @@ elif tab == "Conference Overviews":
     
     # --- Altair Scatter Plot ---
     import altair as alt
+
+    logo_size = 28  # Or your preferred size
+    scatter_height = 470  # Taller than before
+    font_size = 15
+    x_min = float(conf_stats_plot["Avg_Game_Quality"].min()) - 1
+    x_max = float(conf_stats_plot["Avg_Game_Quality"].max()) + 0.3
+    
     chart = alt.Chart(conf_stats_plot).mark_image(
         width=logo_size,
         height=logo_size
@@ -317,16 +324,20 @@ elif tab == "Conference Overviews":
             scale=alt.Scale(domain=[x_min, x_max]),
             axis=alt.Axis(
                 title='Average Game Quality',
-                titleFontSize=font_size+2,
-                labelFontSize=font_size
+                titleFontSize=font_size + 2,
+                labelFontSize=font_size,
+                labelColor='black',
+                titleColor='black'
             )
         ),
         y=alt.Y(
             'Avg_Power_Rating:Q',
             axis=alt.Axis(
                 title='Average Power Rating',
-                titleFontSize=font_size+2,
-                labelFontSize=font_size
+                titleFontSize=font_size + 2,
+                labelFontSize=font_size,
+                labelColor='black',
+                titleColor='black'
             )
         ),
         url='Logo URL:N',
@@ -340,6 +351,7 @@ elif tab == "Conference Overviews":
         width='container',
         title=""
     )
+    
 
     # Responsive headers/styles
     if is_mobile():
