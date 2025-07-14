@@ -640,19 +640,19 @@ elif tab == "Team Dashboards":
                 <span style="line-height:1.15;">{this_conf_rank}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">Bowl Prob.</span>
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">6-6</span>
                 <span style="line-height:1.15;">{bowl_prob_pct}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">8+ Wins</span>
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">8-4</span>
                 <span style="line-height:1.15;">{eight_plus_pct}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">10+ Wins</span>
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">10-2</span>
                 <span style="line-height:1.15;">{ten_plus_pct}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">Undefeated</span>
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">12-0</span>
                 <span style="line-height:1.15;">{undefeated_pct}</span>
             </div>
         </div>
