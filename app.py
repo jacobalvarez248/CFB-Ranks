@@ -34,6 +34,7 @@ data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
+df_ranking = load_sheet(data_path, "Ranking", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
 df_expected["Team"] = df_expected["Team"].apply(clean_name)
 df_ranking["Team"] = df_ranking["Team"].apply(clean_name)
