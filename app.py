@@ -607,21 +607,22 @@ elif tab == "Team Dashboards":
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
 
     # === CALCULATE FINAL WIN DISTRIBUTION ===
+    
+    # 1. Get opponent list and number of games
     opponents = sched["Opponent"].tolist()
     num_games = len(opponents)
     
-    # 1. Dynamic programming for win distribution
-    dp = np.zeros((num_games + 1, num_games + 1))
-    dp[0, 0] = 1.0
-    
-    # Use the correct per-game win probability
+    # 2. Set up win probability list from schedule (defaults to 0.5 if missing)
     if "Win Probability" in sched.columns:
         win_prob_list = sched["Win Probability"].astype(float).values
     elif "Win Prob" in sched.columns:
         win_prob_list = sched["Win Prob"].astype(float).values
     else:
-        win_prob_list = np.full(num_games, 0.5)  # fallback: 50% for each if missing
+        win_prob_list = np.full(num_games, 0.5)  # fallback
     
+    # 3. Dynamic programming: build win distribution table
+    dp = np.zeros((num_games + 1, num_games + 1))
+    dp[0, 0] = 1.0
     for g in range(1, num_games + 1):
         p = win_prob_list[g-1]
         for w in range(g+1):
@@ -629,21 +630,27 @@ elif tab == "Team Dashboards":
             lose_part = dp[g-1, w] * (1 - p)
             dp[g, w] = win_part + lose_part
     
-    # 2. Get the probability of exactly w wins after all games
-    win_probs = dp[num_games, :]  # 1D array: probability of exactly w wins
+    # 4. Compute final win distribution (probability of exactly w wins)
+    win_probs = dp[num_games, :]  # shape: (num_games+1,)
     
-    # 3. Calculate "at least X wins" and exactly 12
+    # 5. Calculate "at least" and "exactly" win probabilities for cards
     at_least_6 = win_probs[6:].sum() if len(win_probs) > 6 else 0.0
     at_least_8 = win_probs[8:].sum() if len(win_probs) > 8 else 0.0
     at_least_10 = win_probs[10:].sum() if len(win_probs) > 10 else 0.0
-    exact_12 = win_probs[12] if len(win_probs) > 12 else win_probs[-1] if len(win_probs) == 12 else 0.0
+    # "12-0" card should always be exactly 12 wins, but handle if fewer games
+    if len(win_probs) > 12:
+        exact_12 = win_probs[12]
+    elif len(win_probs) == 12:
+        exact_12 = win_probs[-1]
+    else:
+        exact_12 = 0.0
     
     at_least_6_pct = f"{at_least_6*100:.1f}%"
     at_least_8_pct = f"{at_least_8*100:.1f}%"
     at_least_10_pct = f"{at_least_10*100:.1f}%"
     exact_12_pct = f"{exact_12*100:.1f}%"
     
-    # === RENDER CARDS ===
+    # 6. Render stat cards (single row, includes logo, rank, conf rank, win cards)
     card_html = f'''
     <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
         <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
@@ -674,28 +681,15 @@ elif tab == "Team Dashboards":
         </div>
     </div>
     '''
-    
     st.markdown(card_html, unsafe_allow_html=True)
-
-
-    opponents = sched["Opponent"].tolist()
-    num_games = len(win_probs)
-
-    dp = np.zeros((num_games + 1, num_games + 1))
-    dp[0, 0] = 1.0
-
-    for g in range(1, num_games + 1):
-        p = win_probs[g-1]
-        for w in range(g+1):
-            win_part = dp[g-1, w-1] * p if w > 0 else 0
-            lose_part = dp[g-1, w] * (1 - p)
-            dp[g, w] = win_part + lose_part
-
+    
+    # 7. For schedule table rendering (and your "rows" for win progression), guard index!
     rows = []
     for g in range(1, num_games + 1):
+        opp = opponents[g-1] if (g-1) < len(opponents) else ""
         row = {
             "Game": g,
-            "Opponent": opponents[g-1]
+            "Opponent": opp
         }
         for w in range(num_games + 1):
             row[w] = dp[g, w]
