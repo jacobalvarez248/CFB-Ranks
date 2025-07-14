@@ -32,9 +32,6 @@ logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
 
-
-
-
 # Normalize logo column
 logos_df["Team"] = logos_df["Team"].str.strip()
 df_expected["Team"] = df_expected["Team"].str.strip()
@@ -43,6 +40,8 @@ if "Image URL" in logos_df.columns:
 
 team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]].copy()
 df_expected = df_expected.merge(team_logos, on="Team", how="left")
+logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
 
 # --- Streamlit Config ---
 import streamlit.components.v1 as components
