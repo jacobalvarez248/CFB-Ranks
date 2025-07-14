@@ -864,7 +864,16 @@ elif tab == "Team Dashboards":
         "background:#002060; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
         "height:28px; width:28px; font-size:10px; font-weight:700; color:#FFFFFF; text-align:center;"
     )
-    
+    lighter_card_style = (
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#6ea2e7; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        if not is_mobile() else
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#6ea2e7; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+    )
+
     logo_dim = 48 if not is_mobile() else 28
    
     # ---- Team Schedule Table ----
@@ -928,19 +937,19 @@ elif tab == "Team Dashboards":
             <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
             <span style="line-height:1.15;">{this_conf_rank}</span>
         </div>
-        <div style="{card_style}">
+        <div style="{lighter_card_style}">
             <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
             <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct}</span>
         </div>
-        <div style="{card_style}">
+        <div style="{lighter_card_style}">
             <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span>
             <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct}</span>
         </div>
-        <div style="{card_style}">
+        <div style="{lighter_card_style}">
             <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span>
             <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct}</span>
         </div>
-        <div style="{card_style}">
+        <div style="{lighter_card_style}">
             <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
             <span style="line-height:1.15; font-weight:bold;">{exact_12_pct}</span>
         </div>
