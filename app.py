@@ -612,7 +612,7 @@ elif tab == "Team Dashboards":
     conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
     conf_teams["Conf Rank"] = range(1, len(conf_teams) + 1)
     this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
-    conf_rank_label = "Conf. Rank" if not is_mobile() else "Conf. Rk"
+    conf_rank_label = "Conf. Rk" if not is_mobile() else "Conf. Rk"
     
     # 6. Card style and render
     card_style = (
