@@ -712,12 +712,6 @@ elif tab == "Team Dashboards":
         dp = None
         rows = []
     
-    # Only render table/chart if rows:
-    if rows:
-        # ... render table and win dist chart ...
-    else:
-        st.info("No schedule data available for this team.")
-    
     # MOBILE header/column maps
     mobile_headers = {
         "Date": "Date",
@@ -731,26 +725,55 @@ elif tab == "Team Dashboards":
     
     # DESKTOP version (original)
     desktop_headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
-
-        # Choose headers/columns based on device
-        if is_mobile():
-            headers = [mobile_headers[c] for c in mobile_cols]
-            use_cols = mobile_cols
-            table_style = (
-                "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
-            )
-            wrapper_style = (
-                "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
-            )
-            header_font = "font-size:13px; white-space:normal;"
-            cell_font = "font-size:13px; white-space:nowrap;"
-        else:
-            headers = desktop_headers
-            use_cols = desktop_headers
-            table_style = "width:100%; border-collapse:collapse;"
-            wrapper_style = "max-width:100%; overflow-x:auto;"
-            header_font = ""
-            cell_font = "white-space:nowrap; font-size:15px;"
+    
+    # Only render table/chart if rows exist
+    if rows:
+        # --- Table Rendering ---
+        if not sched.empty:
+            sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
+    
+            def format_opp_rank(x):
+                if pd.isnull(x):
+                    return ""
+                try:
+                    val = float(x)
+                    return "FCS" if val <= 0 else f"{int(round(val))}"
+                except Exception:
+                    return str(x)
+    
+            sched["Opponent Rank"] = sched["Opponent Ranking"].apply(format_opp_rank)
+    
+            def fmt_spread(x):
+                if pd.isnull(x):
+                    return ""
+                val = -round(x * 2) / 2
+                if val > 0:
+                    return f"+{val:.1f}"
+                else:
+                    return f"{val:.1f}"
+            sched["Projected Spread"] = sched["Spread"].apply(fmt_spread)
+            sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
+            sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
+    
+            # Choose headers/columns based on device
+            if is_mobile():
+                headers = [mobile_headers[c] for c in mobile_cols]
+                use_cols = mobile_cols
+                table_style = (
+                    "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+                )
+                wrapper_style = (
+                    "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+                )
+                header_font = "font-size:13px; white-space:normal;"
+                cell_font = "font-size:13px; white-space:nowrap;"
+            else:
+                headers = desktop_headers
+                use_cols = desktop_headers
+                table_style = "width:100%; border-collapse:collapse;"
+                wrapper_style = "max-width:100%; overflow-x:auto;"
+                header_font = ""
+                cell_font = "white-space:nowrap; font-size:15px;"
 
         gq_vals = pd.to_numeric(sched["Game Quality"], errors='coerce')
         gq_min, gq_max = gq_vals.min(), gq_vals.max()
