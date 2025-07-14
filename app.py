@@ -925,37 +925,40 @@ elif tab == "Team Dashboards":
     exact_12_pct = f"{exact_12*100:.1f}%"
     
     # 6. Render stat cards (single row, includes logo, rank, conf rank, win cards)
-    card_html = f'''
-    <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
-        <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
-        {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
-        <div style="{card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
-            <span style="line-height:1.15;">{overall_rank}</span>
+    st.markdown(
+        f'''
+        <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
+            <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
+            {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
+                <span style="line-height:1.15;">{overall_rank}</span>
+            </div>
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
+                <span style="line-height:1.15;">{this_conf_rank}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#002060; font-weight:400;">6-6+</span>
+                <span style="line-height:1.15;">{at_least_6_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#002060; font-weight:400;">8-4+</span>
+                <span style="line-height:1.15;">{at_least_8_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#002060; font-weight:400;">10-2+</span>
+                <span style="line-height:1.15;">{at_least_10_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#002060; font-weight:400;">12-0</span>
+                <span style="line-height:1.15;">{exact_12_pct}</span>
+            </div>
         </div>
-        <div style="{card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
-            <span style="line-height:1.15;">{this_conf_rank}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
-            <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span>
-            <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span>
-            <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
-            <span style="line-height:1.15; font-weight:bold;">{exact_12_pct}</span>
-        </div>
-    </div>
-    '''
-    st.markdown(card_html, unsafe_allow_html=True)
+        ''',
+        unsafe_allow_html=True
+    )
+
     
     # 7. For schedule table rendering (and your "rows" for win progression), guard index!
     rows = []
