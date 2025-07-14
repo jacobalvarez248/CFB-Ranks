@@ -587,6 +587,8 @@ elif tab == "Team Dashboards":
             ''',
             unsafe_allow_html=True
         )
+    # --- After getting selected_team, logo_url, conference, conf_logo_url ---
+
     # 1. Get overall rank from Expected Wins sheet
     overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
     
@@ -599,6 +601,36 @@ elif tab == "Team Dashboards":
     # Mobile label
     conf_rank_label = "Conf. Rank" if not is_mobile() else "Conf. Rk"
     
+    # --- Card styling ---
+    card_style = (
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#fff; border:1px solid #ddd; border-radius:10px; margin-right:10px; min-width:48px; "
+        "height:48px; width:48px; font-size:15px; font-weight:700; color:#333;"
+        if not is_mobile() else
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#fff; border:1px solid #ddd; border-radius:7px; margin-right:7px; min-width:28px; "
+        "height:28px; width:28px; font-size:10px; font-weight:700; color:#333;"
+    )
+    
+    logo_dim = 48 if not is_mobile() else 28
+    
+    st.markdown(
+        f'''
+        <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
+            <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
+            {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#555; font-weight:400;">Rank</span>
+                <span style="line-height:1.15;">{overall_rank}</span>
+            </div>
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#555; font-weight:400;">{conf_rank_label}</span>
+                <span style="line-height:1.15;">{this_conf_rank}</span>
+            </div>
+        </div>
+        ''',
+        unsafe_allow_html=True
+    )
 
     # ---- Team Schedule Table ----
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
@@ -783,33 +815,6 @@ elif tab == "Team Dashboards":
         except Exception:
             pass
         opponent_logos.append(logo_url)
-    card_style = (
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#fff; border:1px solid #ddd; border-radius:10px; margin-right:10px; min-width:48px; "
-        "height:48px; width:48px; font-size:15px; font-weight:700; color:#333;"
-        if not is_mobile() else
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#fff; border:1px solid #ddd; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:10px; font-weight:700; color:#333;"
-    )
-    
-    st.markdown(
-        f'''
-        <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#555; font-weight:400;">Rank</span>
-                <span style="line-height:1.15;">{overall_rank}</span>
-            </div>
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#555; font-weight:400;">{conf_rank_label}</span>
-                <span style="line-height:1.15;">{this_conf_rank}</span>
-            </div>
-            <img src="{logo_url}" width="48" style="display:inline-block;"/>
-            {f"<img src='{conf_logo_url}' width='48' style='display:inline-block;'/>" if conf_logo_url else ""}
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
 
     # --- Unified Responsive Table Block ---
     n_cols = 2 + num_games + 1  # Game + Opp + win columns
