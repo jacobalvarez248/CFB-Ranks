@@ -263,22 +263,22 @@ elif tab == "Conference Overviews":
         )
     )
     
-    # Get logos for conferences (if you have conference logos in logos_df["Team"])
+    # Get logos for conferences
     conf_stats["Logo URL"] = conf_stats["Conference"].map(
         dict(zip(logos_df["Team"], logos_df["Logo URL"]))
     )
     
     # Responsive headers
     if is_mobile():
-        summary_headers = ["", "Conference", "Avg. Pwr. Rtg.", "Avg. Game Qty", "Avg. Sched. Diff."]
-        summary_cols = ["Logo URL", "Conference", "Avg_Power_Rating", "Avg_Game_Quality", "Avg_Sched_Diff"]
+        summary_headers = ["Conference", "Avg. Pwr. Rtg.", "Avg. Game Qty", "Avg. Sched. Diff."]
+        summary_cols = ["Conference", "Avg_Power_Rating", "Avg_Game_Quality", "Avg_Sched_Diff"]
         table_style = "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
         wrapper_style = "max-width:100vw; overflow-x:hidden; margin:0 -16px 8px -16px;"
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
     else:
-        summary_headers = ["", "Conference", "Average Power Rating", "Average Game Quality", "Average Schedule Difficulty"]
-        summary_cols = ["Logo URL", "Conference", "Avg_Power_Rating", "Avg_Game_Quality", "Avg_Sched_Diff"]
+        summary_headers = ["Conference", "Average Power Rating", "Average Game Quality", "Average Schedule Difficulty"]
+        summary_cols = ["Conference", "Avg_Power_Rating", "Avg_Game_Quality", "Avg_Sched_Diff"]
         table_style = "width:100%; border-collapse:collapse;"
         wrapper_style = "max-width:100%; overflow-x:auto; margin-bottom:16px;"
         header_font = ""
@@ -308,16 +308,14 @@ elif tab == "Conference Overviews":
     
     for _, row in conf_stats.iterrows():
         html.append('<tr>')
-        # Conference logo
+        # Conference Name + Logo (in the same cell)
         logo_url = row["Logo URL"]
         if pd.notnull(logo_url) and isinstance(logo_url, str) and logo_url.startswith("http"):
-            logo_html = f'<img src="{logo_url}" width="24" style="display:inline-block;vertical-align:middle;" />'
+            logo_html = f'<img src="{logo_url}" width="24" style="display:inline-block;vertical-align:middle; margin-right:7px;" />'
         else:
             logo_html = ""
-        html.append(f'<td style="border:1px solid #ddd; text-align:center; {cell_font}">{logo_html}</td>')
-    
-        # Conference Name
-        html.append(f'<td style="border:1px solid #ddd; text-align:left; {cell_font}">{row["Conference"]}</td>')
+        conf_cell = f"{logo_html}{row['Conference']}"
+        html.append(f'<td style="border:1px solid #ddd; text-align:left; {cell_font}">{conf_cell}</td>')
     
         # Avg Power Rating
         pr_style = cell_color(row["Avg_Power_Rating"], pr_min, pr_max)
