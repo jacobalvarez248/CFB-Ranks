@@ -31,6 +31,7 @@ df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
+df_ranking = load_sheet(data_path, "Ranking", header=1)
 
 # Normalize logo column
 logos_df["Team"] = logos_df["Team"].str.strip()
