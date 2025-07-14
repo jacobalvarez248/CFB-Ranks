@@ -598,11 +598,11 @@ elif tab == "Team Dashboards":
     # --- Card styling ---
     card_style = (
         "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#002060; border:1px solid #ddd; border-radius:10px; margin-right:10px; min-width:48px; "
+        "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
         "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
         if not is_mobile() else
         "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#002060; border:1px solid #ddd; border-radius:7px; margin-right:7px; min-width:28px; "
+        "background:#002060; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
         "height:28px; width:28px; font-size:10px; font-weight:700; color:#FFFFFF; text-align:center;"
     )
     
@@ -614,11 +614,11 @@ elif tab == "Team Dashboards":
             <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
             {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#555; font-weight:400;">Rank</span>
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
                 <span style="line-height:1.15;">{overall_rank}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#555; font-weight:400;">{conf_rank_label}</span>
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">{conf_rank_label}</span>
                 <span style="line-height:1.15;">{this_conf_rank}</span>
             </div>
         </div>
