@@ -905,7 +905,7 @@ elif tab == "Team Dashboards":
         with right_col:
             st.markdown("#### Win Probability Distribution")
             bar = alt.Chart(df_win_dist).mark_bar(
-                color="#1976d2"
+                color="#002060"
             ).encode(
                 x=alt.X("Wins:O", axis=alt.Axis(title="Wins", labelAngle=0)),
                 y=alt.Y("Probability:Q", axis=alt.Axis(title="Probability (%)")),
