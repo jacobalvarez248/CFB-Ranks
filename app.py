@@ -31,7 +31,31 @@ df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
+df_ranking = load_sheet(data_path, "Ranking", header=1)
+df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
 
+rank_row = df_ranking[df_ranking["Team"].str.strip() == selected_team.strip()]
+if not rank_row.empty:
+    ret_prod = rank_row.iloc[0].get("Returning Production", "")
+    off_ret = rank_row.iloc[0].get("Off. Returning Production", "")
+    def_ret = rank_row.iloc[0].get("Def. Returning Production", "")
+    # Format as percent (0.85 --> 85.0%)
+    def fmt_pct(val):
+        try:
+            # Already a string with percent sign?
+            if isinstance(val, str) and "%" in val:
+                return val
+            val_flt = float(val)
+            # Treat <=1.01 as fraction, otherwise already percent (covers 0.99, 1.0, etc.)
+            return f"{val_flt*100:.1f}%" if val_flt <= 1.01 else f"{val_flt:.1f}%"
+        except Exception:
+            return str(val)
+    ret_prod = fmt_pct(ret_prod)
+    off_ret = fmt_pct(off_ret)
+    def_ret = fmt_pct(def_ret)
+else:
+    ret_prod = off_ret = def_ret = ""
+    
 # Normalize logo column
 logos_df["Team"] = logos_df["Team"].str.strip()
 df_expected["Team"] = df_expected["Team"].str.strip()
@@ -873,6 +897,16 @@ elif tab == "Team Dashboards":
         "background:#00B0F0; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
         "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
     )
+    green_card_style = (
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#00B050; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        if not is_mobile() else
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#00B050; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
+        "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
+    )
+
     logo_dim = 48 if not is_mobile() else 28
    
     # ---- Team Schedule Table ----
@@ -951,6 +985,18 @@ elif tab == "Team Dashboards":
         <div style="{lighter_card_style}">
             <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
             <span style="line-height:1.15; font-weight:bold;">{exact_12_pct}</span>
+        </div>
+        <div style="{green_card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
+            <span style="line-height:1.15; font-weight:bold;">{ret_prod}</span>
+        </div>
+        <div style="{green_card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Off. Ret.</span>
+            <span style="line-height:1.15; font-weight:bold;">{off_ret}</span>
+        </div>
+        <div style="{green_card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Def. Ret.</span>
+            <span style="line-height:1.15; font-weight:bold;">{def_ret}</span>
         </div>
     </div>
     '''
