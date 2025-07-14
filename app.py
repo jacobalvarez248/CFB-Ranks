@@ -1161,16 +1161,24 @@ elif tab == "Team Dashboards":
             else:
                 html.append(f'<th style="{header_style}{header_font}">{h}</th>')
         html.append('</tr></thead><tbody>')
-
         for _, row in sched.iterrows():
             html.append('<tr>')
             for col in use_cols:
                 val = row[col]
                 style = cell_style + cell_font + "padding:4px;"
+                cell_content = val  # default
+        
                 if is_mobile() and col == "Opponent":
-                    style += "min-width:30vw; max-width:38vw; word-break:break-word; font-size:11px;"
+                    # Shrink font as needed, prevent wrapping/overflow, ellipsis for long names
+                    style += (
+                        "min-width:0; max-width:38vw; overflow:hidden; "
+                        "text-overflow:ellipsis; white-space:nowrap; "
+                        "font-size:clamp(8px, 4vw, 13px); display:block;"
+                    )
+                    cell_content = f'<span style="display:block; width:100%;">{val}</span>'
                 elif is_mobile():
                     style += "min-width:11vw; max-width:19vw; font-size:11px;"
+        
                 # Projected Spread styling
                 if col == "Projected Spread":
                     try:
@@ -1181,11 +1189,13 @@ elif tab == "Team Dashboards":
                             style += "background-color:#a71d2a; color:white; font-weight:bold;"
                     except Exception:
                         pass
+        
                 # Win Probability: text above the bar, black text
                 if col == "Win Probability":
-                    val = win_prob_data_bar(val)
-                    html.append(f'<td style="position:relative; {style} width:90px; min-width:70px; max-width:120px; vertical-align:middle;">{val}</td>')
+                    cell_content = win_prob_data_bar(val)
+                    html.append(f'<td style="position:relative; {style} width:90px; min-width:70px; max-width:120px; vertical-align:middle;">{cell_content}</td>')
                     continue
+        
                 # Game Quality: blue color scale background, same as Power Rating
                 if col == "Game Quality":
                     try:
@@ -1195,9 +1205,9 @@ elif tab == "Team Dashboards":
                         style += f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'}; font-weight:600;"
                     except Exception:
                         pass
-
-                html.append(f'<td style="{style}">{val}</td>')
-            html.append('</tr>')
+        
+                html.append(f'<td style="{style}">{cell_content}</td>')
+            html.append('</tr>')        
         html.append('</tbody></table></div>')
 
         st.markdown("".join(html), unsafe_allow_html=True)
