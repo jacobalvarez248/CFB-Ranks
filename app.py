@@ -345,7 +345,25 @@ elif tab == "Conference Overviews":
     
     x_min = float(conf_stats_plot["Avg_Game_Quality"].min()) - 1
     x_max = float(conf_stats_plot["Avg_Game_Quality"].max()) + 0.3
+
+    # Ensure all numbers are floats, coerce errors to NaN
+    for col in ["Avg_Power_Rating", "Avg_Game_Quality", "Avg_Sched_Diff"]:
+        conf_stats[col] = pd.to_numeric(conf_stats[col], errors="coerce")
     
+    # Filter for only valid data
+    conf_stats_plot = conf_stats.dropna(subset=["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"])
+    conf_stats_plot = conf_stats_plot[
+        conf_stats_plot["Logo URL"].astype(str).str.startswith("http")
+    ]
+    
+    # Optional debug: show which are still missing
+    missing_plot = conf_stats[
+        conf_stats[["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"]].isnull().any(axis=1) |
+        ~conf_stats["Logo URL"].astype(str).str.startswith("http")
+    ]["Conference"].tolist()
+    if missing_plot:
+        st.warning("Conferences not plotted: " + ", ".join(missing_plot))
+
     # ---- CHART CODE (scatterplot) ----
     chart = alt.Chart(conf_stats_plot).mark_image(
         width=logo_size,
