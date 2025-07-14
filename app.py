@@ -666,7 +666,7 @@ elif tab == "Team Dashboards":
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
-        sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
+        sched["Date"] = pd.to_datetime(sched["Date"], errors='coerce').dt.strftime("%b-%d")
 
         def format_opp_rank(x):
             if pd.isnull(x):
