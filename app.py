@@ -314,7 +314,10 @@ elif tab == "Conference Overviews":
             logo_html = f'<img src="{logo_url}" width="24" style="display:inline-block;vertical-align:middle; margin-right:7px;" />'
         else:
             logo_html = ""
-        conf_cell = f"{logo_html}{row['Conference']}"
+        if is_mobile():
+            conf_cell = logo_html  # Logo only
+        else:
+            conf_cell = f"{logo_html}{row['Conference']}"  # Logo + name
         html.append(f'<td style="border:1px solid #ddd; text-align:left; {cell_font}">{conf_cell}</td>')
     
         # Avg Power Rating
