@@ -253,6 +253,96 @@ if tab == "Rankings":
 
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
+    # --- Conference Summary Table ---
+    conf_stats = (
+        df_expected.groupby("Conference", as_index=False)
+        .agg(
+            Avg_Power_Rating=('Power Rating', 'mean'),
+            Avg_Game_Quality=('Average Game Quality', 'mean'),
+            Avg_Sched_Diff=('Schedule Difficulty Rating', 'mean')
+        )
+    )
+    
+    # Get logos for conferences (if you have conference logos in logos_df["Team"])
+    conf_stats["Logo URL"] = conf_stats["Conference"].map(
+        dict(zip(logos_df["Team"], logos_df["Logo URL"]))
+    )
+    
+    # Responsive headers
+    if is_mobile():
+        summary_headers = ["", "Conference", "Avg. Pwr. Rtg.", "Avg. Game Qty", "Avg. Sched. Diff."]
+        summary_cols = ["Logo URL", "Conference", "Avg_Power_Rating", "Avg_Game_Quality", "Avg_Sched_Diff"]
+        table_style = "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+        wrapper_style = "max-width:100vw; overflow-x:hidden; margin:0 -16px 8px -16px;"
+        header_font = "font-size:13px; white-space:normal;"
+        cell_font = "font-size:13px; white-space:nowrap;"
+    else:
+        summary_headers = ["", "Conference", "Average Power Rating", "Average Game Quality", "Average Schedule Difficulty"]
+        summary_cols = ["Logo URL", "Conference", "Avg_Power_Rating", "Avg_Game_Quality", "Avg_Sched_Diff"]
+        table_style = "width:100%; border-collapse:collapse;"
+        wrapper_style = "max-width:100%; overflow-x:auto; margin-bottom:16px;"
+        header_font = ""
+        cell_font = "white-space:nowrap; font-size:15px;"
+    
+    pr_min, pr_max = conf_stats["Avg_Power_Rating"].min(), conf_stats["Avg_Power_Rating"].max()
+    gq_min, gq_max = conf_stats["Avg_Game_Quality"].min(), conf_stats["Avg_Game_Quality"].max()
+    sd_min, sd_max = conf_stats["Avg_Sched_Diff"].min(), conf_stats["Avg_Sched_Diff"].max()
+    
+    def cell_color(val, col_min, col_max, inverse=False):
+        try:
+            v = float(val)
+        except Exception:
+            return ""
+        t = (v - col_min) / (col_max - col_min) if col_max > col_min else 0
+        if inverse:
+            t = 1 - t
+        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+        return f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t < 0.5 else 'white'}; font-weight:600;"
+    
+    html = [f'<div style="{wrapper_style}"><table style="{table_style}"><thead><tr>']
+    for h in summary_headers:
+        html.append(
+            f'<th style="border:1px solid #ddd; padding:8px; background-color:#002060; color:white; text-align:center; {header_font}">{h}</th>'
+        )
+    html.append('</tr></thead><tbody>')
+    
+    for _, row in conf_stats.iterrows():
+        html.append('<tr>')
+        # Conference logo
+        logo_url = row["Logo URL"]
+        if pd.notnull(logo_url) and isinstance(logo_url, str) and logo_url.startswith("http"):
+            logo_html = f'<img src="{logo_url}" width="24" style="display:inline-block;vertical-align:middle;" />'
+        else:
+            logo_html = ""
+        html.append(f'<td style="border:1px solid #ddd; text-align:center; {cell_font}">{logo_html}</td>')
+    
+        # Conference Name
+        html.append(f'<td style="border:1px solid #ddd; text-align:left; {cell_font}">{row["Conference"]}</td>')
+    
+        # Avg Power Rating
+        pr_style = cell_color(row["Avg_Power_Rating"], pr_min, pr_max)
+        html.append(f'<td style="border:1px solid #ddd; text-align:center; {cell_font}{pr_style}">{row["Avg_Power_Rating"]:.1f}</td>')
+    
+        # Avg Game Quality
+        gq_style = cell_color(row["Avg_Game_Quality"], gq_min, gq_max)
+        html.append(f'<td style="border:1px solid #ddd; text-align:center; {cell_font}{gq_style}">{row["Avg_Game_Quality"]:.1f}</td>')
+    
+        # Avg Sched Diff (inverse color scale)
+        sd_style = cell_color(row["Avg_Sched_Diff"], sd_min, sd_max, inverse=True)
+        html.append(f'<td style="border:1px solid #ddd; text-align:center; {cell_font}{sd_style}">{row["Avg_Sched_Diff"]:.1f}</td>')
+    
+        html.append('</tr>')
+    html.append('</tbody></table></div>')
+    
+    # Show table (left on desktop, full width on mobile)
+    if is_mobile():
+        st.markdown("#### Conference Summary")
+        st.markdown("".join(html), unsafe_allow_html=True)
+    else:
+        left, right = st.columns([1, 1])
+        with left:
+            st.markdown("#### Conference Summary")
+            st.markdown("".join(html), unsafe_allow_html=True)
 
     # ... summary prep code above ...
     left, right = st.columns([1, 1])
