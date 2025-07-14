@@ -666,7 +666,7 @@ elif tab == "Team Dashboards":
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
-        sched["Date"] = pd.to_datetime(sched["Date"], errors='coerce').dt.strftime("%b-%d")
+        sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
 
         def format_opp_rank(x):
             if pd.isnull(x):
@@ -689,103 +689,40 @@ elif tab == "Team Dashboards":
         sched["Projected Spread"] = sched["Spread"].apply(fmt_spread)
         sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
-    rows = []
-    if not sched.empty:
-        win_probs = sched["Win Probability"].values if "Win Probability" in sched.columns else sched["Win Prob"].values
-        # Ensure win_probs is a float array in [0, 1]
-        import numpy as np
-        
-        # If values are percentages like 86.6%, convert to float between 0 and 1
-        def parse_prob(p):
-            if isinstance(p, str):
-                p = p.strip().replace('%','')
-                return float(p)/100 if float(p) > 1 else float(p)
-            return float(p)
-        
-        win_probs = np.array([parse_prob(p) for p in win_probs])
 
-        opponents = sched["Opponent"].tolist()
-        num_games = len(win_probs)
-        dp = np.zeros((num_games + 1, num_games + 1))
-        dp[0, 0] = 1.0
-        for g in range(1, num_games + 1):
-            p = win_probs[g-1]
-            for w in range(g+1):
-                win_part = dp[g-1, w-1] * p if w > 0 else 0
-                lose_part = dp[g-1, w] * (1 - p)
-                dp[g, w] = win_part + lose_part
-        for g in range(1, num_games + 1):
-            row = {"Game": g, "Opponent": opponents[g-1]}
-            for w in range(num_games + 1):
-                row[w] = dp[g, w]
-            rows.append(row)
-    else:
-        num_games = 0
-        dp = None
-        rows = []
-    
-    # MOBILE header/column maps
-    mobile_headers = {
-        "Date": "Date",
-        "Opponent": "Opp.",
-        "Opponent Rank": "Opp. Rank",
-        "Projected Spread": "Proj. Spread",
-        "Win Probability": "Win Prob.",
-        "Game Quality": "Game Qty"
-    }
-    mobile_cols = list(mobile_headers.keys())
-    
-    # DESKTOP version (original)
-    desktop_headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
-    
-    # Only render table/chart if rows exist
-    if rows:
-        # --- Table Rendering ---
-        if not sched.empty:
-            sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
-    
-            def format_opp_rank(x):
-                if pd.isnull(x):
-                    return ""
-                try:
-                    val = float(x)
-                    return "FCS" if val <= 0 else f"{int(round(val))}"
-                except Exception:
-                    return str(x)
-    
-            sched["Opponent Rank"] = sched["Opponent Ranking"].apply(format_opp_rank)
-    
-            def fmt_spread(x):
-                if pd.isnull(x):
-                    return ""
-                val = -round(x * 2) / 2
-                if val > 0:
-                    return f"+{val:.1f}"
-                else:
-                    return f"{val:.1f}"
-            sched["Projected Spread"] = sched["Spread"].apply(fmt_spread)
-            sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
-            sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
-    
-            # Choose headers/columns based on device
-            if is_mobile():
-                headers = [mobile_headers[c] for c in mobile_cols]
-                use_cols = mobile_cols
-                table_style = (
-                    "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
-                )
-                wrapper_style = (
-                    "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
-                )
-                header_font = "font-size:13px; white-space:normal;"
-                cell_font = "font-size:13px; white-space:nowrap;"
-            else:
-                headers = desktop_headers
-                use_cols = desktop_headers
-                table_style = "width:100%; border-collapse:collapse;"
-                wrapper_style = "max-width:100%; overflow-x:auto;"
-                header_font = ""
-                cell_font = "white-space:nowrap; font-size:15px;"
+        # MOBILE header/column maps
+        mobile_headers = {
+            "Date": "Date",
+            "Opponent": "Opp.",
+            "Opponent Rank": "Opp. Rank",
+            "Projected Spread": "Proj. Spread",
+            "Win Probability": "Win Prob.",
+            "Game Quality": "Game Qty"
+        }
+        mobile_cols = list(mobile_headers.keys())
+
+        # DESKTOP version (original)
+        desktop_headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
+
+        # Choose headers/columns based on device
+        if is_mobile():
+            headers = [mobile_headers[c] for c in mobile_cols]
+            use_cols = mobile_cols
+            table_style = (
+                "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+            )
+            wrapper_style = (
+                "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+            )
+            header_font = "font-size:13px; white-space:normal;"
+            cell_font = "font-size:13px; white-space:nowrap;"
+        else:
+            headers = desktop_headers
+            use_cols = desktop_headers
+            table_style = "width:100%; border-collapse:collapse;"
+            wrapper_style = "max-width:100%; overflow-x:auto;"
+            header_font = ""
+            cell_font = "white-space:nowrap; font-size:15px;"
 
         gq_vals = pd.to_numeric(sched["Game Quality"], errors='coerce')
         gq_min, gq_max = gq_vals.min(), gq_vals.max()
