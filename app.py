@@ -571,11 +571,6 @@ elif tab == "Team Dashboards":
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
-
-    # --- After getting selected_team, logo_url, conference, conf_logo_url ---
-
-    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
-    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
     
     # ADD THIS BACK
     conference = team_row["Conference"] if "Conference" in team_row else ""
