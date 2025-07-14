@@ -351,7 +351,19 @@ elif tab == "Conference Overviews":
         width='container',
         title=""
     )
-    
+    chart = chart.configure_axis(
+        labelColor='black',
+        titleColor='black',
+        gridColor='#eaeaea'
+    ).configure_title(
+        color='black'
+    ).configure_legend(
+        labelColor='black',
+        titleColor='black'
+    ).configure_view(
+        strokeWidth=0
+    )
+
 
     # Responsive headers/styles
     if is_mobile():
