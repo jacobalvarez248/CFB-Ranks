@@ -689,6 +689,34 @@ elif tab == "Team Dashboards":
         sched["Projected Spread"] = sched["Spread"].apply(fmt_spread)
         sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
+    rows = []
+    if not sched.empty:
+        win_probs = sched["Win Probability"].values if "Win Probability" in sched.columns else sched["Win Prob"].values
+        opponents = sched["Opponent"].tolist()
+        num_games = len(win_probs)
+        dp = np.zeros((num_games + 1, num_games + 1))
+        dp[0, 0] = 1.0
+        for g in range(1, num_games + 1):
+            p = win_probs[g-1]
+            for w in range(g+1):
+                win_part = dp[g-1, w-1] * p if w > 0 else 0
+                lose_part = dp[g-1, w] * (1 - p)
+                dp[g, w] = win_part + lose_part
+        for g in range(1, num_games + 1):
+            row = {"Game": g, "Opponent": opponents[g-1]}
+            for w in range(num_games + 1):
+                row[w] = dp[g, w]
+            rows.append(row)
+    else:
+        num_games = 0
+        dp = None
+        rows = []
+    
+    # Only render table/chart if rows:
+    if rows:
+        # ... render table and win dist chart ...
+    else:
+        st.info("No schedule data available for this team.")
 
         # MOBILE header/column maps
         mobile_headers = {
