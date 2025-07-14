@@ -692,6 +692,18 @@ elif tab == "Team Dashboards":
     rows = []
     if not sched.empty:
         win_probs = sched["Win Probability"].values if "Win Probability" in sched.columns else sched["Win Prob"].values
+        # Ensure win_probs is a float array in [0, 1]
+        import numpy as np
+        
+        # If values are percentages like 86.6%, convert to float between 0 and 1
+        def parse_prob(p):
+            if isinstance(p, str):
+                p = p.strip().replace('%','')
+                return float(p)/100 if float(p) > 1 else float(p)
+            return float(p)
+        
+        win_probs = np.array([parse_prob(p) for p in win_probs])
+
         opponents = sched["Opponent"].tolist()
         num_games = len(win_probs)
         dp = np.zeros((num_games + 1, num_games + 1))
