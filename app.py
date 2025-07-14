@@ -31,7 +31,24 @@ df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
-    
+
+# ... elsewhere, near top
+def inject_mobile_css():
+    st.markdown("""
+    <style>
+    @media (max-width: 740px) {
+        .block-container, [data-testid="stHorizontalBlock"], .main {
+            max-width: 100vw !important;
+            min-width: 100vw !important;
+            width: 100vw !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box;
+        }
+        html, body { overflow-x: hidden !important; }
+    }
+    </style>
+    """, unsafe_allow_html=True)
 # Normalize logo column
 logos_df["Team"] = logos_df["Team"].str.strip()
 df_expected["Team"] = df_expected["Team"].str.strip()
@@ -832,6 +849,9 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
+    # In Team Dashboards tab:
+    if is_mobile():
+        inject_mobile_css()
     # --- Select Team ---
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
