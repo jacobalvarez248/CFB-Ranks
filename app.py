@@ -567,54 +567,35 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # 1. Team and Conference Info
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
+
+    # --- After getting selected_team, logo_url, conference, conf_logo_url ---
+
+    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
+    
+    # ADD THIS BACK
     conference = team_row["Conference"] if "Conference" in team_row else ""
     conf_logo_url = None
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
     
-    # 2. Schedule for Team
-    team_col = [col for col in df_schedule.columns if "Team" in col][0]
-    sched = df_schedule[df_schedule[team_col] == selected_team].copy()
-    
-    # 3. Build DP Matrix
-    import numpy as np
-    win_probs = sched["Win Probability"].values if "Win Probability" in sched.columns else sched["Win Prob"].values
-    opponents = sched["Opponent"].tolist()
-    num_games = len(win_probs)
-    dp = np.zeros((num_games + 1, num_games + 1))
-    dp[0, 0] = 1.0
-    for g in range(1, num_games + 1):
-        p = win_probs[g-1]
-        for w in range(g+1):
-            win_part = dp[g-1, w-1] * p if w > 0 else 0
-            lose_part = dp[g-1, w] * (1 - p)
-            dp[g, w] = win_part + lose_part
-    
-    # 4. Probabilities for Cards
-    bowl_prob = dp[num_games, 6:].sum() if num_games >= 6 else 0
-    eight_plus = dp[num_games, 8:].sum() if num_games >= 8 else 0
-    ten_plus = dp[num_games, 10:].sum() if num_games >= 10 else 0
-    undefeated = dp[num_games, num_games] if num_games > 0 else 0
-    
-    bowl_prob_pct = f"{bowl_prob * 100:.1f}%"
-    eight_plus_pct = f"{eight_plus * 100:.1f}%"
-    ten_plus_pct = f"{ten_plus * 100:.1f}%"
-    undefeated_pct = f"{undefeated * 100:.1f}%"
-    
-    # 5. Rankings
+    # 1. Get overall rank from Expected Wins sheet
     overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
+    
+    # 2. Calculate conference rank (by Power Rating)
     conf_teams = df_expected[df_expected["Conference"] == conference].copy()
     conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
     conf_teams["Conf Rank"] = range(1, len(conf_teams) + 1)
     this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
-    conf_rank_label = "Conf. Rank" if not is_mobile() else "Conf. Rk"
     
-    # 6. Card style and render
+    # Mobile label
+    conf_rank_label = "Conf. Rk" if not is_mobile() else "Conf. Rk"
+    
+    # --- Card styling ---
     card_style = (
         "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
         "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
@@ -624,6 +605,7 @@ elif tab == "Team Dashboards":
         "background:#002060; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
         "height:28px; width:28px; font-size:10px; font-weight:700; color:#FFFFFF; text-align:center;"
     )
+    
     logo_dim = 48 if not is_mobile() else 28
     
     st.markdown(
@@ -632,37 +614,51 @@ elif tab == "Team Dashboards":
             <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
             {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">Rank</span>
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
                 <span style="line-height:1.15;">{overall_rank}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">{conf_rank_label}</span>
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">{conf_rank_label}</span>
                 <span style="line-height:1.15;">{this_conf_rank}</span>
-            </div>
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">Bowl Prob.</span>
-                <span style="line-height:1.15;">{bowl_prob_pct}</span>
-            </div>
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">8+ Wins</span>
-                <span style="line-height:1.15;">{eight_plus_pct}</span>
-            </div>
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">10+ Wins</span>
-                <span style="line-height:1.15;">{ten_plus_pct}</span>
-            </div>
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">Undefeated</span>
-                <span style="line-height:1.15;">{undefeated_pct}</span>
             </div>
         </div>
         ''',
         unsafe_allow_html=True
     )
 
+
     # ---- Team Schedule Table ----
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
+
+    # --- Calculate Win Distribution Table (paste here) ---
+    import numpy as np
+
+    win_probs = sched["Win Probability"].values if "Win Probability" in sched.columns else sched["Win Prob"].values
+    opponents = sched["Opponent"].tolist()
+    num_games = len(win_probs)
+
+    dp = np.zeros((num_games + 1, num_games + 1))
+    dp[0, 0] = 1.0
+
+    for g in range(1, num_games + 1):
+        p = win_probs[g-1]
+        for w in range(g+1):
+            win_part = dp[g-1, w-1] * p if w > 0 else 0
+            lose_part = dp[g-1, w] * (1 - p)
+            dp[g, w] = win_part + lose_part
+
+    rows = []
+    for g in range(1, num_games + 1):
+        row = {
+            "Game": g,
+            "Opponent": opponents[g-1]
+        }
+        for w in range(num_games + 1):
+            row[w] = dp[g, w]
+        rows.append(row)
+
+    
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
