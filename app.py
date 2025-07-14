@@ -338,7 +338,14 @@ elif tab == "Conference Overviews":
 
     # Only keep rows with valid numeric values for plotting
     conf_stats_plot = conf_stats.dropna(subset=["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"])
-
+    # -- Add these lines before your chart code --
+    logo_size = 26         # or adjust to 22, 24, etc. for preferred icon size
+    scatter_height = 380   # or whatever height looks good for your layout
+    font_size = 15
+    
+    x_min = float(conf_stats_plot["Avg_Game_Quality"].min()) - 1
+    x_max = float(conf_stats_plot["Avg_Game_Quality"].max()) + 0.3
+    
     # ---- CHART CODE (scatterplot) ----
     chart = alt.Chart(conf_stats_plot).mark_image(
         width=logo_size,
