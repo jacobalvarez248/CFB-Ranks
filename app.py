@@ -612,7 +612,7 @@ elif tab == "Team Dashboards":
     conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
     conf_teams["Conf Rank"] = range(1, len(conf_teams) + 1)
     this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
-    conf_rank_label = "Conf. Rk" if not is_mobile() else "Conf. Rk"
+    conf_rank_label = "Conf. Rank" if not is_mobile() else "Conf. Rk"
     
     # 6. Card style and render
     card_style = (
@@ -622,7 +622,7 @@ elif tab == "Team Dashboards":
         if not is_mobile() else
         "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
         "background:#002060; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:10px; font-weight:250; color:#FFFFFF; text-align:center;"
+        "height:28px; width:28px; font-size:10px; font-weight:700; color:#FFFFFF; text-align:center;"
     )
     logo_dim = 48 if not is_mobile() else 28
     
@@ -640,19 +640,19 @@ elif tab == "Team Dashboards":
                 <span style="line-height:1.15;">{this_conf_rank}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">6-6</span>
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">Bowl Prob.</span>
                 <span style="line-height:1.15;">{bowl_prob_pct}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">8-4</span>
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">8+ Wins</span>
                 <span style="line-height:1.15;">{eight_plus_pct}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">10-2</span>
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">10+ Wins</span>
                 <span style="line-height:1.15;">{ten_plus_pct}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#fff; font-weight:400;">12-0</span>
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">Undefeated</span>
                 <span style="line-height:1.15;">{undefeated_pct}</span>
             </div>
         </div>
