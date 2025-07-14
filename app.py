@@ -957,7 +957,7 @@ elif tab == "Team Dashboards":
             baseline='bottom',
             dy=-2,
             color='black',
-            fontSize=13
+            fontSize=8
         ).encode(
             text="Label"
         )
