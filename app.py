@@ -832,47 +832,36 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
+    # --- Select Team ---
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
-    # ADD THIS BACK
     conference = team_row["Conference"] if "Conference" in team_row else ""
     conf_logo_url = None
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
-    
-    # 1. Get overall rank from Expected Wins sheet
+
+    # --- Rank Info ---
     overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
-    
-    # 2. Calculate conference rank (by Power Rating)
     conf_teams = df_expected[df_expected["Conference"] == conference].copy()
     conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
     conf_teams["Conf Rank"] = range(1, len(conf_teams) + 1)
     this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
-    
-    # Mobile label
-    conf_rank_label = "Conf. Rk" if not is_mobile() else "Conf. Rk"
-       
-    # ---- Team Schedule Table ----
+
+    # --- Schedule ---
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
-
-    # === CALCULATE FINAL WIN DISTRIBUTION ===
-    
-    # 1. Get opponent list and number of games
     opponents = sched["Opponent"].tolist()
     num_games = len(opponents)
-    
-    # 2. Set up win probability list from schedule (defaults to 0.5 if missing)
+
+    # --- Win Probabilities ---
     if "Win Probability" in sched.columns:
         win_prob_list = sched["Win Probability"].astype(float).values
     elif "Win Prob" in sched.columns:
         win_prob_list = sched["Win Prob"].astype(float).values
     else:
         win_prob_list = np.full(num_games, 0.5)  # fallback
-    
-    # 3. Dynamic programming: build win distribution table
     dp = np.zeros((num_games + 1, num_games + 1))
     dp[0, 0] = 1.0
     for g in range(1, num_games + 1):
@@ -881,70 +870,53 @@ elif tab == "Team Dashboards":
             win_part = dp[g-1, w-1] * p if w > 0 else 0
             lose_part = dp[g-1, w] * (1 - p)
             dp[g, w] = win_part + lose_part
-    
-    # 4. Compute final win distribution (probability of exactly w wins)
-    win_probs = dp[num_games, :]  # shape: (num_games+1,)
-    
-    # 5. Calculate "at least" and "exactly" win probabilities for cards
+    win_probs = dp[num_games, :]
     at_least_6 = win_probs[6:].sum() if len(win_probs) > 6 else 0.0
     at_least_8 = win_probs[8:].sum() if len(win_probs) > 8 else 0.0
     at_least_10 = win_probs[10:].sum() if len(win_probs) > 10 else 0.0
-    # "12-0" card should always be exactly 12 wins, but handle if fewer games
     if len(win_probs) > 12:
         exact_12 = win_probs[12]
     elif len(win_probs) == 12:
         exact_12 = win_probs[-1]
     else:
         exact_12 = 0.0
-    
     at_least_6_pct = f"{at_least_6*100:.1f}%"
     at_least_8_pct = f"{at_least_8*100:.1f}%"
     at_least_10_pct = f"{at_least_10*100:.1f}%"
     exact_12_pct = f"{exact_12*100:.1f}%"
 
-    # --- Pull Ret. Prod., Off. Ret., Def. Ret. from Ranking tab ---
+    # --- Returning Production ---
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
-    
     rank_row = df_ranking[df_ranking["Team"].str.strip() == selected_team.strip()]
+    def fmt_pct(val):
+        try:
+            if isinstance(val, str) and "%" in val:
+                return val
+            val_flt = float(val)
+            return f"{val_flt*100:.1f}%" if val_flt <= 1.01 else f"{val_flt:.1f}%"
+        except Exception:
+            return str(val)
     if not rank_row.empty:
-        ret_prod = rank_row.iloc[0].get("Returning Production", "")
-        off_ret = rank_row.iloc[0].get("Off. Returning Production", "")
-        def_ret = rank_row.iloc[0].get("Def. Returning Production", "")
-        def fmt_pct(val):
-            try:
-                if isinstance(val, str) and "%" in val:
-                    return val
-                val_flt = float(val)
-                # Treat <=1.01 as fraction, otherwise already percent
-                return f"{val_flt*100:.1f}%" if val_flt <= 1.01 else f"{val_flt:.1f}%"
-            except Exception:
-                return str(val)
-        ret_prod = fmt_pct(ret_prod)
-        off_ret = fmt_pct(off_ret)
-        def_ret = fmt_pct(def_ret)
+        ret_prod = fmt_pct(rank_row.iloc[0].get("Returning Production", ""))
+        off_ret = fmt_pct(rank_row.iloc[0].get("Off. Returning Production", ""))
+        def_ret = fmt_pct(rank_row.iloc[0].get("Def. Returning Production", ""))
     else:
         ret_prod = off_ret = def_ret = ""
 
-    # --- Card styling ---
+    # --- CARD STRIP (Responsive, no sidebar overlap) ---
     if is_mobile():
-        # Fix side scroll: card widths must sum to <100vw, no margin, border-box everywhere
+        # MOBILE CSS ONLY injected here
         st.markdown("""
-            <style>
-            body, html, .main, .block-container, [data-testid="stHorizontalBlock"] {
-                margin: 0 !important;
-                padding: 0 !important;
-                box-sizing: border-box;
-                overflow-x: hidden !important;
-                width: 100vw !important;
-                min-width: 100vw !important;
-                max-width: 100vw !important;
-            }
-            </style>
+        <style>
+        /* Only on mobile: force content full width and no scroll */
+        [data-testid="stHorizontalBlock"] { max-width:100vw !important; }
+        .block-container, .main { padding-left:0 !important; padding-right:0 !important; }
+        body, html { overflow-x: hidden !important; }
+        </style>
         """, unsafe_allow_html=True)
-    
-        n_items = 11  # update to match total (logos + cards)
-        card_width = 100 / n_items - 0.5  # e.g., 9vw if 11 items
+        n_items = 11  # logos + 9 cards
+        card_width = 100 / n_items - 0.5
         card_base = (
             f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; "
             "margin:0; background: #00B050; color: #fff; border-radius: 4px; border: 1px solid #fff; "
@@ -955,7 +927,6 @@ elif tab == "Team Dashboards":
         dark_card = card_base.replace('#00B050', '#002060')
         logo_style = f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; text-align:center; margin:0;"
         logo_dim = 20
-    
         card_html = f'''
         <div style="display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:flex-start;align-items:center;
             width:100vw;max-width:100vw;min-width:100vw;box-sizing:border-box;overflow-x:hidden;gap:0.5vw;margin:10px 0;">
@@ -975,7 +946,7 @@ elif tab == "Team Dashboards":
         </div>
         '''
     else:
-        # --- Desktop version, unchanged ---
+        # DESKTOP (no sidebar overlap, no global CSS)
         card_style = (
             "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
             "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
@@ -992,7 +963,6 @@ elif tab == "Team Dashboards":
             "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
         )
         logo_dim = 48
-
         card_html = f'''
         <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
             <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
@@ -1035,10 +1005,9 @@ elif tab == "Team Dashboards":
             </div>
         </div>
         '''
-    
+
     st.markdown(card_html, unsafe_allow_html=True)
 
-    
     # 7. For schedule table rendering (and your "rows" for win progression), guard index!
     rows = []
     for g in range(1, num_games + 1):
