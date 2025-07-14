@@ -336,17 +336,11 @@ elif tab == "Conference Overviews":
         html.append('</tr>')
     html.append('</tbody></table></div>')
 
-    # ---- CHART CODE (scatterplot) ----
-    import altair as alt
+    # Only keep rows with valid numeric values for plotting
+    conf_stats_plot = conf_stats.dropna(subset=["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"])
 
-    scatter_height = 380
-    logo_size = 26
-    font_size = 15
-    
-    x_min = float(conf_stats["Avg_Game_Quality"].min()) - 1
-    x_max = float(conf_stats["Avg_Game_Quality"].max()) + 0.3
-    
-    chart = alt.Chart(conf_stats).mark_image(
+    # ---- CHART CODE (scatterplot) ----
+    chart = alt.Chart(conf_stats_plot).mark_image(
         width=logo_size,
         height=logo_size
     ).encode(
