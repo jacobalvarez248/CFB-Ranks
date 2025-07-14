@@ -927,79 +927,109 @@ elif tab == "Team Dashboards":
         ret_prod = off_ret = def_ret = ""
 
     # --- Card styling ---
-    card_style = (
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
-        if not is_mobile() else
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#002060; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
-    )
-    lighter_card_style = (
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#00B0F0; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
-        if not is_mobile() else
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#00B0F0; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
-    )
-    green_card_style = (
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#00B050; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
-        if not is_mobile() else
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#00B050; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
-    )
 
-    logo_dim = 48 if not is_mobile() else 28
-    # 6. Render stat cards (single row, includes logo, rank, conf rank, win cards)
-    card_html = f'''
-    <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
-        <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
-        {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
-        <div style="{card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
-            <span style="line-height:1.15;">{overall_rank}</span>
+    if is_mobile():
+        # --- Responsive full-width card container for mobile ---
+        mobile_card_container_style = (
+            "display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: flex-start; "
+            "width: 100vw; margin: 8px -8px 8px -8px; box-sizing: border-box;"
+        )
+        mobile_card_style = (
+            "flex: 1 1 27vw; min-width: 29vw; max-width: 33vw; "
+            "background: #00B050; color: #fff; border-radius: 7px; border: 1px solid #fff; "
+            "margin: 4px; padding: 7px 0 3px 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; "
+            "font-size: 10px; font-weight: 700; text-align: center;"
+        )
+        lighter_mobile_card_style = (
+            mobile_card_style.replace('#00B050', '#00B0F0')
+        )
+        dark_mobile_card_style = (
+            mobile_card_style.replace('#00B050', '#002060')
+        )
+        mobile_logo_style = "width: 100%; text-align: center; margin-bottom: 3px;"
+        logo_dim = 27
+    
+        card_html = f'''
+        <div style="{mobile_card_container_style}">
+            <div style="{mobile_logo_style}">
+                <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
+                {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block; margin-left:6px;'/>" if conf_logo_url else ""}
+            </div>
+            <div style="{dark_mobile_card_style}"><span style="font-size:0.7em;">Rank</span>{overall_rank}</div>
+            <div style="{dark_mobile_card_style}"><span style="font-size:0.7em;">Conf. Rk</span>{this_conf_rank}</div>
+            <div style="{lighter_mobile_card_style}"><span style="font-size:0.7em;">6-6+</span>{at_least_6_pct}</div>
+            <div style="{lighter_mobile_card_style}"><span style="font-size:0.7em;">8-4+</span>{at_least_8_pct}</div>
+            <div style="{lighter_mobile_card_style}"><span style="font-size:0.7em;">10-2+</span>{at_least_10_pct}</div>
+            <div style="{lighter_mobile_card_style}"><span style="font-size:0.7em;">12-0</span>{exact_12_pct}</div>
+            <div style="{mobile_card_style}"><span style="font-size:0.7em;">Ret. Prod.</span>{ret_prod}</div>
+            <div style="{mobile_card_style}"><span style="font-size:0.7em;">Off. Ret.</span>{off_ret}</div>
+            <div style="{mobile_card_style}"><span style="font-size:0.7em;">Def. Ret.</span>{def_ret}</div>
         </div>
-        <div style="{card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
-            <span style="line-height:1.15;">{this_conf_rank}</span>
+        '''
+    else:
+        # --- Desktop version, unchanged ---
+        card_style = (
+            "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+            "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+            "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        )
+        lighter_card_style = (
+            "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+            "background:#00B0F0; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+            "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        )
+        green_card_style = (
+            "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+            "background:#00B050; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+            "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        )
+        logo_dim = 48
+    
+        card_html = f'''
+        <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
+            <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
+            {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
+                <span style="line-height:1.15;">{overall_rank}</span>
+            </div>
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
+                <span style="line-height:1.15;">{this_conf_rank}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
+                <span style="line-height:1.15; font-weight:bold;">{exact_12_pct}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
+                <span style="line-height:1.15; font-weight:bold;">{ret_prod}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Off. Ret.</span>
+                <span style="line-height:1.15; font-weight:bold;">{off_ret}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Def. Ret.</span>
+                <span style="line-height:1.15; font-weight:bold;">{def_ret}</span>
+            </div>
         </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
-            <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span>
-            <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span>
-            <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
-            <span style="line-height:1.15; font-weight:bold;">{exact_12_pct}</span>
-        </div>
-        <div style="{green_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
-            <span style="line-height:1.15; font-weight:bold;">{ret_prod}</span>
-        </div>
-        <div style="{green_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Off. Ret.</span>
-            <span style="line-height:1.15; font-weight:bold;">{off_ret}</span>
-        </div>
-        <div style="{green_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Def. Ret.</span>
-            <span style="line-height:1.15; font-weight:bold;">{def_ret}</span>
-        </div>
-    </div>
-    '''
+        '''
+    
     st.markdown(card_html, unsafe_allow_html=True)
+
     
     # 7. For schedule table rendering (and your "rows" for win progression), guard index!
     rows = []
