@@ -571,7 +571,7 @@ elif tab == "Industry Composite Ranking":
                     if high_val is not None and abs(v - high_val) < 1e-8:
                         cell = f"<b>{v:.1f}</b>"
                     elif low_val is not None and abs(v - low_val) < 1e-8:
-                        td += " color:#bbb;"
+                        td += " color:#ff000;"
                         cell = f"{v:.1f}"
                     else:
                         cell = f"{v:.1f}"
