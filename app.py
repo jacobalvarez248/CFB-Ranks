@@ -575,6 +575,15 @@ elif tab == "Team Dashboards":
 
     # --- After getting selected_team, logo_url, conference, conf_logo_url ---
 
+    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
+    
+    # ADD THIS BACK
+    conference = team_row["Conference"] if "Conference" in team_row else ""
+    conf_logo_url = None
+    if conference in logos_df["Team"].values:
+        conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
+    
     # 1. Get overall rank from Expected Wins sheet
     overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
     
