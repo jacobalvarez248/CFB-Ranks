@@ -340,10 +340,11 @@ elif tab == "Conference Overviews":
     import altair as alt
 
     scatter_height = 380
-    logo_size = 14  # or 10 for super tiny!
+    logo_size = 26
     font_size = 15
     
     x_min = float(conf_stats["Avg_Game_Quality"].min()) - 1
+    x_max = float(conf_stats["Avg_Game_Quality"].max()) + 0.3
     
     chart = alt.Chart(conf_stats).mark_image(
         width=logo_size,
@@ -351,7 +352,7 @@ elif tab == "Conference Overviews":
     ).encode(
         x=alt.X(
             'Avg_Game_Quality:Q',
-            scale=alt.Scale(domain=[x_min, None]),
+            scale=alt.Scale(domain=[x_min, x_max]),
             axis=alt.Axis(
                 title='Average Game Quality',
                 titleFontSize=font_size+2,
@@ -368,7 +369,7 @@ elif tab == "Conference Overviews":
         ),
         url='Logo URL:N',
         tooltip=[
-            'Conference', 
+            'Conference',
             alt.Tooltip('Avg_Power_Rating', format=".2f"),
             alt.Tooltip('Avg_Game_Quality', format=".2f")
         ]
