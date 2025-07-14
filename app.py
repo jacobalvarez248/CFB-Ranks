@@ -968,19 +968,19 @@ elif tab == "Team Dashboards":
                 <span style="line-height:1.15;">{this_conf_rank}</span>
             </div>
             <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#002060; font-weight:400;">6-6+</span>
+                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">6-6+</span>
                 <span style="line-height:1.15;">{at_least_6_pct}</span>
             </div>
             <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#002060; font-weight:400;">8-4+</span>
+                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">8-4+</span>
                 <span style="line-height:1.15;">{at_least_8_pct}</span>
             </div>
             <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#002060; font-weight:400;">10-2+</span>
+                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">10-2+</span>
                 <span style="line-height:1.15;">{at_least_10_pct}</span>
             </div>
             <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#002060; font-weight:400;">12-0</span>
+                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">12-0</span>
                 <span style="line-height:1.15;">{exact_12_pct}</span>
             </div>
             <div style="{green_card_style}">
