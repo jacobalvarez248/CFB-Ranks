@@ -934,7 +934,7 @@ elif tab == "Team Dashboards":
             )
             final_chart = (bar + text).properties(
                 width=350,
-                height=416,
+                height=450,
                 title=""
             )
             st.altair_chart(final_chart, use_container_width=True)
