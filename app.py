@@ -837,7 +837,7 @@ elif tab == "Team Dashboards":
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
     ret_prod = team_row.get("Returning Production", "")
     ret_off = team_row.get("Off. Returning Production", "")
-    ret_def = team_row.get("Def Returning Production", "")
+    ret_def = team_row.get("Def. Returning Production", "")
 
     # Optionally format as percent if not already
     def fmt_pct(val):
