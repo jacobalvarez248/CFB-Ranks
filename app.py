@@ -582,7 +582,44 @@ elif tab == "Team Dashboards":
     conf_logo_url = None
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
+
+    # --- Calculate Win Distribution Table (paste here) ---
+    import numpy as np
+
+    win_probs = sched["Win Probability"].values if "Win Probability" in sched.columns else sched["Win Prob"].values
+    opponents = sched["Opponent"].tolist()
+    num_games = len(win_probs)
+
+    dp = np.zeros((num_games + 1, num_games + 1))
+    dp[0, 0] = 1.0
+
+    for g in range(1, num_games + 1):
+        p = win_probs[g-1]
+        for w in range(g+1):
+            win_part = dp[g-1, w-1] * p if w > 0 else 0
+            lose_part = dp[g-1, w] * (1 - p)
+            dp[g, w] = win_part + lose_part
+    rows = []
+    for g in range(1, num_games + 1):
+        row = {
+            "Game": g,
+            "Opponent": opponents[g-1]
+        }
+        for w in range(num_games + 1):
+            row[w] = dp[g, w]
+        rows.append(row)
+    # ---- Probability calculations ----
+    # 'num_games' should already be set
+    bowl_prob = dp[num_games, 6:].sum()      # Prob. of 6+ wins
+    eight_plus = dp[num_games, 8:].sum()     # Prob. of 8+ wins
+    ten_plus = dp[num_games, 10:].sum()      # Prob. of 10+ wins
+    undefeated = dp[num_games, num_games]    # Prob. of 12 wins (undefeated)
     
+    bowl_prob_pct = f"{bowl_prob * 100:.1f}%"
+    eight_plus_pct = f"{eight_plus * 100:.1f}%"
+    ten_plus_pct = f"{ten_plus * 100:.1f}%"
+    undefeated_pct = f"{undefeated * 100:.1f}%"
+
     # 1. Get overall rank from Expected Wins sheet
     overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
     
@@ -644,46 +681,6 @@ elif tab == "Team Dashboards":
     # ---- Team Schedule Table ----
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
-
-    # --- Calculate Win Distribution Table (paste here) ---
-    import numpy as np
-
-    win_probs = sched["Win Probability"].values if "Win Probability" in sched.columns else sched["Win Prob"].values
-    opponents = sched["Opponent"].tolist()
-    num_games = len(win_probs)
-
-    dp = np.zeros((num_games + 1, num_games + 1))
-    dp[0, 0] = 1.0
-
-    for g in range(1, num_games + 1):
-        p = win_probs[g-1]
-        for w in range(g+1):
-            win_part = dp[g-1, w-1] * p if w > 0 else 0
-            lose_part = dp[g-1, w] * (1 - p)
-            dp[g, w] = win_part + lose_part
-    # --- Add these after building the dp matrix! ---
-
-    bowl_prob = dp[num_games, 6:].sum()
-    eight_plus = dp[num_games, 8:].sum()
-    ten_plus = dp[num_games, 10:].sum()
-    undefeated = dp[num_games, num_games]
-    
-    bowl_prob_pct = f"{bowl_prob * 100:.1f}%"
-    eight_plus_pct = f"{eight_plus * 100:.1f}%"
-    ten_plus_pct = f"{ten_plus * 100:.1f}%"
-    undefeated_pct = f"{undefeated * 100:.1f}%"
-
-    rows = []
-    for g in range(1, num_games + 1):
-        row = {
-            "Game": g,
-            "Opponent": opponents[g-1]
-        }
-        for w in range(num_games + 1):
-            row[w] = dp[g, w]
-        rows.append(row)
-
-    
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
