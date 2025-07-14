@@ -5,6 +5,9 @@ import altair as alt
 import io
 import numpy as np
 
+def clean_name(name):
+    return str(name).strip().upper()
+
 # Helper to load Excel sheets via xlwings or pandas/openpyxl
 def load_sheet(data_path, sheet_name, header=1):
     import pandas as pd
@@ -32,7 +35,9 @@ df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
-df_ranking = load_sheet(data_path, "Ranking", header=1)
+df_expected["Team"] = df_expected["Team"].apply(clean_name)
+df_ranking["Team"] = df_ranking["Team"].apply(clean_name)
+
 
 # Normalize logo column
 logos_df["Team"] = logos_df["Team"].str.strip()
@@ -834,23 +839,34 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
+    # Clean team options to ensure the display dropdown works with clean names
     team_options = df_expected["Team"].sort_values().unique().tolist()
-    selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
-    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
-    ret_prod = team_row.get("Returning Production", "")
-    ret_off = team_row.get("Off. Returning Production", "")
-    ret_def = team_row.get("Def. Returning Production", "")
+    # Display the "original" team names if you want, or the cleaned ones. If you want display to be pretty, keep a mapping.
 
-    # Optionally format as percent if not already
+    selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
+
+    # ---- Find the team row in BOTH df_expected and df_ranking using cleaned name ----
+    selected_team_clean = clean_name(selected_team)
+    team_row = df_expected[df_expected["Team"] == selected_team_clean].iloc[0]
+    team_row_ranking = df_ranking[df_ranking["Team"] == selected_team_clean]
+    if not team_row_ranking.empty:
+        team_row_ranking = team_row_ranking.iloc[0]
+        ret_prod = team_row_ranking.get("Returning Production", "")
+        ret_off = team_row_ranking.get("Off. Returning Production", "")
+        ret_def = team_row_ranking.get("Def Returning Production", "")
+    else:
+        ret_prod = ret_off = ret_def = ""
+
+    # --- Format as percent ---
     def fmt_pct(val):
         try:
             v = float(val)
-            if v <= 1.01:  # Sometimes stored as fraction
+            if v <= 1.01:
                 return f"{v*100:.0f}%"
             return f"{v:.0f}%"
         except Exception:
             return val
-    
+
     ret_prod_display = fmt_pct(ret_prod)
     ret_off_display = fmt_pct(ret_off)
     ret_def_display = fmt_pct(ret_def)
@@ -954,54 +970,53 @@ elif tab == "Team Dashboards":
     exact_12_pct = f"{exact_12*100:.1f}%"
     
     # 6. Render stat cards (single row, includes logo, rank, conf rank, win cards)
-    st.markdown(
-        f'''
-        <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
-            <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
-            {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
-                <span style="line-height:1.15;">{overall_rank}</span>
-            </div>
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
-                <span style="line-height:1.15;">{this_conf_rank}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">6-6+</span>
-                <span style="line-height:1.15;">{at_least_6_pct}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">8-4+</span>
-                <span style="line-height:1.15;">{at_least_8_pct}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">10-2+</span>
-                <span style="line-height:1.15;">{at_least_10_pct}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">12-0</span>
-                <span style="line-height:1.15;">{exact_12_pct}</span>
-            </div>
-            <div style="{green_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
-                <span style="line-height:1.15;">{ret_prod_display}</span>
-            </div>
-            <div style="{green_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Off.</span>
-                <span style="line-height:1.15;">{ret_off_display}</span>
-            </div>
-            <div style="{green_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Def.</span>
-                <span style="line-height:1.15;">{ret_def_display}</span>
-            </div>
+    # (Assuming all the above has run)
+st.markdown(
+    f'''
+    <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
+        <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
+        {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
+            <span style="line-height:1.15;">{overall_rank}</span>
         </div>
-        ''',
-        unsafe_allow_html=True
-    )
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
+            <span style="line-height:1.15;">{this_conf_rank}</span>
+        </div>
+        <div style="{lighter_card_style}">
+            <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">6-6+</span>
+            <span style="line-height:1.15;">{at_least_6_pct}</span>
+        </div>
+        <div style="{lighter_card_style}">
+            <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">8-4+</span>
+            <span style="line-height:1.15;">{at_least_8_pct}</span>
+        </div>
+        <div style="{lighter_card_style}">
+            <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">10-2+</span>
+            <span style="line-height:1.15;">{at_least_10_pct}</span>
+        </div>
+        <div style="{lighter_card_style}">
+            <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">12-0</span>
+            <span style="line-height:1.15;">{exact_12_pct}</span>
+        </div>
+        <div style="{green_card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
+            <span style="line-height:1.15;">{ret_prod_display}</span>
+        </div>
+        <div style="{green_card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Off.</span>
+            <span style="line-height:1.15;">{ret_off_display}</span>
+        </div>
+        <div style="{green_card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Def.</span>
+            <span style="line-height:1.15;">{ret_def_display}</span>
+        </div>
+    </div>
+    ''',
+    unsafe_allow_html=True
+)
 
-
-    
     # 7. For schedule table rendering (and your "rows" for win progression), guard index!
     rows = []
     for g in range(1, num_games + 1):
