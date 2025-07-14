@@ -606,15 +606,36 @@ elif tab == "Team Dashboards":
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
 
-    # --- Calculate Win Distribution Table (paste here) ---
-    import numpy as np
-
-    win_probs = sched["Win Probability"].values if "Win Probability" in sched.columns else sched["Win Prob"].values
-    # ... After win_probs and df_win_dist are created ...
-
-    at_least_6 = sum(win_probs[6:]) if len(win_probs) > 6 else 0.0
-    at_least_8 = sum(win_probs[8:]) if len(win_probs) > 8 else 0.0
-    at_least_10 = sum(win_probs[10:]) if len(win_probs) > 10 else 0.0
+    # === CALCULATE FINAL WIN DISTRIBUTION ===
+    opponents = sched["Opponent"].tolist()
+    num_games = len(opponents)
+    
+    # 1. Dynamic programming for win distribution
+    dp = np.zeros((num_games + 1, num_games + 1))
+    dp[0, 0] = 1.0
+    
+    # Use the correct per-game win probability
+    if "Win Probability" in sched.columns:
+        win_prob_list = sched["Win Probability"].astype(float).values
+    elif "Win Prob" in sched.columns:
+        win_prob_list = sched["Win Prob"].astype(float).values
+    else:
+        win_prob_list = np.full(num_games, 0.5)  # fallback: 50% for each if missing
+    
+    for g in range(1, num_games + 1):
+        p = win_prob_list[g-1]
+        for w in range(g+1):
+            win_part = dp[g-1, w-1] * p if w > 0 else 0
+            lose_part = dp[g-1, w] * (1 - p)
+            dp[g, w] = win_part + lose_part
+    
+    # 2. Get the probability of exactly w wins after all games
+    win_probs = dp[num_games, :]  # 1D array: probability of exactly w wins
+    
+    # 3. Calculate "at least X wins" and exactly 12
+    at_least_6 = win_probs[6:].sum() if len(win_probs) > 6 else 0.0
+    at_least_8 = win_probs[8:].sum() if len(win_probs) > 8 else 0.0
+    at_least_10 = win_probs[10:].sum() if len(win_probs) > 10 else 0.0
     exact_12 = win_probs[12] if len(win_probs) > 12 else win_probs[-1] if len(win_probs) == 12 else 0.0
     
     at_least_6_pct = f"{at_least_6*100:.1f}%"
@@ -622,6 +643,7 @@ elif tab == "Team Dashboards":
     at_least_10_pct = f"{at_least_10*100:.1f}%"
     exact_12_pct = f"{exact_12*100:.1f}%"
     
+    # === RENDER CARDS ===
     card_html = f'''
     <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
         <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
@@ -636,24 +658,25 @@ elif tab == "Team Dashboards":
         </div>
         <div style="{card_style}">
             <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
-            <span style="line-height:1.15;">{at_least_6_pct}</span>
+            <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct}</span>
         </div>
         <div style="{card_style}">
             <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span>
-            <span style="line-height:1.15;">{at_least_8_pct}</span>
+            <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct}</span>
         </div>
         <div style="{card_style}">
             <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span>
-            <span style="line-height:1.15;">{at_least_10_pct}</span>
+            <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct}</span>
         </div>
         <div style="{card_style}">
             <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
-            <span style="line-height:1.15;">{exact_12_pct}</span>
+            <span style="line-height:1.15; font-weight:bold;">{exact_12_pct}</span>
         </div>
     </div>
     '''
     
     st.markdown(card_html, unsafe_allow_html=True)
+
 
     opponents = sched["Opponent"].tolist()
     num_games = len(win_probs)
