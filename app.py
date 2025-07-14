@@ -354,7 +354,37 @@ elif tab == "Conference Overviews":
     if not is_mobile():
         with right:
             st.markdown("#### Conference Overview Chart Placeholder")
-            # (Add chart/plot code here as needed)
+    # (Add chart/plot code here as needed)
+    scatter_height = 380 if not is_mobile() else 240
+    font_size = 15 if not is_mobile() else 10
+    
+    chart = alt.Chart(conf_stats).mark_image(
+        width=38 if not is_mobile() else 22,
+        height=38 if not is_mobile() else 22
+    ).encode(
+        x=alt.X('Avg_Game_Quality:Q',
+            axis=alt.Axis(
+                title='Average Game Quality',
+                titleFontSize=font_size+2,
+                labelFontSize=font_size
+            )
+        ),
+        y=alt.Y('Avg_Power_Rating:Q',
+            axis=alt.Axis(
+                title='Average Power Rating',
+                titleFontSize=font_size+2,
+                labelFontSize=font_size
+            )
+        ),
+        url='Logo URL:N',
+        tooltip=['Conference', alt.Tooltip('Avg_Power_Rating', format=".2f"), alt.Tooltip('Avg_Game_Quality', format=".2f")]
+    ).properties(
+        height=scatter_height,
+        width='container',
+        title="Conferences: Power Rating vs. Game Quality"
+    )
+    
+    st.altair_chart(chart, use_container_width=True)
 
     # --- Conference Standings Table ---
     st.markdown("#### Conference Standings")
