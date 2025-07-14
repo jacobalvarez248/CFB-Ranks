@@ -627,6 +627,7 @@ elif tab == "Team Dashboards":
         unsafe_allow_html=True
     )
 
+
     # ---- Team Schedule Table ----
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
