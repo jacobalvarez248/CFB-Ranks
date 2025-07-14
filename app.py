@@ -593,7 +593,7 @@ elif tab == "Team Dashboards":
     this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
     
     # Mobile label
-    conf_rank_label = "Conf. Rank" if not is_mobile() else "Conf. Rk"
+    conf_rank_label = "Conf. Rk" if not is_mobile() else "Conf. Rk"
     
     # --- Card styling ---
     card_style = (
