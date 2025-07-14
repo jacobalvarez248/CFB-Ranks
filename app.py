@@ -835,6 +835,24 @@ elif tab == "Team Dashboards":
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+    ret_prod = team_row.get("Returning Production", "")
+    ret_off = team_row.get("Off. Returning Production", "")
+    ret_def = team_row.get("Def Returning Production", "")
+
+# Optionally format as percent if not already
+def fmt_pct(val):
+    try:
+        v = float(val)
+        if v <= 1.01:  # Sometimes stored as fraction
+            return f"{v*100:.0f}%"
+        return f"{v:.0f}%"
+    except Exception:
+        return val
+
+ret_prod_display = fmt_pct(ret_prod)
+ret_off_display = fmt_pct(ret_off)
+ret_def_display = fmt_pct(ret_def)
+
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
     # ADD THIS BACK
     conference = team_row["Conference"] if "Conference" in team_row else ""
@@ -871,6 +889,15 @@ elif tab == "Team Dashboards":
         if not is_mobile() else
         "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
         "background:#6ea2e7; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
+        "height:28px; width:28px; font-size:9px; font-weight:300; color:#FFFFFF; text-align:center;"
+    )
+    green_card_style = (
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#00B050; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        if not is_mobile() else
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#00B050; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
         "height:28px; width:28px; font-size:9px; font-weight:300; color:#FFFFFF; text-align:center;"
     )
 
@@ -954,10 +981,23 @@ elif tab == "Team Dashboards":
                 <span style="font-size:0.75em; color:#002060; font-weight:400;">12-0</span>
                 <span style="line-height:1.15;">{exact_12_pct}</span>
             </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
+                <span style="line-height:1.15;">{ret_prod_display}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Off.</span>
+                <span style="line-height:1.15;">{ret_off_display}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Def.</span>
+                <span style="line-height:1.15;">{ret_def_display}</span>
+            </div>
         </div>
         ''',
         unsafe_allow_html=True
     )
+
 
     
     # 7. For schedule table rendering (and your "rows" for win progression), guard index!
