@@ -956,7 +956,31 @@ elif tab == "Team Dashboards":
     at_least_8_pct = f"{at_least_8*100:.1f}%"
     at_least_10_pct = f"{at_least_10*100:.1f}%"
     exact_12_pct = f"{exact_12*100:.1f}%"
+
+    # --- Pull Ret. Prod., Off. Ret., Def. Ret. from Ranking tab ---
+    df_ranking = load_sheet(data_path, "Ranking", header=1)
+    df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
     
+    rank_row = df_ranking[df_ranking["Team"].str.strip() == selected_team.strip()]
+    if not rank_row.empty:
+        ret_prod = rank_row.iloc[0].get("Returning Production", "")
+        off_ret = rank_row.iloc[0].get("Off. Returning Production", "")
+        def_ret = rank_row.iloc[0].get("Def. Returning Production", "")
+        def fmt_pct(val):
+            try:
+                if isinstance(val, str) and "%" in val:
+                    return val
+                val_flt = float(val)
+                # Treat <=1.01 as fraction, otherwise already percent
+                return f"{val_flt*100:.1f}%" if val_flt <= 1.01 else f"{val_flt:.1f}%"
+            except Exception:
+                return str(val)
+        ret_prod = fmt_pct(ret_prod)
+        off_ret = fmt_pct(off_ret)
+        def_ret = fmt_pct(def_ret)
+    else:
+        ret_prod = off_ret = def_ret = ""
+
     # 6. Render stat cards (single row, includes logo, rank, conf rank, win cards)
     card_html = f'''
     <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
