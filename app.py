@@ -717,20 +717,20 @@ elif tab == "Team Dashboards":
         # ... render table and win dist chart ...
     else:
         st.info("No schedule data available for this team.")
-
-        # MOBILE header/column maps
-        mobile_headers = {
-            "Date": "Date",
-            "Opponent": "Opp.",
-            "Opponent Rank": "Opp. Rank",
-            "Projected Spread": "Proj. Spread",
-            "Win Probability": "Win Prob.",
-            "Game Quality": "Game Qty"
-        }
-        mobile_cols = list(mobile_headers.keys())
-
-        # DESKTOP version (original)
-        desktop_headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
+    
+    # MOBILE header/column maps
+    mobile_headers = {
+        "Date": "Date",
+        "Opponent": "Opp.",
+        "Opponent Rank": "Opp. Rank",
+        "Projected Spread": "Proj. Spread",
+        "Win Probability": "Win Prob.",
+        "Game Quality": "Game Qty"
+    }
+    mobile_cols = list(mobile_headers.keys())
+    
+    # DESKTOP version (original)
+    desktop_headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
 
         # Choose headers/columns based on device
         if is_mobile():
