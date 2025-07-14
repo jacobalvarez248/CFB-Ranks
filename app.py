@@ -877,38 +877,7 @@ elif tab == "Team Dashboards":
     
     # Mobile label
     conf_rank_label = "Conf. Rk" if not is_mobile() else "Conf. Rk"
-    
-    # --- Card styling ---
-    card_style = (
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
-        if not is_mobile() else
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#002060; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
-    )
-    lighter_card_style = (
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#00B0F0; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
-        if not is_mobile() else
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#00B0F0; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
-    )
-    green_card_style = (
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#00B050; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
-        if not is_mobile() else
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#00B050; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
-    )
-
-    logo_dim = 48 if not is_mobile() else 28
-   
+       
     # ---- Team Schedule Table ----
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
@@ -981,6 +950,36 @@ elif tab == "Team Dashboards":
     else:
         ret_prod = off_ret = def_ret = ""
 
+    # --- Card styling ---
+    card_style = (
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        if not is_mobile() else
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#002060; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
+        "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
+    )
+    lighter_card_style = (
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#00B0F0; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        if not is_mobile() else
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#00B0F0; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
+        "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
+    )
+    green_card_style = (
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#00B050; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        if not is_mobile() else
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#00B050; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
+        "height:28px; width:28px; font-size:9px; font-weight:700; color:#FFFFFF; text-align:center;"
+    )
+
+    logo_dim = 48 if not is_mobile() else 28
     # 6. Render stat cards (single row, includes logo, rank, conf rank, win cards)
     card_html = f'''
     <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
