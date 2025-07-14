@@ -388,16 +388,35 @@ elif tab == "Conference Overviews":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
-
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
+
+    # Load and clean data
     df_comp = load_sheet(data_path, "Industry Composite", header=0)
     df_comp.columns = [str(c).strip() for c in df_comp.columns]
-    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
-    df_comp["Team"] = df_comp["Team"].astype(str).str.strip()
+    logos_df["Team"] = logos_df["Team"].astype(str)
+    df_comp["Team"] = df_comp["Team"].astype(str)
+
+    # --- Clean team names: remove leading/trailing/multiple spaces, uppercase ---
+    def clean_team_name(name):
+        if pd.isnull(name):
+            return ""
+        return " ".join(str(name).strip().upper().split())
+
+    logos_df["Team"] = logos_df["Team"].apply(clean_team_name)
+    df_comp["Team"] = df_comp["Team"].apply(clean_team_name)
+
+    # --- Merge in Logo URL ---
     df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
 
+    # --- Optional: warn if missing logos ---
+    missing_logos = df_comp[df_comp["Logo URL"].isna()]["Team"].tolist()
+    if missing_logos:
+        st.warning(f"Missing logos for: {', '.join(missing_logos[:7])}{'...' if len(missing_logos) > 7 else ''}")
+
+    # --- Column setup ---
     all_metrics = ["Composite", "JPR", "SP+", "FPI", "Kford"]
+
     if is_mobile():
         main_cols = ["Composite Rank", "Team"] + all_metrics
         mobile_header_map = {
@@ -426,7 +445,7 @@ elif tab == "Industry Composite Ranking":
 
     display_cols = [c for c in main_cols if c in df_comp.columns]
 
-    # Sidebar filters
+    # --- Sidebar filters ---
     team_filter = st.sidebar.text_input("Filter by team...", "")
     conf_filter = st.sidebar.text_input("Filter by conference...", "")
     sort_col = st.sidebar.selectbox(
@@ -436,10 +455,11 @@ elif tab == "Industry Composite Ranking":
 
     df_show = df_comp.copy()
     if team_filter:
-        df_show = df_show[df_show["Team"].str.contains(team_filter, case=False, na=False)]
+        df_show = df_show[df_show["Team"].str.contains(team_filter.strip().upper(), case=False, na=False)]
     if conf_filter and "Conference" in df_show.columns:
-        df_show = df_show[df_show["Conference"].str.contains(conf_filter, case=False, na=False)]
-    df_show = df_show.sort_values(by=sort_col, ascending=asc if not sort_col == "Composite Rank" else True)
+        df_show = df_show[df_show["Conference"].str.contains(conf_filter.strip().upper(), case=False, na=False)]
+    # Always sort by the selected column
+    df_show = df_show.sort_values(by=sort_col, ascending=asc if sort_col != "Composite Rank" else True)
 
     metric_cols = [c for c in all_metrics if c in df_show.columns]
     composite_min, composite_max = df_show["Composite"].min(), df_show["Composite"].max()
@@ -447,6 +467,7 @@ elif tab == "Industry Composite Ranking":
     col_min = {c: df_show[c].min() for c in other_metric_cols}
     col_max = {c: df_show[c].max() for c in other_metric_cols}
 
+    # --- Table styling ---
     if is_mobile():
         table_style = (
             "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
@@ -468,6 +489,7 @@ elif tab == "Industry Composite Ranking":
         '<thead><tr>'
     ]
     compact_cols = ["Composite Rank", "Conference", "Composite", "JPR", "SP+", "FPI", "Kford"]
+
     for disp_col, c in zip(display_headers, display_cols):
         if c == "Composite":
             th = (
@@ -536,7 +558,6 @@ elif tab == "Industry Composite Ranking":
                 r = int(r1 + (r2 - r1) * t)
                 g = int(g1 + (g2 - g1) * t)
                 b = int(b1 + (b2 - b1) * t)
-                # text color: black for light backgrounds, white for dark
                 yiq = ((r*299)+(g*587)+(b*114))/1000
                 text_color = "black" if yiq > 140 else "white"
                 td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{text_color}; font-weight:bold;"
@@ -546,7 +567,6 @@ elif tab == "Industry Composite Ranking":
                 t = (v - mn) / (mx - mn) if mx > mn else 0
                 r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                 td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                # Bold the highest, gray the lowest (only for JPR, SP+, FPI, Kford)
                 if c in ["JPR", "SP+", "FPI", "Kford"]:
                     if high_val is not None and abs(v - high_val) < 1e-8:
                         cell = f"<b>{v:.1f}</b>"
@@ -563,6 +583,7 @@ elif tab == "Industry Composite Ranking":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
 
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
