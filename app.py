@@ -31,30 +31,6 @@ df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
-df_ranking = load_sheet(data_path, "Ranking", header=1)
-df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
-
-rank_row = df_ranking[df_ranking["Team"].str.strip() == selected_team.strip()]
-if not rank_row.empty:
-    ret_prod = rank_row.iloc[0].get("Returning Production", "")
-    off_ret = rank_row.iloc[0].get("Off. Returning Production", "")
-    def_ret = rank_row.iloc[0].get("Def. Returning Production", "")
-    # Format as percent (0.85 --> 85.0%)
-    def fmt_pct(val):
-        try:
-            # Already a string with percent sign?
-            if isinstance(val, str) and "%" in val:
-                return val
-            val_flt = float(val)
-            # Treat <=1.01 as fraction, otherwise already percent (covers 0.99, 1.0, etc.)
-            return f"{val_flt*100:.1f}%" if val_flt <= 1.01 else f"{val_flt:.1f}%"
-        except Exception:
-            return str(val)
-    ret_prod = fmt_pct(ret_prod)
-    off_ret = fmt_pct(off_ret)
-    def_ret = fmt_pct(def_ret)
-else:
-    ret_prod = off_ret = def_ret = ""
     
 # Normalize logo column
 logos_df["Team"] = logos_df["Team"].str.strip()
