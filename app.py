@@ -971,63 +971,63 @@ elif tab == "Team Dashboards":
     
     # 6. Render stat cards (single row, includes logo, rank, conf rank, win cards)
     # (Assuming all the above has run)
-st.markdown(
-    f'''
-    <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
-        <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
-        {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
-        <div style="{card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
-            <span style="line-height:1.15;">{overall_rank}</span>
+    st.markdown(
+        f'''
+        <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
+            <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
+            {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
+                <span style="line-height:1.15;">{overall_rank}</span>
+            </div>
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
+                <span style="line-height:1.15;">{this_conf_rank}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">6-6+</span>
+                <span style="line-height:1.15;">{at_least_6_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">8-4+</span>
+                <span style="line-height:1.15;">{at_least_8_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">10-2+</span>
+                <span style="line-height:1.15;">{at_least_10_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">12-0</span>
+                <span style="line-height:1.15;">{exact_12_pct}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
+                <span style="line-height:1.15;">{ret_prod_display}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Off.</span>
+                <span style="line-height:1.15;">{ret_off_display}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Def.</span>
+                <span style="line-height:1.15;">{ret_def_display}</span>
+            </div>
         </div>
-        <div style="{card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
-            <span style="line-height:1.15;">{this_conf_rank}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">6-6+</span>
-            <span style="line-height:1.15;">{at_least_6_pct}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">8-4+</span>
-            <span style="line-height:1.15;">{at_least_8_pct}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">10-2+</span>
-            <span style="line-height:1.15;">{at_least_10_pct}</span>
-        </div>
-        <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">12-0</span>
-            <span style="line-height:1.15;">{exact_12_pct}</span>
-        </div>
-        <div style="{green_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
-            <span style="line-height:1.15;">{ret_prod_display}</span>
-        </div>
-        <div style="{green_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Off.</span>
-            <span style="line-height:1.15;">{ret_off_display}</span>
-        </div>
-        <div style="{green_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Def.</span>
-            <span style="line-height:1.15;">{ret_def_display}</span>
-        </div>
-    </div>
-    ''',
-    unsafe_allow_html=True
-)
-
-    # 7. For schedule table rendering (and your "rows" for win progression), guard index!
-rows = []
-for g in range(1, num_games + 1):
-    opp = opponents[g-1] if (g-1) < len(opponents) else ""
-    row = {
-        "Game": g,
-        "Opponent": opp
-    }
-    for w in range(num_games + 1):
-        row[w] = dp[g, w]
-    rows.append(row)
+        ''',
+        unsafe_allow_html=True
+    )
+    
+        # 7. For schedule table rendering (and your "rows" for win progression), guard index!
+    rows = []
+    for g in range(1, num_games + 1):
+        opp = opponents[g-1] if (g-1) < len(opponents) else ""
+        row = {
+            "Game": g,
+            "Opponent": opp
+        }
+        for w in range(num_games + 1):
+            row[w] = dp[g, w]
+        rows.append(row)
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
