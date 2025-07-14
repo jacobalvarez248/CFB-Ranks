@@ -267,7 +267,80 @@ elif tab == "Conference Overviews":
     conf_stats["Logo URL"] = conf_stats["Conference"].map(
         dict(zip(logos_df["Team"], logos_df["Logo URL"]))
     )
+
+    # --- Clean up conference names for matching ---
+    def clean_name(s):
+        return str(s).strip().upper()
     
+    conf_stats["Conference"] = conf_stats["Conference"].apply(clean_name)
+    logos_df["Team"] = logos_df["Team"].apply(clean_name)
+    
+    # --- Build a unique logo map for conferences only ---
+    # Option 1: If your logos_df includes conference rows (preferred)
+    conf_logo_map = logos_df.drop_duplicates("Team").set_index("Team")["Logo URL"].to_dict()
+    
+    # Option 2: If you have a separate conference logo sheet, use that instead
+    
+    # --- Attach logos to each conference ---
+    conf_stats["Logo URL"] = conf_stats["Conference"].map(conf_logo_map)
+    
+    # --- Check for missing or duplicate logo URLs ---
+    dupe_urls = conf_stats["Logo URL"].value_counts()
+    dupes = dupe_urls[dupe_urls > 1]
+    if not dupes.empty:
+        st.warning("Duplicate logo URLs used by: " +
+                   ", ".join([f"{url} ({count}x)" for url, count in dupes.items()]))
+    
+    missing = conf_stats[conf_stats["Logo URL"].isnull()]["Conference"].tolist()
+    if missing:
+        st.warning("Missing logo for: " + ", ".join(missing))
+    
+    # --- Only plot valid, unique conference points ---
+    conf_stats_plot = conf_stats.dropna(subset=["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"])
+    conf_stats_plot = conf_stats_plot.drop_duplicates(subset=["Logo URL"])
+    
+    # --- Set axis and image sizes ---
+    logo_size = 28
+    scatter_height = 380
+    font_size = 15
+    x_min = float(conf_stats_plot["Avg_Game_Quality"].min()) - 1
+    x_max = float(conf_stats_plot["Avg_Game_Quality"].max()) + 0.3
+    
+    # --- Altair Scatter Plot ---
+    import altair as alt
+    chart = alt.Chart(conf_stats_plot).mark_image(
+        width=logo_size,
+        height=logo_size
+    ).encode(
+        x=alt.X(
+            'Avg_Game_Quality:Q',
+            scale=alt.Scale(domain=[x_min, x_max]),
+            axis=alt.Axis(
+                title='Average Game Quality',
+                titleFontSize=font_size+2,
+                labelFontSize=font_size
+            )
+        ),
+        y=alt.Y(
+            'Avg_Power_Rating:Q',
+            axis=alt.Axis(
+                title='Average Power Rating',
+                titleFontSize=font_size+2,
+                labelFontSize=font_size
+            )
+        ),
+        url='Logo URL:N',
+        tooltip=[
+            'Conference',
+            alt.Tooltip('Avg_Power_Rating', format=".2f"),
+            alt.Tooltip('Avg_Game_Quality', format=".2f")
+        ]
+    ).properties(
+        height=scatter_height,
+        width='container',
+        title=""
+    )
+
     # Responsive headers/styles
     if is_mobile():
         summary_headers = ["Conference", "Avg. Pwr. Rtg.", "Avg. Game Qty", "Avg. Sched. Diff."]
