@@ -6,7 +6,8 @@ import io
 import numpy as np
 
 # Helper to load Excel sheets via xlwings or pandas/openpyxl
-def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
+def load_sheet(data_path, sheet_name, header=1):
+    import pandas as pd
     try:
         import xlwings as xw
         wb = xw.Book(data_path)
