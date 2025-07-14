@@ -981,7 +981,21 @@ elif tab == "Team Dashboards":
             "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
         )
         logo_dim = 48
-    
+
+        st.markdown("""
+        <style>
+        body, html, .main, .block-container, [data-testid="stHorizontalBlock"] {
+            margin: 0 !important;
+            padding: 0 !important;
+            box-sizing: border-box;
+            overflow-x: hidden !important;
+            width: 100vw !important;
+            min-width: 100vw !important;
+            max-width: 100vw !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
         card_html = f'''
         <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
             <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
