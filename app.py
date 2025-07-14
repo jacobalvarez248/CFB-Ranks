@@ -929,40 +929,40 @@ elif tab == "Team Dashboards":
     # --- Card styling ---
 
     if is_mobile():
-        # Responsive single-row, small gap, no sidescroll
+        # Tight single-row, no scroll, cards shrink to fit
         mobile_card_container_style = (
-            "display: flex; flex-wrap: nowrap; justify-content: flex-start; align-items: center; "
-            "width: 100vw; overflow-x: hidden; margin: 8px -3vw 8px -3vw; box-sizing: border-box;"
+            "display: flex; flex-direction: row; flex-wrap: nowrap; justify-content: flex-start; align-items: center; "
+            "width: 100vw; min-width: 100vw; max-width: 100vw; margin: 8px 0 8px 0; box-sizing: border-box; overflow-x: hidden;"
         )
+        # About 8vw wide for 12 items, 9vw for 11 items, adjust as needed
         mobile_card_style = (
-            "flex: 1 1 8vw; min-width: 8vw; max-width: 11vw; "
-            "background: #00B050; color: #fff; border-radius: 6px; border: 1px solid #fff; "
-            "margin: 1vw; padding: 4px 0 1px 0; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; "
-            "font-size: 9px; font-weight: 700; text-align: center;"
+            "flex: 1 1 0; min-width:7.8vw; max-width:9vw; margin:0.7vw; "
+            "background: #00B050; color: #fff; border-radius: 5px; border: 1px solid #fff; "
+            "padding: 2px 0 1px 0; display: flex; flex-direction: column; align-items: center; "
+            "font-size:8px; font-weight:700; text-align:center;"
         )
         lighter_mobile_card_style = mobile_card_style.replace('#00B050', '#00B0F0')
         dark_mobile_card_style = mobile_card_style.replace('#00B050', '#002060')
-        mobile_logo_style = "min-width: 8vw; max-width: 11vw; text-align: center; margin: 0 1vw 0 0;"
-        logo_dim = 23
+        mobile_logo_style = "flex: 1 1 0; min-width:7.8vw; max-width:9vw; text-align:center; margin:0.7vw;"
+        logo_dim = 20
     
         card_html = f'''
         <div style="{mobile_card_container_style}">
             <div style="{mobile_logo_style}">
-                <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
-                {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block; margin-left:2vw;'/>" if conf_logo_url else ""}
+                <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;vertical-align:middle;"/>
+                {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block; margin-left:0.5vw;vertical-align:middle;'/>" if conf_logo_url else ""}
             </div>
-            <div style="{dark_mobile_card_style}"><span style="font-size:0.68em;">Rank</span>{overall_rank}</div>
-            <div style="{dark_mobile_card_style}"><span style="font-size:0.68em;">Conf. Rk</span>{this_conf_rank}</div>
-            <div style="{lighter_mobile_card_style}"><span style="font-size:0.68em;">6+</span>{at_least_6_pct}</div>
-            <div style="{lighter_mobile_card_style}"><span style="font-size:0.68em;">8+</span>{at_least_8_pct}</div>
-            <div style="{lighter_mobile_card_style}"><span style="font-size:0.68em;">10+</span>{at_least_10_pct}</div>
-            <div style="{lighter_mobile_card_style}"><span style="font-size:0.68em;">12-0</span>{exact_12_pct}</div>
-            <div style="{mobile_card_style}"><span style="font-size:0.68em;">Ret.</span>{ret_prod}</div>
-            <div style="{mobile_card_style}"><span style="font-size:0.68em;">Off.</span>{off_ret}</div>
-            <div style="{mobile_card_style}"><span style="font-size:0.68em;">Def.</span>{def_ret}</div>
+            <div style="{dark_mobile_card_style}"><span style="font-size:0.8em;">Rank</span>{overall_rank}</div>
+            <div style="{dark_mobile_card_style}"><span style="font-size:0.8em;">Conf. Rk</span>{this_conf_rank}</div>
+            <div style="{lighter_mobile_card_style}"><span style="font-size:0.8em;">6+</span>{at_least_6_pct}</div>
+            <div style="{lighter_mobile_card_style}"><span style="font-size:0.8em;">8+</span>{at_least_8_pct}</div>
+            <div style="{lighter_mobile_card_style}"><span style="font-size:0.8em;">10+</span>{at_least_10_pct}</div>
+            <div style="{lighter_mobile_card_style}"><span style="font-size:0.8em;">12-0</span>{exact_12_pct}</div>
+            <div style="{mobile_card_style}"><span style="font-size:0.8em;">Ret.</span>{ret_prod}</div>
+            <div style="{mobile_card_style}"><span style="font-size:0.8em;">Off.</span>{off_ret}</div>
+            <div style="{mobile_card_style}"><span style="font-size:0.8em;">Def.</span>{def_ret}</div>
         </div>
         '''
-
     else:
         # --- Desktop version, unchanged ---
         card_style = (
