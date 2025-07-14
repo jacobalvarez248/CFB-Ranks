@@ -839,19 +839,19 @@ elif tab == "Team Dashboards":
     ret_off = team_row.get("Off. Returning Production", "")
     ret_def = team_row.get("Def Returning Production", "")
 
-# Optionally format as percent if not already
-def fmt_pct(val):
-    try:
-        v = float(val)
-        if v <= 1.01:  # Sometimes stored as fraction
-            return f"{v*100:.0f}%"
-        return f"{v:.0f}%"
-    except Exception:
-        return val
-
-ret_prod_display = fmt_pct(ret_prod)
-ret_off_display = fmt_pct(ret_off)
-ret_def_display = fmt_pct(ret_def)
+    # Optionally format as percent if not already
+    def fmt_pct(val):
+        try:
+            v = float(val)
+            if v <= 1.01:  # Sometimes stored as fraction
+                return f"{v*100:.0f}%"
+            return f"{v:.0f}%"
+        except Exception:
+            return val
+    
+    ret_prod_display = fmt_pct(ret_prod)
+    ret_off_display = fmt_pct(ret_off)
+    ret_def_display = fmt_pct(ret_def)
 
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
     # ADD THIS BACK
