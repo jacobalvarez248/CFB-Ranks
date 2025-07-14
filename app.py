@@ -1018,16 +1018,16 @@ st.markdown(
 )
 
     # 7. For schedule table rendering (and your "rows" for win progression), guard index!
-    rows = []
-    for g in range(1, num_games + 1):
-        opp = opponents[g-1] if (g-1) < len(opponents) else ""
-        row = {
-            "Game": g,
-            "Opponent": opp
-        }
-        for w in range(num_games + 1):
-            row[w] = dp[g, w]
-        rows.append(row)
+rows = []
+for g in range(1, num_games + 1):
+    opp = opponents[g-1] if (g-1) < len(opponents) else ""
+    row = {
+        "Game": g,
+        "Opponent": opp
+    }
+    for w in range(num_games + 1):
+        row[w] = dp[g, w]
+    rows.append(row)
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
