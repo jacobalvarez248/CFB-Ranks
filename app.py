@@ -1290,20 +1290,29 @@ elif tab == "Team Dashboards":
         table_html.append("</tr>")
     table_html.append("</tbody></table></div>")
 
-    # --- Prepare chart data (final win distribution) ---
-    final_row = rows[-1]
-    win_counts = list(range(num_games + 1))
-    win_probs = [final_row.get(w, 0.0) for w in win_counts]
-    win_probs_pct = [p * 100 for p in win_probs]
-
-    import pandas as pd
-    import altair as alt
-
-    df_win_dist = pd.DataFrame({
-        "Wins": win_counts,
-        "Probability": win_probs_pct
-    })
-    df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
+    rows = []
+    if num_games > 0:
+        for g in range(1, num_games + 1):
+            opp = opponents[g-1] if (g-1) < len(opponents) else ""
+            row = {
+                "Game": g,
+                "Opponent": opp
+            }
+            for w in range(num_games + 1):
+                row[w] = dp[g, w]
+            rows.append(row)
+    
+        # --- Prepare chart data (final win distribution) ---
+        final_row = rows[-1]
+        win_counts = list(range(num_games + 1))
+        win_probs = [final_row.get(w, 0.0) for w in win_counts]
+        win_probs_pct = [p * 100 for p in win_probs]
+    
+        df_win_dist = pd.DataFrame({
+            "Wins": win_counts,
+            "Probability": win_probs_pct
+        })
+        df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
 
     # --- Show table & chart: side by side on desktop, stacked on mobile ---
     if not is_mobile():
