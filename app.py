@@ -626,7 +626,6 @@ elif tab == "Team Dashboards":
         unsafe_allow_html=True
     )
 
-
     # ---- Team Schedule Table ----
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
@@ -635,6 +634,51 @@ elif tab == "Team Dashboards":
     import numpy as np
 
     win_probs = sched["Win Probability"].values if "Win Probability" in sched.columns else sched["Win Prob"].values
+    # ... After win_probs and df_win_dist are created ...
+
+    at_least_6 = sum(win_probs[6:]) if len(win_probs) > 6 else 0.0
+    at_least_8 = sum(win_probs[8:]) if len(win_probs) > 8 else 0.0
+    at_least_10 = sum(win_probs[10:]) if len(win_probs) > 10 else 0.0
+    exact_12 = win_probs[12] if len(win_probs) > 12 else win_probs[-1] if len(win_probs) == 12 else 0.0
+    
+    at_least_6_pct = f"{at_least_6*100:.1f}%"
+    at_least_8_pct = f"{at_least_8*100:.1f}%"
+    at_least_10_pct = f"{at_least_10*100:.1f}%"
+    exact_12_pct = f"{exact_12*100:.1f}%"
+    
+    card_html = f'''
+    <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
+        <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
+        {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
+            <span style="line-height:1.15;">{overall_rank}</span>
+        </div>
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
+            <span style="line-height:1.15;">{this_conf_rank}</span>
+        </div>
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
+            <span style="line-height:1.15;">{at_least_6_pct}</span>
+        </div>
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span>
+            <span style="line-height:1.15;">{at_least_8_pct}</span>
+        </div>
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span>
+            <span style="line-height:1.15;">{at_least_10_pct}</span>
+        </div>
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
+            <span style="line-height:1.15;">{exact_12_pct}</span>
+        </div>
+    </div>
+    '''
+    
+    st.markdown(card_html, unsafe_allow_html=True)
+
     opponents = sched["Opponent"].tolist()
     num_games = len(win_probs)
 
@@ -657,8 +701,6 @@ elif tab == "Team Dashboards":
         for w in range(num_games + 1):
             row[w] = dp[g, w]
         rows.append(row)
-
-    
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
