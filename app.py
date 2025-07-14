@@ -5,12 +5,8 @@ import altair as alt
 import io
 import numpy as np
 
-def clean_name(name):
-    return str(name).strip().upper()
-
 # Helper to load Excel sheets via xlwings or pandas/openpyxl
-def load_sheet(data_path, sheet_name, header=1):
-    import pandas as pd
+def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
     try:
         import xlwings as xw
         wb = xw.Book(data_path)
@@ -34,11 +30,7 @@ data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
-df_ranking = load_sheet(data_path, "Ranking", header=1)
 df_schedule.columns = df_schedule.columns.str.strip()
-df_expected["Team"] = df_expected["Team"].apply(clean_name)
-df_ranking["Team"] = df_ranking["Team"].apply(clean_name)
-
 
 # Normalize logo column
 logos_df["Team"] = logos_df["Team"].str.strip()
@@ -840,38 +832,9 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # Clean team options to ensure the display dropdown works with clean names
     team_options = df_expected["Team"].sort_values().unique().tolist()
-    # Display the "original" team names if you want, or the cleaned ones. If you want display to be pretty, keep a mapping.
-
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
-
-    # ---- Find the team row in BOTH df_expected and df_ranking using cleaned name ----
-    selected_team_clean = clean_name(selected_team)
-    team_row = df_expected[df_expected["Team"] == selected_team_clean].iloc[0]
-    team_row_ranking = df_ranking[df_ranking["Team"] == selected_team_clean]
-    if not team_row_ranking.empty:
-        team_row_ranking = team_row_ranking.iloc[0]
-        ret_prod = team_row_ranking.get("Returning Production", "")
-        ret_off = team_row_ranking.get("Off. Returning Production", "")
-        ret_def = team_row_ranking.get("Def Returning Production", "")
-    else:
-        ret_prod = ret_off = ret_def = ""
-
-    # --- Format as percent ---
-    def fmt_pct(val):
-        try:
-            v = float(val)
-            if v <= 1.01:
-                return f"{v*100:.0f}%"
-            return f"{v:.0f}%"
-        except Exception:
-            return val
-
-    ret_prod_display = fmt_pct(ret_prod)
-    ret_off_display = fmt_pct(ret_off)
-    ret_def_display = fmt_pct(ret_def)
-
+    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
     # ADD THIS BACK
     conference = team_row["Conference"] if "Conference" in team_row else ""
@@ -899,27 +862,9 @@ elif tab == "Team Dashboards":
         if not is_mobile() else
         "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
         "background:#002060; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:9px; font-weight:300; color:#FFFFFF; text-align:center;"
+        "height:28px; width:28px; font-size:10px; font-weight:700; color:#FFFFFF; text-align:center;"
     )
-    lighter_card_style = (
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#6ea2e7; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
-        if not is_mobile() else
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#6ea2e7; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:9px; font-weight:300; color:#FFFFFF; text-align:center;"
-    )
-    green_card_style = (
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#00B050; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
-        if not is_mobile() else
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#00B050; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:9px; font-weight:300; color:#FFFFFF; text-align:center;"
-    )
-
+    
     logo_dim = 48 if not is_mobile() else 28
    
     # ---- Team Schedule Table ----
@@ -971,54 +916,39 @@ elif tab == "Team Dashboards":
     exact_12_pct = f"{exact_12*100:.1f}%"
     
     # 6. Render stat cards (single row, includes logo, rank, conf rank, win cards)
-    # (Assuming all the above has run)
-    st.markdown(
-        f'''
-        <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
-            <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
-            {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
-                <span style="line-height:1.15;">{overall_rank}</span>
-            </div>
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
-                <span style="line-height:1.15;">{this_conf_rank}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">6-6+</span>
-                <span style="line-height:1.15;">{at_least_6_pct}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">8-4+</span>
-                <span style="line-height:1.15;">{at_least_8_pct}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">10-2+</span>
-                <span style="line-height:1.15;">{at_least_10_pct}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFFFFF; font-weight:400;">12-0</span>
-                <span style="line-height:1.15;">{exact_12_pct}</span>
-            </div>
-            <div style="{green_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
-                <span style="line-height:1.15;">{ret_prod_display}</span>
-            </div>
-            <div style="{green_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Off.</span>
-                <span style="line-height:1.15;">{ret_off_display}</span>
-            </div>
-            <div style="{green_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Def.</span>
-                <span style="line-height:1.15;">{ret_def_display}</span>
-            </div>
+    card_html = f'''
+    <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
+        <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
+        {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
+            <span style="line-height:1.15;">{overall_rank}</span>
         </div>
-        ''',
-        unsafe_allow_html=True
-    )
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
+            <span style="line-height:1.15;">{this_conf_rank}</span>
+        </div>
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
+            <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct}</span>
+        </div>
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span>
+            <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct}</span>
+        </div>
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span>
+            <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct}</span>
+        </div>
+        <div style="{card_style}">
+            <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
+            <span style="line-height:1.15; font-weight:bold;">{exact_12_pct}</span>
+        </div>
+    </div>
+    '''
+    st.markdown(card_html, unsafe_allow_html=True)
     
-        # 7. For schedule table rendering (and your "rows" for win progression), guard index!
+    # 7. For schedule table rendering (and your "rows" for win progression), guard index!
     rows = []
     for g in range(1, num_games + 1):
         opp = opponents[g-1] if (g-1) < len(opponents) else ""
@@ -1290,29 +1220,20 @@ elif tab == "Team Dashboards":
         table_html.append("</tr>")
     table_html.append("</tbody></table></div>")
 
-    rows = []
-    if num_games > 0:
-        for g in range(1, num_games + 1):
-            opp = opponents[g-1] if (g-1) < len(opponents) else ""
-            row = {
-                "Game": g,
-                "Opponent": opp
-            }
-            for w in range(num_games + 1):
-                row[w] = dp[g, w]
-            rows.append(row)
-    
-        # --- Prepare chart data (final win distribution) ---
-        final_row = rows[-1]
-        win_counts = list(range(num_games + 1))
-        win_probs = [final_row.get(w, 0.0) for w in win_counts]
-        win_probs_pct = [p * 100 for p in win_probs]
-    
-        df_win_dist = pd.DataFrame({
-            "Wins": win_counts,
-            "Probability": win_probs_pct
-        })
-        df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
+    # --- Prepare chart data (final win distribution) ---
+    final_row = rows[-1]
+    win_counts = list(range(num_games + 1))
+    win_probs = [final_row.get(w, 0.0) for w in win_counts]
+    win_probs_pct = [p * 100 for p in win_probs]
+
+    import pandas as pd
+    import altair as alt
+
+    df_win_dist = pd.DataFrame({
+        "Wins": win_counts,
+        "Probability": win_probs_pct
+    })
+    df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
 
     # --- Show table & chart: side by side on desktop, stacked on mobile ---
     if not is_mobile():
@@ -1398,29 +1319,29 @@ elif tab == "Team Dashboards":
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
-    
+
     # --- Load and clean data ---
     df_comp = load_sheet(data_path, "Industry Composite", header=0)
     df_comp.columns = [str(c).strip() for c in df_comp.columns]
     logos_df["Team"] = logos_df["Team"].astype(str)
     df_comp["Team"] = df_comp["Team"].astype(str)
-    
+
     # --- Clean team names before merge ---
     def clean_team_name(name):
         if pd.isnull(name):
             return ""
         return " ".join(str(name).strip().upper().split())
-    
+
     logos_df["Team"] = logos_df["Team"].apply(clean_team_name)
     df_comp["Team"] = df_comp["Team"].apply(clean_team_name)
-    
+
     df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-    
+
     # Warn if missing logos
     missing_logos = df_comp[df_comp["Logo URL"].isna()]["Team"].tolist()
     if missing_logos:
         st.warning(f"Missing logos for: {', '.join(missing_logos[:10])}{'...' if len(missing_logos) > 10 else ''}")
-    
+
     pr_cols = {
         "JPR": "JPR",
         "Composite": "Composite",
@@ -1435,21 +1356,21 @@ elif tab == "Charts & Graphs":
         index=0  # JPR as default
     )
     rating_col = pr_cols[selected_rating]
-    
+
     # --- Include ALL teams (even if missing logo), drop only if missing rating or conference ---
     df = df_comp.dropna(subset=[rating_col, "Conference"]).copy()
     conf_means = df.groupby("Conference", as_index=False)[rating_col].mean()
     conf_means = conf_means.sort_values(rating_col, ascending=False).reset_index(drop=True)
     conf_order = conf_means["Conference"].tolist()
     df["Conference"] = pd.Categorical(df["Conference"], categories=conf_order, ordered=True)
-    
+
     # Quartile lines
     q1, med, q3 = np.percentile(df[rating_col], [25, 50, 75])
     rule_data = pd.DataFrame({
         rating_col: [q1, med, q3],
         "label": ["Q1", "Med.", "Q3"]
     })
-    
+
     # Conference trend lines
     line_df = (
         df.groupby("Conference")
@@ -1457,7 +1378,7 @@ elif tab == "Charts & Graphs":
         .reset_index()
     )
     line_df["Conference"] = pd.Categorical(line_df["Conference"], categories=conf_order, ordered=True)
-    
+
     # Chart display settings
     if is_mobile():
         logo_size = 10
@@ -1474,12 +1395,12 @@ elif tab == "Charts & Graphs":
         point_opacity = 1
         height = 95 * len(conf_order) + 120
         width = 1000
-    
+
     base = alt.Chart(df).encode(
         y=alt.Y("Conference:N", sort=conf_order, title="Conference", axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
         x=alt.X(f"{rating_col}:Q", title=selected_rating, axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
     )
-    
+
     # Points: logo if available, fallback circle if not
     points_with_logo = base.transform_filter(
         alt.datum["Logo URL"] != None
@@ -1496,7 +1417,7 @@ elif tab == "Charts & Graphs":
     ).mark_circle(size=logo_size*logo_size, color="#bbbbbb").encode(
         tooltip=["Team", rating_col, "Conference"]
     )
-    
+
     hlines = alt.Chart(line_df).mark_rule(
         size=line_size, opacity=0.22
     ).encode(
@@ -1520,7 +1441,7 @@ elif tab == "Charts & Graphs":
         y=alt.value(-7 if is_mobile() else -10),
         text="label"
     )
-    
+
     chart_props = {
         "height": height,
         "title": f"Team {selected_rating} by Conference",
@@ -1528,14 +1449,14 @@ elif tab == "Charts & Graphs":
     }
     if not is_mobile():
         chart_props["width"] = width
-    
+
     chart = (rules + texts + hlines + points_with_logo + points_no_logo).properties(**chart_props)
-    
+
     st.altair_chart(chart, use_container_width=True)
-    
+
     st.markdown("---")
     st.header("Team Power Ratings Bar Chart")
-    
+
     # --- Bar chart: repeat cleaning and logo merge ---
     selected_bar_rating = st.selectbox(
         "Choose a rating for bar chart:",
@@ -1544,15 +1465,15 @@ elif tab == "Charts & Graphs":
         key="bar_chart_rating_select"
     )
     bar_rating_col = pr_cols[selected_bar_rating]
-    
+
     bar_df = df_comp.dropna(subset=[bar_rating_col, "Conference"]).copy()
     bar_df = bar_df.sort_values(by=bar_rating_col, ascending=False).reset_index(drop=True)
     team_order = bar_df["Team"].tolist()
     bar_df["Team"] = pd.Categorical(bar_df["Team"], categories=team_order, ordered=True)
-    
+
     conf_list = bar_df["Conference"].unique().tolist()
     palette = alt.Scale(scheme="category10", domain=conf_list)
-    
+
     if is_mobile():
         bar_logo_size = 14
         bar_font_size = 9
@@ -1577,7 +1498,7 @@ elif tab == "Charts & Graphs":
         bar_legend = alt.Legend(title="Conference")
         x_axis = alt.X('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False))
         y_axis = alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating)
-    
+
     bar_props = dict(
         height=bar_height,
         title=alt.TitleParams(
@@ -1588,7 +1509,7 @@ elif tab == "Charts & Graphs":
     )
     if not is_mobile():
         bar_props["width"] = bar_width
-    
+
     # Bar chart: all teams, colored by conference, with or without logos
     bar_chart = alt.Chart(bar_df).mark_bar().encode(
         x=x_axis,
@@ -1596,7 +1517,7 @@ elif tab == "Charts & Graphs":
         color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
         tooltip=["Team", bar_rating_col, "Conference"]
     ).properties(**bar_props)
-    
+
     # Logos at bar ends if available, fallback dot otherwise
     logos_on_bar = alt.Chart(bar_df).transform_filter(
         alt.datum["Logo URL"] != None
@@ -1615,12 +1536,12 @@ elif tab == "Charts & Graphs":
         y=alt.Y('Team:N', sort=team_order) if is_mobile() else alt.Y(f"{bar_rating_col}:Q"),
         tooltip=["Team", bar_rating_col, "Conference"]
     )
-    
+
     final_bar_chart = (bar_chart + logos_on_bar + fallback_bar_dot).configure_axis(
         labelFontSize=bar_font_size,
         titleFontSize=bar_font_size + 2
     )
-    
+
     st.altair_chart(final_bar_chart, use_container_width=True)
 
 
