@@ -301,7 +301,7 @@ elif tab == "Conference Overviews":
     
     # --- Set axis and image sizes ---
     logo_size = 28
-    scatter_height = 380
+    scatter_height = 470
     font_size = 15
     x_min = float(conf_stats_plot["Avg_Game_Quality"].min()) - 1
     x_max = float(conf_stats_plot["Avg_Game_Quality"].max()) + 0.3
