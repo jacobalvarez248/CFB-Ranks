@@ -268,7 +268,7 @@ elif tab == "Conference Overviews":
         dict(zip(logos_df["Team"], logos_df["Logo URL"]))
     )
     
-    # Responsive headers
+    # Responsive headers/styles
     if is_mobile():
         summary_headers = ["Conference", "Avg. Pwr. Rtg.", "Avg. Game Qty", "Avg. Sched. Diff."]
         summary_cols = ["Conference", "Avg_Power_Rating", "Avg_Game_Quality", "Avg_Sched_Diff"]
@@ -308,16 +308,17 @@ elif tab == "Conference Overviews":
     
     for _, row in conf_stats.iterrows():
         html.append('<tr>')
-        # Conference Name + Logo (in the same cell)
+        # Conference Logo (logo only on mobile, logo+name on desktop)
         logo_url = row["Logo URL"]
+        logo_width = 28 if is_mobile() else 24
         if pd.notnull(logo_url) and isinstance(logo_url, str) and logo_url.startswith("http"):
-            logo_html = f'<img src="{logo_url}" width="24" style="display:inline-block;vertical-align:middle; margin-right:7px;" />'
+            logo_html = f'<img src="{logo_url}" width="{logo_width}" style="display:inline-block;vertical-align:middle; margin-right:7px;" />'
         else:
             logo_html = ""
         if is_mobile():
-            conf_cell = logo_html  # Logo only
+            conf_cell = logo_html
         else:
-            conf_cell = f"{logo_html}{row['Conference']}"  # Logo + name
+            conf_cell = f"{logo_html}{row['Conference']}"
         html.append(f'<td style="border:1px solid #ddd; text-align:left; {cell_font}">{conf_cell}</td>')
     
         # Avg Power Rating
@@ -334,33 +335,16 @@ elif tab == "Conference Overviews":
     
         html.append('</tr>')
     html.append('</tbody></table></div>')
-    
-    # Show table (left on desktop, full width on mobile)
-    if is_mobile():
-        st.markdown("#### Conference Summary")
-        st.markdown("".join(html), unsafe_allow_html=True)
-    else:
-        left, right = st.columns([1, 1])
-        with left:
-            st.markdown("#### Conference Summary")
-            st.markdown("".join(html), unsafe_allow_html=True)
 
-    # ... summary prep code above ...
-    left, right = st.columns([1, 1])
-    with left:
-        # ... summary table rendering ...
-        pass  # your summary table code here
+    # ---- CHART CODE (scatterplot) ----
+    import altair as alt
+    scatter_height = 380
+    logo_size = 38
+    font_size = 15
 
-    if not is_mobile():
-        with right:
-            st.markdown("#### Conference Overview Chart Placeholder")
-    # (Add chart/plot code here as needed)
-    scatter_height = 380 if not is_mobile() else 240
-    font_size = 15 if not is_mobile() else 10
-    
     chart = alt.Chart(conf_stats).mark_image(
-        width=38 if not is_mobile() else 22,
-        height=38 if not is_mobile() else 22
+        width=logo_size,
+        height=logo_size
     ).encode(
         x=alt.X('Avg_Game_Quality:Q',
             axis=alt.Axis(
@@ -381,11 +365,23 @@ elif tab == "Conference Overviews":
     ).properties(
         height=scatter_height,
         width='container',
-        title="Conferences: Power Rating vs. Game Quality"
+        title=""
     )
-    
-    st.altair_chart(chart, use_container_width=True)
 
+    # ---- RENDER: Desktop (table left, chart right); Mobile (table only) ----
+    if is_mobile():
+        st.markdown("#### Conference Summary")
+        st.markdown("".join(html), unsafe_allow_html=True)
+        # No chart on mobile
+    else:
+        left, right = st.columns([1, 1])
+        with left:
+            st.markdown("#### Conference Summary")
+            st.markdown("".join(html), unsafe_allow_html=True)
+        with right:
+            st.markdown("#### Power Rating vs Game Quality")
+            st.altair_chart(chart, use_container_width=True)
+   
     # --- Conference Standings Table ---
     st.markdown("#### Conference Standings")
     conference_options = sorted(df_expected["Conference"].dropna().unique())
