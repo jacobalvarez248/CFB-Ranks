@@ -553,7 +553,7 @@ elif tab == "Industry Composite Ranking":
             elif c == "Composite" and pd.notnull(v):
                 # Green color scale (light gray to #548235)
                 t = (v - composite_min) / (composite_max - composite_min) if composite_max > composite_min else 0
-                r1, g1, b1 = 234, 234, 234  # #FF0000
+                r1, g1, b1 = 255, 0, 0  # #FF0000
                 r2, g2, b2 = 84, 130, 53    # #548235
                 r = int(r1 + (r2 - r1) * t)
                 g = int(g1 + (g2 - g1) * t)
