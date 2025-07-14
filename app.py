@@ -1168,7 +1168,6 @@ elif tab == "Charts & Graphs":
         url="Logo URL:N",
         tooltip=["Team", rating_col, "Conference"]
     )
-    # Optional: fallback dot for teams with no logo
     points_no_logo = base.transform_filter(
         alt.datum["Logo URL"] == None
     ).mark_circle(size=logo_size*logo_size, color="#bbbbbb").encode(
@@ -1268,11 +1267,7 @@ elif tab == "Charts & Graphs":
         bar_props["width"] = bar_width
 
     # Bar chart: all teams, colored by conference, with or without logos
-    bar_chart = alt.Chart(bar_df).mark_bar(
-        color="gray" if is_mobile() else "gray",
-        stroke="black" if not is_mobile() else None,
-        strokeWidth=1.2 if not is_mobile() else None
-    ).encode(
+    bar_chart = alt.Chart(bar_df).mark_bar().encode(
         x=x_axis,
         y=y_axis,
         color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
@@ -1304,4 +1299,5 @@ elif tab == "Charts & Graphs":
     )
 
     st.altair_chart(final_bar_chart, use_container_width=True)
+
 
