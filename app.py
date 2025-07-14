@@ -622,7 +622,7 @@ elif tab == "Team Dashboards":
         if not is_mobile() else
         "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
         "background:#002060; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:10px; font-weight:700; color:#FFFFFF; text-align:center;"
+        "height:28px; width:28px; font-size:10px; font-weight:500; color:#FFFFFF; text-align:center;"
     )
     logo_dim = 48 if not is_mobile() else 28
     
