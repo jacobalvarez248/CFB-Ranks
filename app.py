@@ -595,7 +595,7 @@ elif tab == "Team Dashboards":
     # Mobile label
     conf_rank_label = "Conf. Rk" if not is_mobile() else "Conf. Rk"
     
-    # --- Card styling ---
+    # Card style as before (white text, white border, #002060 background)
     card_style = (
         "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
         "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
@@ -605,7 +605,6 @@ elif tab == "Team Dashboards":
         "background:#002060; border:1px solid #FFFFFF; border-radius:7px; margin-right:7px; min-width:28px; "
         "height:28px; width:28px; font-size:10px; font-weight:700; color:#FFFFFF; text-align:center;"
     )
-    
     logo_dim = 48 if not is_mobile() else 28
     
     st.markdown(
@@ -614,18 +613,33 @@ elif tab == "Team Dashboards":
             <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
             {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">Rank</span>
                 <span style="line-height:1.15;">{overall_rank}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">{conf_rank_label}</span>
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">{conf_rank_label}</span>
                 <span style="line-height:1.15;">{this_conf_rank}</span>
+            </div>
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">Bowl Prob.</span>
+                <span style="line-height:1.15;">{bowl_prob_pct}</span>
+            </div>
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">8+ Wins</span>
+                <span style="line-height:1.15;">{eight_plus_pct}</span>
+            </div>
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">10+ Wins</span>
+                <span style="line-height:1.15;">{ten_plus_pct}</span>
+            </div>
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#fff; font-weight:400;">Undefeated</span>
+                <span style="line-height:1.15;">{undefeated_pct}</span>
             </div>
         </div>
         ''',
         unsafe_allow_html=True
     )
-
 
     # ---- Team Schedule Table ----
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
@@ -647,6 +661,17 @@ elif tab == "Team Dashboards":
             win_part = dp[g-1, w-1] * p if w > 0 else 0
             lose_part = dp[g-1, w] * (1 - p)
             dp[g, w] = win_part + lose_part
+    # --- Add these after building the dp matrix! ---
+
+    bowl_prob = dp[num_games, 6:].sum()
+    eight_plus = dp[num_games, 8:].sum()
+    ten_plus = dp[num_games, 10:].sum()
+    undefeated = dp[num_games, num_games]
+    
+    bowl_prob_pct = f"{bowl_prob * 100:.1f}%"
+    eight_plus_pct = f"{eight_plus * 100:.1f}%"
+    ten_plus_pct = f"{ten_plus * 100:.1f}%"
+    undefeated_pct = f"{undefeated * 100:.1f}%"
 
     rows = []
     for g in range(1, num_games + 1):
