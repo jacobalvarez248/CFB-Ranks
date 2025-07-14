@@ -571,7 +571,6 @@ elif tab == "Team Dashboards":
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
-    
     # ADD THIS BACK
     conference = team_row["Conference"] if "Conference" in team_row else ""
     conf_logo_url = None
@@ -602,25 +601,7 @@ elif tab == "Team Dashboards":
     )
     
     logo_dim = 48 if not is_mobile() else 28
-    
-    st.markdown(
-        f'''
-        <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
-            <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
-            {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
-                <span style="line-height:1.15;">{overall_rank}</span>
-            </div>
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">{conf_rank_label}</span>
-                <span style="line-height:1.15;">{this_conf_rank}</span>
-            </div>
-        </div>
-        ''',
-        unsafe_allow_html=True
-    )
-
+   
     # ---- Team Schedule Table ----
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
