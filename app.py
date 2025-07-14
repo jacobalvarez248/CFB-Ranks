@@ -1386,231 +1386,231 @@ for g in range(1, num_games + 1):
         st.altair_chart(final_chart, use_container_width=True)
 
 elif tab == "Charts & Graphs":
-st.header("📈 Charts & Graphs")
-import altair as alt
-
-# --- Load and clean data ---
-df_comp = load_sheet(data_path, "Industry Composite", header=0)
-df_comp.columns = [str(c).strip() for c in df_comp.columns]
-logos_df["Team"] = logos_df["Team"].astype(str)
-df_comp["Team"] = df_comp["Team"].astype(str)
-
-# --- Clean team names before merge ---
-def clean_team_name(name):
-    if pd.isnull(name):
-        return ""
-    return " ".join(str(name).strip().upper().split())
-
-logos_df["Team"] = logos_df["Team"].apply(clean_team_name)
-df_comp["Team"] = df_comp["Team"].apply(clean_team_name)
-
-df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-
-# Warn if missing logos
-missing_logos = df_comp[df_comp["Logo URL"].isna()]["Team"].tolist()
-if missing_logos:
-    st.warning(f"Missing logos for: {', '.join(missing_logos[:10])}{'...' if len(missing_logos) > 10 else ''}")
-
-pr_cols = {
-    "JPR": "JPR",
-    "Composite": "Composite",
-    "SP+": "SP+",
-    "FPI": "FPI",
-    "KFord": "Kford"
-}
-pr_choices = [k for k, v in pr_cols.items() if v in df_comp.columns]
-selected_rating = st.selectbox(
-    "Choose a rating to plot:",
-    pr_choices,
-    index=0  # JPR as default
-)
-rating_col = pr_cols[selected_rating]
-
-# --- Include ALL teams (even if missing logo), drop only if missing rating or conference ---
-df = df_comp.dropna(subset=[rating_col, "Conference"]).copy()
-conf_means = df.groupby("Conference", as_index=False)[rating_col].mean()
-conf_means = conf_means.sort_values(rating_col, ascending=False).reset_index(drop=True)
-conf_order = conf_means["Conference"].tolist()
-df["Conference"] = pd.Categorical(df["Conference"], categories=conf_order, ordered=True)
-
-# Quartile lines
-q1, med, q3 = np.percentile(df[rating_col], [25, 50, 75])
-rule_data = pd.DataFrame({
-    rating_col: [q1, med, q3],
-    "label": ["Q1", "Med.", "Q3"]
-})
-
-# Conference trend lines
-line_df = (
-    df.groupby("Conference")
-    .agg(xmin=(rating_col, "min"), xmax=(rating_col, "max"))
-    .reset_index()
-)
-line_df["Conference"] = pd.Categorical(line_df["Conference"], categories=conf_order, ordered=True)
-
-# Chart display settings
-if is_mobile():
-    logo_size = 10
-    line_size = 5
-    font_size = 9
-    left_pad = 0
-    point_opacity = 0.96
-    height = 340
-else:
-    logo_size = 34
-    line_size = 14
-    font_size = 15
-    left_pad = 170
-    point_opacity = 1
-    height = 95 * len(conf_order) + 120
-    width = 1000
-
-base = alt.Chart(df).encode(
-    y=alt.Y("Conference:N", sort=conf_order, title="Conference", axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
-    x=alt.X(f"{rating_col}:Q", title=selected_rating, axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
-)
-
-# Points: logo if available, fallback circle if not
-points_with_logo = base.transform_filter(
-    alt.datum["Logo URL"] != None
-).mark_image(
-    width=logo_size,
-    height=logo_size,
-    opacity=point_opacity
-).encode(
-    url="Logo URL:N",
-    tooltip=["Team", rating_col, "Conference"]
-)
-points_no_logo = base.transform_filter(
-    alt.datum["Logo URL"] == None
-).mark_circle(size=logo_size*logo_size, color="#bbbbbb").encode(
-    tooltip=["Team", rating_col, "Conference"]
-)
-
-hlines = alt.Chart(line_df).mark_rule(
-    size=line_size, opacity=0.22
-).encode(
-    y=alt.Y("Conference:N", sort=conf_order),
-    x="xmin:Q",
-    x2="xmax:Q",
-    color=alt.Color("Conference:N", scale=alt.Scale(scheme="category10"), legend=None)
-)
-rules = alt.Chart(rule_data).mark_rule(
-    strokeDash=[6,4], color="#9067b8", size=2
-).encode(
-    x=f"{rating_col}:Q"
-)
-texts = alt.Chart(rule_data).mark_text(
-    dy=-8 if is_mobile() else -16,
-    fontWeight="bold",
-    fontSize=font_size if is_mobile() else 15,
-    color="#9067b8"
-).encode(
-    x=f"{rating_col}:Q",
-    y=alt.value(-7 if is_mobile() else -10),
-    text="label"
-)
-
-chart_props = {
-    "height": height,
-    "title": f"Team {selected_rating} by Conference",
-    "padding": {"left": left_pad, "top": 6, "right": 6, "bottom": 6}
-}
-if not is_mobile():
-    chart_props["width"] = width
-
-chart = (rules + texts + hlines + points_with_logo + points_no_logo).properties(**chart_props)
-
-st.altair_chart(chart, use_container_width=True)
-
-st.markdown("---")
-st.header("Team Power Ratings Bar Chart")
-
-# --- Bar chart: repeat cleaning and logo merge ---
-selected_bar_rating = st.selectbox(
-    "Choose a rating for bar chart:",
-    pr_choices,
-    index=0,
-    key="bar_chart_rating_select"
-)
-bar_rating_col = pr_cols[selected_bar_rating]
-
-bar_df = df_comp.dropna(subset=[bar_rating_col, "Conference"]).copy()
-bar_df = bar_df.sort_values(by=bar_rating_col, ascending=False).reset_index(drop=True)
-team_order = bar_df["Team"].tolist()
-bar_df["Team"] = pd.Categorical(bar_df["Team"], categories=team_order, ordered=True)
-
-conf_list = bar_df["Conference"].unique().tolist()
-palette = alt.Scale(scheme="category10", domain=conf_list)
-
-if is_mobile():
-    bar_logo_size = 14
-    bar_font_size = 9
-    bar_title_size = 14
-    bar_legend = None
-    bar_width = None
-    bar_size = 10
-    bar_height = max(90, bar_size * len(bar_df))
-    x_axis = alt.X(f"{bar_rating_col}:Q", title=selected_bar_rating)
-    y_axis = alt.Y(
-        'Team:N',
-        sort=team_order,
-        title=None,
-        axis=alt.Axis(labels=False, ticks=False)
+    st.header("📈 Charts & Graphs")
+    import altair as alt
+    
+    # --- Load and clean data ---
+    df_comp = load_sheet(data_path, "Industry Composite", header=0)
+    df_comp.columns = [str(c).strip() for c in df_comp.columns]
+    logos_df["Team"] = logos_df["Team"].astype(str)
+    df_comp["Team"] = df_comp["Team"].astype(str)
+    
+    # --- Clean team names before merge ---
+    def clean_team_name(name):
+        if pd.isnull(name):
+            return ""
+        return " ".join(str(name).strip().upper().split())
+    
+    logos_df["Team"] = logos_df["Team"].apply(clean_team_name)
+    df_comp["Team"] = df_comp["Team"].apply(clean_team_name)
+    
+    df_comp = df_comp.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+    
+    # Warn if missing logos
+    missing_logos = df_comp[df_comp["Logo URL"].isna()]["Team"].tolist()
+    if missing_logos:
+        st.warning(f"Missing logos for: {', '.join(missing_logos[:10])}{'...' if len(missing_logos) > 10 else ''}")
+    
+    pr_cols = {
+        "JPR": "JPR",
+        "Composite": "Composite",
+        "SP+": "SP+",
+        "FPI": "FPI",
+        "KFord": "Kford"
+    }
+    pr_choices = [k for k, v in pr_cols.items() if v in df_comp.columns]
+    selected_rating = st.selectbox(
+        "Choose a rating to plot:",
+        pr_choices,
+        index=0  # JPR as default
     )
-else:
-    bar_height = 470
-    bar_logo_size = 15
-    bar_font_size = 11
-    bar_width = 900
-    bar_title_size = 19
-    bar_legend = alt.Legend(title="Conference")
-    x_axis = alt.X('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False))
-    y_axis = alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating)
-
-bar_props = dict(
-    height=bar_height,
-    title=alt.TitleParams(
-        f"{selected_bar_rating} Ratings by Team",
-        fontSize=bar_title_size,
-        fontWeight="bold"
+    rating_col = pr_cols[selected_rating]
+    
+    # --- Include ALL teams (even if missing logo), drop only if missing rating or conference ---
+    df = df_comp.dropna(subset=[rating_col, "Conference"]).copy()
+    conf_means = df.groupby("Conference", as_index=False)[rating_col].mean()
+    conf_means = conf_means.sort_values(rating_col, ascending=False).reset_index(drop=True)
+    conf_order = conf_means["Conference"].tolist()
+    df["Conference"] = pd.Categorical(df["Conference"], categories=conf_order, ordered=True)
+    
+    # Quartile lines
+    q1, med, q3 = np.percentile(df[rating_col], [25, 50, 75])
+    rule_data = pd.DataFrame({
+        rating_col: [q1, med, q3],
+        "label": ["Q1", "Med.", "Q3"]
+    })
+    
+    # Conference trend lines
+    line_df = (
+        df.groupby("Conference")
+        .agg(xmin=(rating_col, "min"), xmax=(rating_col, "max"))
+        .reset_index()
     )
-)
-if not is_mobile():
-    bar_props["width"] = bar_width
-
-# Bar chart: all teams, colored by conference, with or without logos
-bar_chart = alt.Chart(bar_df).mark_bar().encode(
-    x=x_axis,
-    y=y_axis,
-    color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
-    tooltip=["Team", bar_rating_col, "Conference"]
-).properties(**bar_props)
-
-# Logos at bar ends if available, fallback dot otherwise
-logos_on_bar = alt.Chart(bar_df).transform_filter(
-    alt.datum["Logo URL"] != None
-).mark_image(
-    width=bar_logo_size,
-    height=bar_logo_size
-).encode(
-    x=alt.X(f"{bar_rating_col}:Q") if is_mobile() else alt.X('Team:N', sort=team_order),
-    y=alt.Y('Team:N', sort=team_order) if is_mobile() else alt.Y(f"{bar_rating_col}:Q"),
-    url="Logo URL:N"
-)
-fallback_bar_dot = alt.Chart(bar_df).transform_filter(
-    alt.datum["Logo URL"] == None
-).mark_circle(size=bar_logo_size*bar_logo_size, color="#bbbbbb").encode(
-    x=alt.X(f"{bar_rating_col}:Q") if is_mobile() else alt.X('Team:N', sort=team_order),
-    y=alt.Y('Team:N', sort=team_order) if is_mobile() else alt.Y(f"{bar_rating_col}:Q"),
-    tooltip=["Team", bar_rating_col, "Conference"]
-)
-
-final_bar_chart = (bar_chart + logos_on_bar + fallback_bar_dot).configure_axis(
-    labelFontSize=bar_font_size,
-    titleFontSize=bar_font_size + 2
-)
-
-st.altair_chart(final_bar_chart, use_container_width=True)
+    line_df["Conference"] = pd.Categorical(line_df["Conference"], categories=conf_order, ordered=True)
+    
+    # Chart display settings
+    if is_mobile():
+        logo_size = 10
+        line_size = 5
+        font_size = 9
+        left_pad = 0
+        point_opacity = 0.96
+        height = 340
+    else:
+        logo_size = 34
+        line_size = 14
+        font_size = 15
+        left_pad = 170
+        point_opacity = 1
+        height = 95 * len(conf_order) + 120
+        width = 1000
+    
+    base = alt.Chart(df).encode(
+        y=alt.Y("Conference:N", sort=conf_order, title="Conference", axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
+        x=alt.X(f"{rating_col}:Q", title=selected_rating, axis=alt.Axis(labelFontSize=font_size, titleFontSize=font_size+2)),
+    )
+    
+    # Points: logo if available, fallback circle if not
+    points_with_logo = base.transform_filter(
+        alt.datum["Logo URL"] != None
+    ).mark_image(
+        width=logo_size,
+        height=logo_size,
+        opacity=point_opacity
+    ).encode(
+        url="Logo URL:N",
+        tooltip=["Team", rating_col, "Conference"]
+    )
+    points_no_logo = base.transform_filter(
+        alt.datum["Logo URL"] == None
+    ).mark_circle(size=logo_size*logo_size, color="#bbbbbb").encode(
+        tooltip=["Team", rating_col, "Conference"]
+    )
+    
+    hlines = alt.Chart(line_df).mark_rule(
+        size=line_size, opacity=0.22
+    ).encode(
+        y=alt.Y("Conference:N", sort=conf_order),
+        x="xmin:Q",
+        x2="xmax:Q",
+        color=alt.Color("Conference:N", scale=alt.Scale(scheme="category10"), legend=None)
+    )
+    rules = alt.Chart(rule_data).mark_rule(
+        strokeDash=[6,4], color="#9067b8", size=2
+    ).encode(
+        x=f"{rating_col}:Q"
+    )
+    texts = alt.Chart(rule_data).mark_text(
+        dy=-8 if is_mobile() else -16,
+        fontWeight="bold",
+        fontSize=font_size if is_mobile() else 15,
+        color="#9067b8"
+    ).encode(
+        x=f"{rating_col}:Q",
+        y=alt.value(-7 if is_mobile() else -10),
+        text="label"
+    )
+    
+    chart_props = {
+        "height": height,
+        "title": f"Team {selected_rating} by Conference",
+        "padding": {"left": left_pad, "top": 6, "right": 6, "bottom": 6}
+    }
+    if not is_mobile():
+        chart_props["width"] = width
+    
+    chart = (rules + texts + hlines + points_with_logo + points_no_logo).properties(**chart_props)
+    
+    st.altair_chart(chart, use_container_width=True)
+    
+    st.markdown("---")
+    st.header("Team Power Ratings Bar Chart")
+    
+    # --- Bar chart: repeat cleaning and logo merge ---
+    selected_bar_rating = st.selectbox(
+        "Choose a rating for bar chart:",
+        pr_choices,
+        index=0,
+        key="bar_chart_rating_select"
+    )
+    bar_rating_col = pr_cols[selected_bar_rating]
+    
+    bar_df = df_comp.dropna(subset=[bar_rating_col, "Conference"]).copy()
+    bar_df = bar_df.sort_values(by=bar_rating_col, ascending=False).reset_index(drop=True)
+    team_order = bar_df["Team"].tolist()
+    bar_df["Team"] = pd.Categorical(bar_df["Team"], categories=team_order, ordered=True)
+    
+    conf_list = bar_df["Conference"].unique().tolist()
+    palette = alt.Scale(scheme="category10", domain=conf_list)
+    
+    if is_mobile():
+        bar_logo_size = 14
+        bar_font_size = 9
+        bar_title_size = 14
+        bar_legend = None
+        bar_width = None
+        bar_size = 10
+        bar_height = max(90, bar_size * len(bar_df))
+        x_axis = alt.X(f"{bar_rating_col}:Q", title=selected_bar_rating)
+        y_axis = alt.Y(
+            'Team:N',
+            sort=team_order,
+            title=None,
+            axis=alt.Axis(labels=False, ticks=False)
+        )
+    else:
+        bar_height = 470
+        bar_logo_size = 15
+        bar_font_size = 11
+        bar_width = 900
+        bar_title_size = 19
+        bar_legend = alt.Legend(title="Conference")
+        x_axis = alt.X('Team:N', sort=team_order, title=None, axis=alt.Axis(labels=False, ticks=False))
+        y_axis = alt.Y(f"{bar_rating_col}:Q", title=selected_bar_rating)
+    
+    bar_props = dict(
+        height=bar_height,
+        title=alt.TitleParams(
+            f"{selected_bar_rating} Ratings by Team",
+            fontSize=bar_title_size,
+            fontWeight="bold"
+        )
+    )
+    if not is_mobile():
+        bar_props["width"] = bar_width
+    
+    # Bar chart: all teams, colored by conference, with or without logos
+    bar_chart = alt.Chart(bar_df).mark_bar().encode(
+        x=x_axis,
+        y=y_axis,
+        color=alt.Color("Conference:N", scale=palette, legend=bar_legend),
+        tooltip=["Team", bar_rating_col, "Conference"]
+    ).properties(**bar_props)
+    
+    # Logos at bar ends if available, fallback dot otherwise
+    logos_on_bar = alt.Chart(bar_df).transform_filter(
+        alt.datum["Logo URL"] != None
+    ).mark_image(
+        width=bar_logo_size,
+        height=bar_logo_size
+    ).encode(
+        x=alt.X(f"{bar_rating_col}:Q") if is_mobile() else alt.X('Team:N', sort=team_order),
+        y=alt.Y('Team:N', sort=team_order) if is_mobile() else alt.Y(f"{bar_rating_col}:Q"),
+        url="Logo URL:N"
+    )
+    fallback_bar_dot = alt.Chart(bar_df).transform_filter(
+        alt.datum["Logo URL"] == None
+    ).mark_circle(size=bar_logo_size*bar_logo_size, color="#bbbbbb").encode(
+        x=alt.X(f"{bar_rating_col}:Q") if is_mobile() else alt.X('Team:N', sort=team_order),
+        y=alt.Y('Team:N', sort=team_order) if is_mobile() else alt.Y(f"{bar_rating_col}:Q"),
+        tooltip=["Team", bar_rating_col, "Conference"]
+    )
+    
+    final_bar_chart = (bar_chart + logos_on_bar + fallback_bar_dot).configure_axis(
+        labelFontSize=bar_font_size,
+        titleFontSize=bar_font_size + 2
+    )
+    
+    st.altair_chart(final_bar_chart, use_container_width=True)
 
 
