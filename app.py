@@ -598,12 +598,12 @@ elif tab == "Team Dashboards":
     # --- Card styling ---
     card_style = (
         "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#fff; border:1px solid #ddd; border-radius:10px; margin-right:10px; min-width:48px; "
-        "height:48px; width:48px; font-size:15px; font-weight:700; color:#333; text-align:center;"
+        "background:#002060; border:1px solid #ddd; border-radius:10px; margin-right:10px; min-width:48px; "
+        "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
         if not is_mobile() else
         "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#fff; border:1px solid #ddd; border-radius:7px; margin-right:7px; min-width:28px; "
-        "height:28px; width:28px; font-size:10px; font-weight:700; color:#333; text-align:center;"
+        "background:#002060; border:1px solid #ddd; border-radius:7px; margin-right:7px; min-width:28px; "
+        "height:28px; width:28px; font-size:10px; font-weight:700; color:#FFFFFF; text-align:center;"
     )
     
     logo_dim = 48 if not is_mobile() else 28
