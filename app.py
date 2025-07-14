@@ -907,8 +907,17 @@ elif tab == "Team Dashboards":
             bar = alt.Chart(df_win_dist).mark_bar(
                 color="#002060"
             ).encode(
-                x=alt.X("Wins:O", axis=alt.Axis(title="Wins", labelAngle=0)),
-                y=alt.Y("Probability:Q", axis=alt.Axis(title="Probability (%)")),
+                x=alt.X("Wins:O", axis=alt.Axis(
+                    title="Wins",
+                    labelAngle=0,
+                    labelColor="black",   # <-- Axis tick text
+                    titleColor="black"    # <-- Axis label
+                )),
+                y=alt.Y("Probability:Q", axis=alt.Axis(
+                    title="Probability (%)",
+                    labelColor="black",
+                    titleColor="black"
+                )),
                 tooltip=[
                     alt.Tooltip("Wins:O", title="Wins"),
                     alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
@@ -919,7 +928,7 @@ elif tab == "Team Dashboards":
                 baseline='bottom',
                 dy=-2,
                 color='black',
-                fontSize=13
+                fontSize=10
             ).encode(
                 text="Label"
             )
