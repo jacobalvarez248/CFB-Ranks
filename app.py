@@ -1449,6 +1449,86 @@ elif tab == "Team Dashboards":
             title=""
         )
         st.altair_chart(final_chart, use_container_width=True)
+    # --- Conference Standings Table (MOBILE STYLE, always) ---
+    conf_name = conference.strip().upper()
+    standings = df_expected[df_expected["Conference"].str.strip().str.upper() == conf_name].copy()
+    standings = standings.sort_values(
+        by="Projected Conference Wins", ascending=False
+    ).reset_index(drop=True)
+    standings.insert(0, "Projected Finish", standings.index + 1)
+    
+    # Reuse mobile header/col setup from your Conference Overview tab
+    mobile_header_map = {
+        "Projected Finish": "Conf. Standings",
+        "Team": "Team",
+        "Power Rating": "Pwr. Rtg.",
+        "Projected Overall Wins": "Proj. Wins",
+        "Projected Conference Wins": "Proj. Conf. Wins",
+        "Projected Conference Losses": "Proj. Conf. Losses",
+        "Average Conference Game Quality": "Avg. Conf. Game Qty",
+        "Average Conference Schedule Difficulty": "Conf. Sched. Diff.",
+    }
+    mobile_cols = [
+        "Projected Finish", "Team", "Power Rating", "Projected Overall Wins",
+        "Projected Conference Wins", "Projected Conference Losses",
+        "Average Conference Game Quality", "Average Conference Schedule Difficulty"
+    ]
+    cols = [c for c in mobile_cols if c in standings.columns]
+    display_headers = [mobile_header_map[c] for c in cols]
+    
+    table_style = (
+        "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+        if is_mobile() else
+        "width:100%; border-collapse:collapse;"
+    )
+    wrapper_style = (
+        "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+        if is_mobile() else
+        "max-width:100%; overflow-x:auto;"
+    )
+    header_font = "font-size:13px; white-space:normal;" if is_mobile() else ""
+    cell_font = "font-size:13px; white-space:nowrap;" if is_mobile() else "white-space:nowrap; font-size:15px;"
+    
+    html = [
+        f'<div style="{wrapper_style}">',
+        f'<table style="{table_style}">',
+        '<thead><tr>'
+    ]
+    for disp_col, c in zip(display_headers, cols):
+        th = (
+            'border:1px solid #ddd; padding:8px; text-align:center; '
+            'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+        )
+        if c == "Team":
+            th += " white-space:nowrap; min-width:48px; max-width:48px;" if is_mobile() else " white-space:nowrap; min-width:180px; max-width:240px;"
+        elif is_mobile():
+            th += " min-width:38px; max-width:50px; white-space:normal; font-size:12px; line-height:1.1;"
+        else:
+            th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
+        th += header_font
+        html.append(f"<th style='{th}'>{disp_col}</th>")
+    html.append("</tr></thead><tbody>")
+    for _, row in standings.iterrows():
+        html.append("<tr>")
+        for c in cols:
+            v = row[c]
+            td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+            td += cell_font
+            cell = v
+            if c == "Team":
+                logo = row.get("Logo URL")
+                # MOBILE: logo only; DESKTOP: logo+name
+                if is_mobile():
+                    cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>' if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http") else ""
+                else:
+                    team_name = v
+                    cell = (
+                        f'<div style="display:flex;align-items:center;">'
+                        f'<img src="{logo}" width="24" style="margin-right:8px;"/>{team_name}</div>'
+                    ) if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http") else team_name
+            html.append(f"<td style='{td}'>{cell}</td>")
+        html.append("</tr>")
+    html.append("</tbody></table></div>")
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
