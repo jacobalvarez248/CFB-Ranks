@@ -1534,7 +1534,6 @@ elif tab == "Team Dashboards":
             standings_html.append(f"<th style='{th}'>{disp_col}</th>")
         standings_html.append("</tr></thead><tbody>")
         
-        standings_html.append("</tbody></table></div>")
         for _, row in standings.iterrows():
             is_selected_team = (row["Team"] == selected_team)
             standings_html.append("<tr>")
@@ -1544,7 +1543,7 @@ elif tab == "Team Dashboards":
                 td += cell_font
                 cell = v
         
-                # -- Your existing cell coloring/formatting logic --
+                # --- Your existing coloring/logic here (see previous answers) ---
                 if c == "Team":
                     logo = row.get("Logo URL")
                     if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
@@ -1576,20 +1575,18 @@ elif tab == "Team Dashboards":
                         r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
                         td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
                         cell = f"{v:.1f}"
-                    # -- Add your own #E2EFDA highlight condition here if needed! --
-                    # elif c == "SomeColumnWithGreenHighlight" and ...:
-                    #     td += " background-color:#E2EFDA; color:#333;"
                     else:
                         cell = v
         
-                # -- Add highlight for selected team row, UNLESS this cell already has #E2EFDA --
+                # --- Row highlight (but not if already #E2EFDA) ---
                 if is_selected_team and "#E2EFDA" not in td:
-                    td += " background-color:#fffac8;"  # pale yellow
+                    td += " background-color:#fffac8;"
         
                 standings_html.append(f"<td style='{td}'>{cell}</td>")
             standings_html.append("</tr>")
-
-        # Render
+        standings_html.append("</tbody></table></div>")
+        
+                # Render
         if not is_mobile():
             # On desktop, make width same as win dist table (left side)
             with left_col:
