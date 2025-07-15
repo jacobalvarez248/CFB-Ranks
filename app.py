@@ -1037,41 +1037,51 @@ elif tab == "Team Dashboards":
     record_str = f"{proj_wins:.1f}-{proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
     conf_record_str = f"{proj_conf_wins:.1f}-{proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
     
-    # -- Color choices --
+    # Color choices
     record_bg = "#FFB347"    # Amber/Orange
     conf_bg = "#9067B8"      # Purple
     
-    # -- Card style (mobile/desktop responsive) --
     if is_mobile():
         card_width = "44vw"
-        card_height = "38px"
-        font_size = "17px"
-        big_font = "22px"
+        card_height = "34px"
+        label_font = "12px"
+        record_font = "20px"
         margin = "6px auto 10px auto"
+        wrap = "center"
     else:
-        card_width = "180px"
-        card_height = "54px"
-        font_size = "22px"
-        big_font = "29px"
-        margin = "8px 20px 20px 0"
+        card_width = "182px"
+        card_height = "48px"
+        label_font = "14px"
+        record_font = "27px"
+        margin = "8px 24px 20px 0"
+        wrap = "flex-start"
     
     record_card = f'''
     <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{record_bg};
     border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#222; border:2px solid #fff; margin:{margin};
-    width:{card_width}; height:{card_height}; font-size:{font_size}; font-weight:600; text-align:center;">
-        <span style="font-size:0.7em; font-weight:400; color:#444;">Expected Record</span>
-        <span style="font-size:{big_font}; font-weight:700; color:#002060;">{record_str}</span>
+    width:{card_width}; height:{card_height}; font-size:{label_font}; font-weight:600; text-align:center; padding:0 8px; box-sizing:border-box;">
+        <span style="font-size:0.97em; font-weight:400; color:#444; white-space:nowrap;">Expected Record</span>
+        <span style="font-size:{record_font}; font-weight:800; color:#002060; letter-spacing:-1px; line-height:1.1;">{record_str}</span>
     </div>
     '''
     
     conf_card = f'''
     <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{conf_bg};
     border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#fff; border:2px solid #fff; margin:{margin};
-    width:{card_width}; height:{card_height}; font-size:{font_size}; font-weight:600; text-align:center;">
-        <span style="font-size:0.7em; font-weight:400; color:#eee;">Expected Conf. Record</span>
-        <span style="font-size:{big_font}; font-weight:700; color:#fff;">{conf_record_str}</span>
+    width:{card_width}; height:{card_height}; font-size:{label_font}; font-weight:600; text-align:center; padding:0 8px; box-sizing:border-box;">
+        <span style="font-size:0.97em; font-weight:400; color:#eee; white-space:nowrap;">Expected Conf. Record</span>
+        <span style="font-size:{record_font}; font-weight:800; color:#fff; letter-spacing:-1px; line-height:1.1;">{conf_record_str}</span>
     </div>
     '''
+    
+    # Align left on desktop, center on mobile
+    st.markdown(f'''
+    <div style="display:flex;flex-direction:row;justify-content:{wrap};align-items:center;gap:2vw;width:100%;flex-wrap:wrap;">
+        {record_card}
+        {conf_card}
+    </div>
+    ''', unsafe_allow_html=True)
+
     
     # -- Render as row (centered) --
     st.markdown(f'''
