@@ -1579,7 +1579,7 @@ elif tab == "Team Dashboards":
                         cell = v
         
                 # --- Row highlight (but not if already #E2EFDA) ---
-                if is_selected_team and "#E2EFDA" not in td:
+                if is_selected_team and "background-color" not in td:
                     td += " background-color:#fffac8;"
         
                 standings_html.append(f"<td style='{td}'>{cell}</td>")
