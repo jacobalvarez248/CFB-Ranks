@@ -1028,6 +1028,59 @@ elif tab == "Team Dashboards":
 
     st.markdown(card_html, unsafe_allow_html=True)
 
+    # --- Calculate Expected Records ---
+    proj_wins = team_row.get("Projected Overall Wins", None)
+    proj_losses = team_row.get("Projected Overall Losses", None)
+    proj_conf_wins = team_row.get("Projected Conference Wins", None)
+    proj_conf_losses = team_row.get("Projected Conference Losses", None)
+    
+    record_str = f"{proj_wins:.1f}-{proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
+    conf_record_str = f"{proj_conf_wins:.1f}-{proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
+    
+    # -- Color choices --
+    record_bg = "#FFB347"    # Amber/Orange
+    conf_bg = "#9067B8"      # Purple
+    
+    # -- Card style (mobile/desktop responsive) --
+    if is_mobile():
+        card_width = "44vw"
+        card_height = "38px"
+        font_size = "17px"
+        big_font = "22px"
+        margin = "6px auto 10px auto"
+    else:
+        card_width = "180px"
+        card_height = "54px"
+        font_size = "22px"
+        big_font = "29px"
+        margin = "8px 20px 20px 0"
+    
+    record_card = f'''
+    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{record_bg};
+    border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#222; border:2px solid #fff; margin:{margin};
+    width:{card_width}; height:{card_height}; font-size:{font_size}; font-weight:600; text-align:center;">
+        <span style="font-size:0.7em; font-weight:400; color:#444;">Expected Record</span>
+        <span style="font-size:{big_font}; font-weight:700; color:#002060;">{record_str}</span>
+    </div>
+    '''
+    
+    conf_card = f'''
+    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{conf_bg};
+    border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#fff; border:2px solid #fff; margin:{margin};
+    width:{card_width}; height:{card_height}; font-size:{font_size}; font-weight:600; text-align:center;">
+        <span style="font-size:0.7em; font-weight:400; color:#eee;">Expected Conf. Record</span>
+        <span style="font-size:{big_font}; font-weight:700; color:#fff;">{conf_record_str}</span>
+    </div>
+    '''
+    
+    # -- Render as row (centered) --
+    st.markdown(f'''
+    <div style="display:flex;flex-direction:row;justify-content:center;align-items:center;gap:2vw;width:100%;">
+        {record_card}
+        {conf_card}
+    </div>
+    ''', unsafe_allow_html=True)
+
     # 7. For schedule table rendering (and your "rows" for win progression), guard index!
     rows = []
     for g in range(1, num_games + 1):
