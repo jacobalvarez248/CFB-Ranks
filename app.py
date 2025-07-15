@@ -1533,13 +1533,18 @@ elif tab == "Team Dashboards":
             th += header_font
             standings_html.append(f"<th style='{th}'>{disp_col}</th>")
         standings_html.append("</tr></thead><tbody>")
+        
+        standings_html.append("</tbody></table></div>")
         for _, row in standings.iterrows():
+            is_selected_team = (row["Team"] == selected_team)
             standings_html.append("<tr>")
             for c in cols:
                 v = row[c]
                 td = 'border:1px solid #ddd; padding:8px; text-align:center;'
                 td += cell_font
                 cell = v
+        
+                # -- Your existing cell coloring/formatting logic --
                 if c == "Team":
                     logo = row.get("Logo URL")
                     if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
@@ -1553,27 +1558,37 @@ elif tab == "Team Dashboards":
                     else:
                         cell = "" if is_mobile() else v
                 else:
+                    # Power Rating conditional coloring
                     if c == "Power Rating" and pd.notnull(v):
                         t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
                         r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                         td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                         cell = f"{v:.1f}"
+                    # Average Conference Game Quality
                     elif c == "Average Conference Game Quality" and pd.notnull(v):
                         t = (v - acgq_min) / (acgq_max - acgq_min) if acgq_max > acgq_min else 0
                         r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                         td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                         cell = f"{v:.1f}"
+                    # Average Conference Schedule Difficulty (inverse)
                     elif c == "Average Conference Schedule Difficulty" and pd.notnull(v):
                         inv = 1 - ((v - acsd_min) / (acsd_max - acsd_min) if acsd_max > acsd_min else 0)
                         r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
                         td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
                         cell = f"{v:.1f}"
+                    # -- Add your own #E2EFDA highlight condition here if needed! --
+                    # elif c == "SomeColumnWithGreenHighlight" and ...:
+                    #     td += " background-color:#E2EFDA; color:#333;"
                     else:
                         cell = v
+        
+                # -- Add highlight for selected team row, UNLESS this cell already has #E2EFDA --
+                if is_selected_team and "#E2EFDA" not in td:
+                    td += " background-color:#fffac8;"  # pale yellow
+        
                 standings_html.append(f"<td style='{td}'>{cell}</td>")
             standings_html.append("</tr>")
-        standings_html.append("</tbody></table></div>")
-    
+
         # Render
         if not is_mobile():
             # On desktop, make width same as win dist table (left side)
