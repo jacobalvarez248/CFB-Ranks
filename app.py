@@ -904,7 +904,18 @@ elif tab == "Team Dashboards":
     at_least_8_pct = f"{at_least_8*100:.1f}%"
     at_least_10_pct = f"{at_least_10*100:.1f}%"
     exact_12_pct = f"{exact_12*100:.1f}%"
-
+    # ================
+    rows = []
+    for g in range(1, num_games + 1):
+        opp = opponents[g-1] if (g-1) < len(opponents) else ""
+        row = {
+            "Game": g,
+            "Opponent": opp
+        }
+        for w in range(num_games + 1):
+            row[w] = dp[g, w]
+        rows.append(row)
+# =====================
     # --- Returning Production ---
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
