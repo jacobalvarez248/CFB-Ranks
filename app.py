@@ -1034,8 +1034,8 @@ elif tab == "Team Dashboards":
     proj_conf_wins = team_row.get("Projected Conference Wins", None)
     proj_conf_losses = team_row.get("Projected Conference Losses", None)
     
-    record_str = f"{proj_wins:.1f}-{proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
-    conf_record_str = f"{proj_conf_wins:.1f}-{proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
+    record_str = f"{proj_wins:.1f}-{proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else " - "
+    conf_record_str = f"{proj_conf_wins:.1f}-{proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else " - "
     
     # Color choices
     record_bg = "#FFB347"    # Amber/Orange
