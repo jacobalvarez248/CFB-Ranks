@@ -846,8 +846,8 @@ elif tab == "Industry Composite Ranking":
     st.markdown("".join(html), unsafe_allow_html=True)
 
 
-elif tab == "Conference Overviews":
-    st.header("🏟️ Conference Overviews")
+elif tab == "Team Dashboards":
+    st.header("🏟️ Team Dashboards")
     import altair as alt
 
     # --- Conference Summary Table ---
@@ -1108,8 +1108,7 @@ elif tab == "Conference Overviews":
         html2.append("</tr>")
     html2.append("</tbody></table></div>")
     st.markdown("".join(html2), unsafe_allow_html=True)
-
-
+    
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
