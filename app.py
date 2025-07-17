@@ -849,10 +849,10 @@ elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
     if is_mobile():
         inject_mobile_css()
-
-    # === Select Team ===
+    # --- Team Selection ---
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
+
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
     conference = team_row["Conference"] if "Conference" in team_row else ""
@@ -860,7 +860,7 @@ elif tab == "Team Dashboards":
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
 
-    # --- Win Probs and Returning Production
+    # --- Schedule/win prob ---
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
     opponents = sched["Opponent"].tolist()
@@ -871,6 +871,7 @@ elif tab == "Team Dashboards":
         win_prob_list = sched["Win Prob"].astype(float).values
     else:
         win_prob_list = np.full(num_games, 0.5)
+    # Binomial win dist for this team
     dp = np.zeros((num_games + 1, num_games + 1))
     dp[0, 0] = 1.0
     for g in range(1, num_games + 1):
@@ -894,6 +895,7 @@ elif tab == "Team Dashboards":
     at_least_10_pct = f"{at_least_10*100:.1f}%"
     exact_12_pct = f"{exact_12*100:.1f}%"
 
+    # --- Returning production ---
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
     rank_row = df_ranking[df_ranking["Team"].str.strip() == selected_team.strip()]
@@ -912,25 +914,23 @@ elif tab == "Team Dashboards":
     else:
         ret_prod = off_ret = def_ret = ""
 
-    # --- Stat/prob cards ---
-    card_items = [
-        {
-            "label": "Power Rating",
-            "value": lambda row: f"{row['Power Rating']:.1f}" if pd.notnull(row['Power Rating']) else "",
-            "color": "#002060", "rank_col": "Power Rating Rank", "scope": "all"
-        },
-        {"label": "6+", "value": lambda _: at_least_6_pct, "color": "#00B0F0", "rank_col": "6+ Rank", "scope": "all"},
-        {"label": "8+", "value": lambda _: at_least_8_pct, "color": "#00B0F0", "rank_col": "8+ Rank", "scope": "all"},
-        {"label": "10+", "value": lambda _: at_least_10_pct, "color": "#00B0F0", "rank_col": "10+ Rank", "scope": "all"},
-        {"label": "12-0", "value": lambda _: exact_12_pct, "color": "#00B0F0", "rank_col": "12-0 Rank", "scope": "all"},
-        {"label": "Returning Production", "value": lambda _: ret_prod, "color": "#00B050", "rank_col": "Ret. Prod. Rank", "scope": "all"},
-        {"label": "Off. Returning Production", "value": lambda _: off_ret, "color": "#00B050", "rank_col": "Off. Ret. Prod. Rank", "scope": "all"},
-        {"label": "Def. Returning Production", "value": lambda _: def_ret, "color": "#00B050", "rank_col": "Def. Ret. Prod. Rank", "scope": "all"},
+    # --- Card config ---
+    card_stats = [
+        {"label": "Power Rating", "value": lambda r: f"{r['Power Rating']:.1f}" if pd.notnull(r['Power Rating']) else "", "color": "#002060", "key": "Power Rating"},
+        {"label": "6+", "value": lambda _: at_least_6_pct, "color": "#00B0F0", "key": "6+"},
+        {"label": "8+", "value": lambda _: at_least_8_pct, "color": "#00B0F0", "key": "8+"},
+        {"label": "10+", "value": lambda _: at_least_10_pct, "color": "#00B0F0", "key": "10+"},
+        {"label": "12-0", "value": lambda _: exact_12_pct, "color": "#00B0F0", "key": "12-0"},
+        {"label": "Returning Production", "value": lambda _: ret_prod, "color": "#00B050", "key": "Returning Production"},
+        {"label": "Off. Returning Production", "value": lambda _: off_ret, "color": "#00B050", "key": "Off. Returning Production"},
+        {"label": "Def. Returning Production", "value": lambda _: def_ret, "color": "#00B050", "key": "Def. Returning Production"},
     ]
 
-    # --- Rank Calculations ---
+    # --- RANK CALCS ---
     df_for_ranks = df_expected.copy()
+    # Ranks compared to ALL teams (not by conf)
     df_for_ranks["Power Rating Rank"] = df_for_ranks["Power Rating"].rank(ascending=False, method='min').fillna(0).astype(int)
+    # Win probability ranks (national)
     win_prob_map = {}
     for team in df_for_ranks["Team"]:
         sched_team = df_schedule[df_schedule[team_col] == team].copy()
@@ -950,17 +950,15 @@ elif tab == "Team Dashboards":
                 lose_part = dp_t[g-1, w] * (1 - p)
                 dp_t[g, w] = win_part + lose_part
         win_probs_t = dp_t[num_games_t, :]
-        wp_vals = {
+        win_prob_map[team] = {
             "6+": win_probs_t[6:].sum() if len(win_probs_t) > 6 else 0.0,
             "8+": win_probs_t[8:].sum() if len(win_probs_t) > 8 else 0.0,
             "10+": win_probs_t[10:].sum() if len(win_probs_t) > 10 else 0.0,
             "12-0": win_probs_t[12] if len(win_probs_t) > 12 else (win_probs_t[-1] if len(win_probs_t) == 12 else 0.0),
         }
-        win_prob_map[team] = wp_vals
     for k in ["6+", "8+", "10+", "12-0"]:
-        colname = f"{k} Rank"
-        df_for_ranks[colname] = df_for_ranks["Team"].map(lambda t: win_prob_map[t][k])
-        df_for_ranks[colname] = df_for_ranks[colname].rank(ascending=False, method='min').fillna(0).astype(int)
+        df_for_ranks[f"{k} Rank"] = df_for_ranks["Team"].map(lambda t: win_prob_map[t][k])
+        df_for_ranks[f"{k} Rank"] = df_for_ranks[f"{k} Rank"].rank(ascending=False, method='min').fillna(0).astype(int)
     def get_prod(team, col):
         rr = df_ranking[df_ranking["Team"].str.strip() == team.strip()]
         if rr.empty: return np.nan
@@ -970,95 +968,152 @@ elif tab == "Team Dashboards":
             if v > 1.01: v = v / 100.0
         except: v = np.nan
         return v
-    for k, rk, col in [
-        ("Returning Production", "Ret. Prod. Rank", "Returning Production"),
-        ("Off. Returning Production", "Off. Ret. Prod. Rank", "Off. Returning Production"),
-        ("Def. Returning Production", "Def. Ret. Prod. Rank", "Def. Returning Production")
+    for stat, rank_col, col in [
+        ("Returning Production", "Returning Production Rank", "Returning Production"),
+        ("Off. Returning Production", "Off. Returning Production Rank", "Off. Returning Production"),
+        ("Def. Returning Production", "Def. Returning Production Rank", "Def. Returning Production"),
     ]:
-        df_for_ranks[rk] = df_for_ranks["Team"].map(lambda t: get_prod(t, col))
-        df_for_ranks[rk] = df_for_ranks[rk].rank(ascending=False, method='min').fillna(0).astype(int)
+        df_for_ranks[rank_col] = df_for_ranks["Team"].map(lambda t: get_prod(t, col))
+        df_for_ranks[rank_col] = df_for_ranks[rank_col].rank(ascending=False, method='min').fillna(0).astype(int)
+
+    # Conference-specific ranks
     conf_col = "Projected Conference Wins"
     df_for_ranks["Expected Conf. Wins Rank"] = (
         df_for_ranks.groupby("Conference")[conf_col]
         .rank(ascending=False, method="min").fillna(0).astype(int)
     )
-    this_team_ranks = df_for_ranks[df_for_ranks["Team"] == selected_team].iloc[0]
+    # National expected win ranks
+    df_for_ranks["Expected Wins Rank"] = df_for_ranks["Projected Overall Wins"].rank(ascending=False, method="min").fillna(0).astype(int)
 
-    # --- Expected Record cards ---
+    this_team_ranks = df_for_ranks[df_for_ranks["Team"] == selected_team].iloc[0]
+    n_teams = len(df_for_ranks)
+    n_conf_teams = len(df_for_ranks[df_for_ranks["Conference"] == conference])
+
+    # --- CARD SIZING ---
+    is_mob = is_mobile()
+    gap = "1vw" if is_mob else "16px"
+    pad = 2 if is_mob else 7
+    logo_dim = 38 if is_mob else 70
+    conf_logo_dim = 28 if is_mob else 44
+    card_w = 60 if is_mob else 92
+    card_h = 40 if is_mob else 52
+    card_fs = 10 if is_mob else 15
+    label_fs = 8 if is_mob else 12
+    val_fs = 11 if is_mob else 18
+    rank_fs = 8 if is_mob else 13
+
+    # --- ROW 1: Logo, Conf logo, stat cards ---
+    logo_html = f"""
+    <div style='display:flex;align-items:center;justify-content:center;min-width:{logo_dim}px;max-width:{logo_dim}px;grid-row:1/3;grid-column:1/2;'>
+        <img src="{logo_url}" width="{logo_dim}" style="vertical-align:middle;"/>
+    </div>"""
+    row1 = [logo_html]
+
+    conf_logo_html = f"""
+    <div style='background:#fff;border:1px solid #ccc;display:flex;align-items:center;justify-content:center;
+        min-width:{card_w}px;max-width:{card_w}px;min-height:{card_h}px;max-height:{card_h}px; border-radius:7px;'>
+        <img src="{conf_logo_url}" width="{conf_logo_dim}" style="vertical-align:middle;"/>
+    </div>""" if conf_logo_url else ""
+
+    row1.append(conf_logo_html)
+
+    for stat in card_stats:
+        val = stat["value"](team_row)
+        row1.append(
+            f"""<div style="background:{stat['color']};color:#fff;border-radius:7px;
+            border:1px solid #fff;min-width:{card_w}px;max-width:{card_w}px;
+            min-height:{card_h}px;max-height:{card_h}px;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:{label_fs}px;">
+                <span style="font-size:{label_fs}px;">{stat['label']}</span>
+                <span style="font-size:{val_fs}px;font-weight:700;">{val}</span>
+            </div>"""
+        )
+
+    # --- ROW 2: Rank cards (national) ---
+    row2 = []
+    # logo spans both rows, so don't duplicate
+    # first card: Conference Rank (just conference teams)
+    conf_rank_val = int(this_team_ranks["Expected Conf. Wins Rank"])
+    conf_rank_disp = f"{conf_rank_val} / {n_conf_teams}" if conf_rank_val else ""
+    row2.append(
+        f"""<div style="background:#fff;border:1px solid #ccc;min-width:{card_w}px;max-width:{card_w}px;
+        min-height:{card_h}px;max-height:{card_h}px; border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <span style="font-size:{label_fs}px;">Conf. Rank</span>
+        <span style="font-size:{rank_fs+3}px;font-weight:700;color:#9067B8">{conf_rank_disp}</span>
+        </div>"""
+    )
+    # rest: ranks for each stat, vs. all teams
+    for stat in card_stats:
+        rk = stat['key'] + " Rank"
+        rank_val = int(this_team_ranks.get(rk, 0))
+        rank_disp = f"{rank_val} / {n_teams}" if rank_val else ""
+        row2.append(
+            f"""<div style="background:{stat['color']};opacity:0.86;color:#fff;
+            border-radius:7px;border:1px solid #fff;min-width:{card_w}px;max-width:{card_w}px;
+            min-height:{card_h}px;max-height:{card_h}px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                <span style="font-size:{label_fs}px;">Rank</span>
+                <span style="font-size:{rank_fs+3}px;font-weight:700;">{rank_disp}</span>
+            </div>"""
+        )
+
+    # --- ROW 3: Expected Record, Expected Wins Rank, Conf Record, Conf Wins Rank ---
     proj_wins = team_row.get("Projected Overall Wins", None)
     proj_losses = team_row.get("Projected Overall Losses", None)
     proj_conf_wins = team_row.get("Projected Conference Wins", None)
     proj_conf_losses = team_row.get("Projected Conference Losses", None)
     record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
     conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
-    record_bg = "#FFB347"
-    conf_bg = "#9067B8"
-
-    card_height = 50 if is_mobile() else 65
-    card_width = 65 if is_mobile() else 70
-    logo_dim = 44 if is_mobile() else 60
-    font_sz = 9 if is_mobile() else 14
-    val_font_sz = 12 if is_mobile() else 18
-    rank_font_sz = 10 if is_mobile() else 13
-    gap = "1.7vw" if is_mobile() else "15px"
-
-    # --- LOGO HTML ---
-    logo_html = f'''
-    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:{logo_dim}px; max-width:{logo_dim}px;">
-        <img src="{logo_url}" width="{logo_dim}" style="margin:0 auto;"/>
-        {f'<img src="{conf_logo_url}" width="{int(logo_dim//1.5)}" style="margin:2px auto 0 auto;"/>' if conf_logo_url else ""}
+    exp_wins_rank = int(this_team_ranks["Expected Wins Rank"])
+    exp_conf_rank = int(this_team_ranks["Expected Conf. Wins Rank"])
+    row3 = [
+        f"""<div style="background:#FFB347;color:#222;font-weight:700;border-radius:7px;
+        border:1px solid #fff;min-width:{logo_dim+card_w}px;max-width:{logo_dim+card_w+18}px;min-height:{card_h+8}px;max-height:{card_h+14}px;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:{card_fs}px;">
+            <span style="font-size:{label_fs+1}px;">Expected Record</span>
+            <span style="font-size:{val_fs+4}px;">{record_str}</span>
+        </div>""",
+        f"""<div style="background:#FFB347;color:#222;font-weight:700;border-radius:7px;
+        border:1px solid #fff;min-width:{card_w-10}px;max-width:{card_w-3}px;min-height:{card_h+8}px;max-height:{card_h+14}px;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <span style="font-size:{label_fs+1}px;">Exp. Wins<br>Rank</span>
+            <span style="font-size:{val_fs+2}px;">{exp_wins_rank} / {n_teams}</span>
+        </div>""",
+        f"""<div style="background:#9067B8;color:#fff;font-weight:700;border-radius:7px;
+        border:1px solid #fff;min-width:{card_w*2.4}px;max-width:{card_w*2.5}px;min-height:{card_h+8}px;max-height:{card_h+14}px;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <span style="font-size:{label_fs+1}px;">Expected Conf. Record</span>
+            <span style="font-size:{val_fs+4}px;">{conf_record_str}</span>
+        </div>""",
+        f"""<div style="background:#9067B8;color:#fff;font-weight:700;border-radius:7px;
+        border:1px solid #fff;min-width:{card_w+4}px;max-width:{card_w+14}px;min-height:{card_h+8}px;max-height:{card_h+14}px;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;">
+            <span style="font-size:{label_fs+1}px;">Exp. Conf.<br>Wins Rank</span>
+            <span style="font-size:{val_fs+2}px;">{exp_conf_rank} / {n_conf_teams}</span>
+        </div>""",
+    ]
+    # --- CSS GRID CONTAINER ---
+    grid_cols = 1 + 1 + len(card_stats)  # logo + conf logo + stat cards
+    grid_template = f"grid-template-columns: repeat({grid_cols}, minmax({card_w-12}px, {card_w+35}px));" if not is_mob else f"grid-template-columns: repeat({grid_cols}, 1fr);"
+    grid_gap = gap
+    # 1st row: logo + conf logo + stat cards
+    # 2nd row: blank + conf rank + stat ranks
+    # 3rd row: all cards, grid-column:1/{grid_cols+1}
+    cards_html = f"""
+    <div style="
+        display:grid;
+        {grid_template}
+        grid-template-rows: repeat(2, {card_h+10}px) {card_h+22}px;
+        gap:{grid_gap};
+        align-items:stretch;
+        width:100%;
+        margin-bottom:18px;
+        ">
+        {''.join(row1)}
+        {''.join(row2)}
+        <div style="grid-column:1/{grid_cols+1};display:flex;gap:{gap};margin-top:6px;">{''.join(row3)}</div>
     </div>
-    '''
-
-    # --- VALUE CARDS ROW ---
-    value_row = [logo_html]
-    for card in card_items:
-        value = card["value"](team_row)
-        value_row.append(
-            f"""<div style="background:{card['color']}; color:#fff; border-radius:9px 9px 0 0; border:1px solid #fff; min-width:{card_width}px; max-width:{card_width}px; height:{card_height}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:{font_sz}px; font-weight:600; text-align:center; box-sizing:border-box;">
-                <span style="font-size:{font_sz-1}px;">{card['label']}</span>
-                <span style="font-size:{val_font_sz}px; font-weight:900;">{value}</span>
-            </div>"""
-        )
-    value_row.extend([
-        f"""<div style="background:{record_bg}; border-radius:9px 9px 0 0; border:1px solid #fff; margin-left:{gap}; min-width:{card_width+45}px; max-width:{card_width+55}px; height:{card_height}px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <span style="font-size:{font_sz-1}px; color:#222;">Expected Record</span>
-            <span style="font-size:{val_font_sz+2}px; font-weight:900; color:#002060;">{record_str}</span>
-        </div>""",
-        f"""<div style="background:{conf_bg}; border-radius:9px 9px 0 0; border:1px solid #fff; margin-left:{gap}; min-width:{card_width+75}px; max-width:{card_width+90}px; height:{card_height}px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <span style="font-size:{font_sz-1}px; color:#eee;">Expected Conf. Record</span>
-            <span style="font-size:{val_font_sz+2}px; font-weight:900; color:#fff;">{conf_record_str}</span>
-        </div>"""
-    ])
-
-    # --- RANK CARDS ROW ---
-    rank_row = [logo_html]
-    for card in card_items:
-        rank_val = int(this_team_ranks[card["rank_col"]])
-        total = len(df_for_ranks[df_for_ranks["Conference"] == conference]) if card.get("scope") == "conf" else len(df_for_ranks)
-        rank_disp = "" if rank_val==0 else f"{rank_val} / {total}"
-        rank_row.append(
-            f"""<div style="background:{card['color']}; opacity:0.87; color:#fff; border-radius:0 0 9px 9px; border:1px solid #fff; border-top:none; min-width:{card_width}px; max-width:{card_width}px; height:{card_height-10}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:{rank_font_sz-1}px; font-weight:500; text-align:center; box-sizing:border-box;">
-                <span style="font-size:{rank_font_sz-2}px;">Rank</span>
-                <span style="font-size:{rank_font_sz+2}px; font-weight:800;">{rank_disp}</span>
-            </div>"""
-        )
-    rank_row.extend([
-        f"""<div style="background:{record_bg}; opacity:0.87; border-radius:0 0 9px 9px; border:1px solid #fff; border-top:none; margin-left:{gap}; min-width:{card_width+45}px; max-width:{card_width+55}px; height:{card_height-10}px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <span style="font-size:{rank_font_sz-2}px;">Rank</span>
-            <span style="font-size:{rank_font_sz+2}px; font-weight:800;">{int(this_team_ranks['Preseason Rank'])} / {len(df_for_ranks)}</span>
-        </div>""",
-        f"""<div style="background:{conf_bg}; opacity:0.87; border-radius:0 0 9px 9px; border:1px solid #fff; border-top:none; margin-left:{gap}; min-width:{card_width+75}px; max-width:{card_width+90}px; height:{card_height-10}px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-            <span style="font-size:{rank_font_sz-2}px;">Conf. Rank</span>
-            <span style="font-size:{rank_font_sz+2}px; font-weight:800;">{int(this_team_ranks['Expected Conf. Wins Rank'])} / {len(df_for_ranks[df_for_ranks['Conference'] == conference])}</span>
-        </div>"""
-    ])
-
-    st.markdown(
-        f'<div style="display:flex;flex-direction:row;gap:{gap};margin-bottom:0;">{"".join(value_row)}</div>'
-        f'<div style="display:flex;flex-direction:row;gap:{gap};margin-bottom:18px;">{"".join(rank_row)}</div>',
-        unsafe_allow_html=True
-    )
+    """
+    st.markdown(cards_html, unsafe_allow_html=True)
     
     # Add all team-specific tables/charts below as needed
     # --- Opponent logos (above the table rendering) ---
