@@ -132,7 +132,11 @@ for col in ["At Least 6 Wins Prob", "At Least 8 Wins Prob", "At Least 10 Wins Pr
     if col not in df_expected.columns:
         df_expected[col] = 0.0  # or np.nan if you prefer
 
-st.write("df_expected columns:", list(df_expected.columns))
+# Standardize column names to match what's used in CARDS and elsewhere
+rename_map = {
+    "Undefeated Probability": "Undefeated Prob"
+}
+df_expected.rename(columns=rename_map, inplace=True)
 
 # --- Sidebar & Tabs ---
 tab = st.sidebar.radio(
