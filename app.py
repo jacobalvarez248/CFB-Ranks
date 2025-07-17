@@ -860,7 +860,7 @@ elif tab == "Team Dashboards":
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
 
-    # --- Win Probabilities and Returning Production (reuse your code) ---
+    # --- Win Probs and Returning Production
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
     opponents = sched["Opponent"].tolist()
@@ -931,7 +931,6 @@ elif tab == "Team Dashboards":
     # --- Rank Calculations ---
     df_for_ranks = df_expected.copy()
     df_for_ranks["Power Rating Rank"] = df_for_ranks["Power Rating"].rank(ascending=False, method='min').fillna(0).astype(int)
-    # Simulated columns for your "6+", "8+", "10+", "12-0"
     win_prob_map = {}
     for team in df_for_ranks["Team"]:
         sched_team = df_schedule[df_schedule[team_col] == team].copy()
@@ -962,7 +961,6 @@ elif tab == "Team Dashboards":
         colname = f"{k} Rank"
         df_for_ranks[colname] = df_for_ranks["Team"].map(lambda t: win_prob_map[t][k])
         df_for_ranks[colname] = df_for_ranks[colname].rank(ascending=False, method='min').fillna(0).astype(int)
-    # Returning Production (overall, off, def)
     def get_prod(team, col):
         rr = df_ranking[df_ranking["Team"].str.strip() == team.strip()]
         if rr.empty: return np.nan
@@ -979,13 +977,11 @@ elif tab == "Team Dashboards":
     ]:
         df_for_ranks[rk] = df_for_ranks["Team"].map(lambda t: get_prod(t, col))
         df_for_ranks[rk] = df_for_ranks[rk].rank(ascending=False, method='min').fillna(0).astype(int)
-    # Conference Rank for "Expected Conf. Wins Rank"
     conf_col = "Projected Conference Wins"
     df_for_ranks["Expected Conf. Wins Rank"] = (
         df_for_ranks.groupby("Conference")[conf_col]
         .rank(ascending=False, method="min").fillna(0).astype(int)
     )
-    # Lookup for this team
     this_team_ranks = df_for_ranks[df_for_ranks["Team"] == selected_team].iloc[0]
 
     # --- Expected Record cards ---
@@ -1004,98 +1000,65 @@ elif tab == "Team Dashboards":
     font_sz = 9 if is_mobile() else 14
     val_font_sz = 12 if is_mobile() else 18
     rank_font_sz = 10 if is_mobile() else 13
-    n_cards = len(card_items)
     gap = "1.7vw" if is_mobile() else "15px"
-    logo_html = f"""
-        <div style="grid-row:1 / span 2; display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:{logo_dim}px; max-width:{logo_dim}px;">
-            <img src="{logo_url}" width="{logo_dim}" style="margin:0 auto;"/>
-            {f'<img src="{conf_logo_url}" width="{int(logo_dim//1.5)}" style="margin:2px auto 0 auto;"/>' if conf_logo_url else ""}
-        </div>
-    """
 
-    # Value row
-    value_cards = []
-    for i, card in enumerate(card_items):
-        style = (
-            f"background:{card['color']}; color:#fff; border-radius:9px 9px 0 0; border:1px solid #fff;"
-            f"min-width:{card_width}px; max-width:{card_width}px; height:{card_height}px; display:flex; flex-direction:column; align-items:center; justify-content:center;"
-            f"font-size:{font_sz}px; font-weight:600; text-align:center; box-sizing:border-box;"
-        )
+    # --- LOGO HTML ---
+    logo_html = f'''
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:{logo_dim}px; max-width:{logo_dim}px;">
+        <img src="{logo_url}" width="{logo_dim}" style="margin:0 auto;"/>
+        {f'<img src="{conf_logo_url}" width="{int(logo_dim//1.5)}" style="margin:2px auto 0 auto;"/>' if conf_logo_url else ""}
+    </div>
+    '''
+
+    # --- VALUE CARDS ROW ---
+    value_row = [logo_html]
+    for card in card_items:
         value = card["value"](team_row)
-        value_cards.append(
-            f"""<div style="{style}"><span style="font-size:{font_sz-1}px;">{card['label']}</span>
-            <span style="font-size:{val_font_sz}px; font-weight:900;">{value}</span></div>"""
+        value_row.append(
+            f"""<div style="background:{card['color']}; color:#fff; border-radius:9px 9px 0 0; border:1px solid #fff; min-width:{card_width}px; max-width:{card_width}px; height:{card_height}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:{font_sz}px; font-weight:600; text-align:center; box-sizing:border-box;">
+                <span style="font-size:{font_sz-1}px;">{card['label']}</span>
+                <span style="font-size:{val_font_sz}px; font-weight:900;">{value}</span>
+            </div>"""
         )
+    value_row.extend([
+        f"""<div style="background:{record_bg}; border-radius:9px 9px 0 0; border:1px solid #fff; margin-left:{gap}; min-width:{card_width+45}px; max-width:{card_width+55}px; height:{card_height}px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <span style="font-size:{font_sz-1}px; color:#222;">Expected Record</span>
+            <span style="font-size:{val_font_sz+2}px; font-weight:900; color:#002060;">{record_str}</span>
+        </div>""",
+        f"""<div style="background:{conf_bg}; border-radius:9px 9px 0 0; border:1px solid #fff; margin-left:{gap}; min-width:{card_width+75}px; max-width:{card_width+90}px; height:{card_height}px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <span style="font-size:{font_sz-1}px; color:#eee;">Expected Conf. Record</span>
+            <span style="font-size:{val_font_sz+2}px; font-weight:900; color:#fff;">{conf_record_str}</span>
+        </div>"""
+    ])
 
-    # Rank row (same order, matching color, lighter bg)
-    rank_cards = []
-    for i, card in enumerate(card_items):
-        style = (
-            f"background:{card['color']}; opacity:0.87; color:#fff; border-radius:0 0 9px 9px; border:1px solid #fff; border-top:none;"
-            f"min-width:{card_width}px; max-width:{card_width}px; height:{card_height-10}px; display:flex; flex-direction:column; align-items:center; justify-content:center;"
-            f"font-size:{rank_font_sz-1}px; font-weight:500; text-align:center; box-sizing:border-box;"
-        )
+    # --- RANK CARDS ROW ---
+    rank_row = [logo_html]
+    for card in card_items:
         rank_val = int(this_team_ranks[card["rank_col"]])
-        scope = "Conf." if card.get("scope") == "conf" else ""
-        total = (
-            len(df_for_ranks[df_for_ranks["Conference"] == conference])
-            if card.get("scope") == "conf"
-            else len(df_for_ranks)
-        )
+        total = len(df_for_ranks[df_for_ranks["Conference"] == conference]) if card.get("scope") == "conf" else len(df_for_ranks)
         rank_disp = "" if rank_val==0 else f"{rank_val} / {total}"
-        rank_cards.append(
-            f"""<div style="{style}">
+        rank_row.append(
+            f"""<div style="background:{card['color']}; opacity:0.87; color:#fff; border-radius:0 0 9px 9px; border:1px solid #fff; border-top:none; min-width:{card_width}px; max-width:{card_width}px; height:{card_height-10}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:{rank_font_sz-1}px; font-weight:500; text-align:center; box-sizing:border-box;">
                 <span style="font-size:{rank_font_sz-2}px;">Rank</span>
                 <span style="font-size:{rank_font_sz+2}px; font-weight:800;">{rank_disp}</span>
             </div>"""
         )
+    rank_row.extend([
+        f"""<div style="background:{record_bg}; opacity:0.87; border-radius:0 0 9px 9px; border:1px solid #fff; border-top:none; margin-left:{gap}; min-width:{card_width+45}px; max-width:{card_width+55}px; height:{card_height-10}px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <span style="font-size:{rank_font_sz-2}px;">Rank</span>
+            <span style="font-size:{rank_font_sz+2}px; font-weight:800;">{int(this_team_ranks['Preseason Rank'])} / {len(df_for_ranks)}</span>
+        </div>""",
+        f"""<div style="background:{conf_bg}; opacity:0.87; border-radius:0 0 9px 9px; border:1px solid #fff; border-top:none; margin-left:{gap}; min-width:{card_width+75}px; max-width:{card_width+90}px; height:{card_height-10}px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <span style="font-size:{rank_font_sz-2}px;">Conf. Rank</span>
+            <span style="font-size:{rank_font_sz+2}px; font-weight:800;">{int(this_team_ranks['Expected Conf. Wins Rank'])} / {len(df_for_ranks[df_for_ranks['Conference'] == conference])}</span>
+        </div>"""
+    ])
 
-    # Expected record/expected conf record + their ranks
-    record_card = f'''
-    <div style="background:{record_bg}; border-radius:9px 9px 0 0; border:1px solid #fff; margin-left:{gap};
-    min-width:{card_width+45}px; max-width:{card_width+55}px; height:{card_height}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:{font_sz}px; font-weight:600;">
-        <span style="font-size:{font_sz-1}px; color:#222;">Expected Record</span>
-        <span style="font-size:{val_font_sz+2}px; font-weight:900; color:#002060;">{record_str}</span>
-    </div>
-    '''
-    conf_card = f'''
-    <div style="background:{conf_bg}; border-radius:9px 9px 0 0; border:1px solid #fff; margin-left:{gap};
-    min-width:{card_width+75}px; max-width:{card_width+90}px; height:{card_height}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:{font_sz}px; font-weight:600;">
-        <span style="font-size:{font_sz-1}px; color:#eee;">Expected Conf. Record</span>
-        <span style="font-size:{val_font_sz+2}px; font-weight:900; color:#fff;">{conf_record_str}</span>
-    </div>
-    '''
-    record_rank_card = f'''
-    <div style="background:{record_bg}; opacity:0.87; border-radius:0 0 9px 9px; border:1px solid #fff; border-top:none; margin-left:{gap};
-    min-width:{card_width+45}px; max-width:{card_width+55}px; height:{card_height-10}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:{rank_font_sz-1}px; font-weight:600;">
-        <span style="font-size:{rank_font_sz-2}px;">Rank</span>
-        <span style="font-size:{rank_font_sz+2}px; font-weight:800;">{int(this_team_ranks['Preseason Rank'])} / {len(df_for_ranks)}</span>
-    </div>
-    '''
-    conf_rank_card = f'''
-    <div style="background:{conf_bg}; opacity:0.87; border-radius:0 0 9px 9px; border:1px solid #fff; border-top:none; margin-left:{gap};
-    min-width:{card_width+75}px; max-width:{card_width+90}px; height:{card_height-10}px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:{rank_font_sz-1}px; font-weight:600;">
-        <span style="font-size:{rank_font_sz-2}px;">Conf. Rank</span>
-        <span style="font-size:{rank_font_sz+2}px; font-weight:800;">{int(this_team_ranks['Expected Conf. Wins Rank'])} / {len(df_for_ranks[df_for_ranks['Conference'] == conference])}</span>
-    </div>
-    '''
-
-    card_html = f"""
-    <div style="display:grid; grid-template-columns: {logo_dim+12}px repeat({n_cards}, {card_width}px) {card_width+55}px {card_width+90}px; gap:{gap}; align-items:stretch; margin: 10px 0 7px 0;">
-        {logo_html}
-        {''.join(value_cards)}
-        {record_card}
-        {conf_card}
-        <!-- End value row -->
-        <!-- Second row: ranks -->
-        <div></div> <!-- Logo spans both rows -->
-        {''.join(rank_cards)}
-        {record_rank_card}
-        {conf_rank_card}
-    </div>
-    """
-    st.markdown(card_html, unsafe_allow_html=True)
-
+    st.markdown(
+        f'<div style="display:flex;flex-direction:row;gap:{gap};margin-bottom:0;">{"".join(value_row)}</div>'
+        f'<div style="display:flex;flex-direction:row;gap:{gap};margin-bottom:18px;">{"".join(rank_row)}</div>',
+        unsafe_allow_html=True
+        
     # Add all team-specific tables/charts below as needed
     # --- Opponent logos (above the table rendering) ---
     fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
