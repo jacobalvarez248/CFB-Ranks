@@ -1058,7 +1058,8 @@ elif tab == "Team Dashboards":
         f'<div style="display:flex;flex-direction:row;gap:{gap};margin-bottom:0;">{"".join(value_row)}</div>'
         f'<div style="display:flex;flex-direction:row;gap:{gap};margin-bottom:18px;">{"".join(rank_row)}</div>',
         unsafe_allow_html=True
-        
+    )
+    
     # Add all team-specific tables/charts below as needed
     # --- Opponent logos (above the table rendering) ---
     fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
