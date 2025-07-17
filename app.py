@@ -855,8 +855,8 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
     for col in ["At Least 6 Wins Prob", "At Least 8 Wins Prob", "At Least 10 Wins Prob", "Undefeated Prob"]:
-    if col not in df_expected.columns:
-        df_expected[col] = 0.0
+        if col not in df_expected.columns:
+            df_expected[col] = 0.0
 
     # Mobile CSS for 1:1 match, prevents scrolling, tightens padding/margin
     def inject_mobile_css():
