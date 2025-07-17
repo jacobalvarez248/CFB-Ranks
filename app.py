@@ -845,77 +845,31 @@ elif tab == "Industry Composite Ranking":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
-
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # In Team Dashboards tab:
+    # --- Mobile detection ---
     if is_mobile():
         inject_mobile_css()
-    # --- Select Team ---
+
+    # --- Team Selection ---
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
-    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
     conference = team_row["Conference"] if "Conference" in team_row else ""
+    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
     conf_logo_url = None
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
 
-    # --- Rank Info ---
-    overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
-    conf_teams = df_expected[df_expected["Conference"] == conference].copy()
-    conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
-    conf_teams["Conf Rank"] = range(1, len(conf_teams) + 1)
-    this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
+    # --- Wide Cards Below (Expected Record etc.) ---
+    proj_wins = team_row.get("Projected Overall Wins", None)
+    proj_losses = team_row.get("Projected Overall Losses", None)
+    proj_conf_wins = team_row.get("Projected Conference Wins", None)
+    proj_conf_losses = team_row.get("Projected Conference Losses", None)
+    record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
+    conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
 
-    # --- Schedule ---
-    team_col = [col for col in df_schedule.columns if "Team" in col][0]
-    sched = df_schedule[df_schedule[team_col] == selected_team].copy()
-    opponents = sched["Opponent"].tolist()
-    num_games = len(opponents)
-
-    # --- Win Probabilities ---
-    if "Win Probability" in sched.columns:
-        win_prob_list = sched["Win Probability"].astype(float).values
-    elif "Win Prob" in sched.columns:
-        win_prob_list = sched["Win Prob"].astype(float).values
-    else:
-        win_prob_list = np.full(num_games, 0.5)  # fallback
-    dp = np.zeros((num_games + 1, num_games + 1))
-    dp[0, 0] = 1.0
-    for g in range(1, num_games + 1):
-        p = win_prob_list[g-1]
-        for w in range(g+1):
-            win_part = dp[g-1, w-1] * p if w > 0 else 0
-            lose_part = dp[g-1, w] * (1 - p)
-            dp[g, w] = win_part + lose_part
-    win_probs = dp[num_games, :]
-    at_least_6 = win_probs[6:].sum() if len(win_probs) > 6 else 0.0
-    at_least_8 = win_probs[8:].sum() if len(win_probs) > 8 else 0.0
-    at_least_10 = win_probs[10:].sum() if len(win_probs) > 10 else 0.0
-    if len(win_probs) > 12:
-        exact_12 = win_probs[12]
-    elif len(win_probs) == 12:
-        exact_12 = win_probs[-1]
-    else:
-        exact_12 = 0.0
-    at_least_6_pct = f"{at_least_6*100:.1f}%"
-    at_least_8_pct = f"{at_least_8*100:.1f}%"
-    at_least_10_pct = f"{at_least_10*100:.1f}%"
-    exact_12_pct = f"{exact_12*100:.1f}%"
-    # ================
-    rows = []
-    for g in range(1, num_games + 1):
-        opp = opponents[g-1] if (g-1) < len(opponents) else ""
-        row = {
-            "Game": g,
-            "Opponent": opp
-        }
-        for w in range(num_games + 1):
-            row[w] = dp[g, w]
-        rows.append(row)
-# =====================
     # --- Returning Production ---
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
@@ -935,164 +889,216 @@ elif tab == "Team Dashboards":
     else:
         ret_prod = off_ret = def_ret = ""
 
-    # --- CARD STRIP (Responsive, no sidebar overlap) ---
-    if is_mobile():
-        # MOBILE CSS ONLY injected here
-        st.markdown("""
-        <style>
-        /* Only on mobile: force content full width and no scroll */
-        [data-testid="stHorizontalBlock"] { max-width:100vw !important; }
-        .block-container, .main { padding-left:0 !important; padding-right:0 !important; }
-        body, html { overflow-x: hidden !important; }
-        </style>
-        """, unsafe_allow_html=True)
-        n_items = 11  # logos + 9 cards
-        card_width = 100 / n_items - 0.5
-        card_base = (
-            f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; "
-            "margin:0; background: #00B050; color: #fff; border-radius: 4px; border: 1px solid #fff; "
-            "padding: 2px 0; display: flex; flex-direction: column; align-items: center; "
-            "font-size:8px; font-weight:700; text-align:center; box-sizing: border-box;"
-        )
-        lighter_card = card_base.replace('#00B050', '#00B0F0')
-        dark_card = card_base.replace('#00B050', '#002060')
-        logo_style = f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; text-align:center; margin:0;"
-        logo_dim = 20
-        card_html = f'''
-        <div style="display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:flex-start;align-items:center;
-            width:100vw;max-width:100vw;min-width:100vw;box-sizing:border-box;overflow-x:hidden;gap:0.5vw;margin:10px 0;">
-            <div style="{logo_style}">
-                <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;vertical-align:middle;"/>
-                {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block; margin-left:0.5vw;vertical-align:middle;'/>" if conf_logo_url else ""}
-            </div>
-            <div style="{dark_card}"><span style="font-size:0.8em;">Rank</span>{overall_rank}</div>
-            <div style="{dark_card}"><span style="font-size:0.8em;">Conf. Rk</span>{this_conf_rank}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_6_pct}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">8+</span>{at_least_8_pct}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">10+</span>{at_least_10_pct}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">12-0</span>{exact_12_pct}</div>
-            <div style="{card_base}"><span style="font-size:0.8em;">Ret.</span>{ret_prod}</div>
-            <div style="{card_base}"><span style="font-size:0.8em;">Off.</span>{off_ret}</div>
-            <div style="{card_base}"><span style="font-size:0.8em;">Def.</span>{def_ret}</div>
-        </div>
-        '''
+    # --- Win Probabilities (from schedule) ---
+    team_col = [col for col in df_schedule.columns if "Team" in col][0]
+    sched = df_schedule[df_schedule[team_col] == selected_team].copy()
+    num_games = len(sched)
+    opponents = sched["Opponent"].tolist() if "Opponent" in sched.columns else [""]*num_games
+    if "Win Probability" in sched.columns:
+        win_prob_list = sched["Win Probability"].astype(float).values
+    elif "Win Prob" in sched.columns:
+        win_prob_list = sched["Win Prob"].astype(float).values
     else:
-        # DESKTOP (no sidebar overlap, no global CSS)
-        card_style = (
-            "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-            "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-            "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        win_prob_list = np.full(num_games, 0.5)
+    dp = np.zeros((num_games + 1, num_games + 1))
+    dp[0, 0] = 1.0
+    for g in range(1, num_games + 1):
+        p = win_prob_list[g-1]
+        for w in range(g+1):
+            win_part = dp[g-1, w-1] * p if w > 0 else 0
+            lose_part = dp[g-1, w] * (1 - p)
+            dp[g, w] = win_part + lose_part
+    win_probs = dp[num_games, :]
+    at_least_6 = win_probs[6:].sum() if len(win_probs) > 6 else 0.0
+    at_least_8 = win_probs[8:].sum() if len(win_probs) > 8 else 0.0
+    at_least_10 = win_probs[10:].sum() if len(win_probs) > 10 else 0.0
+    exact_12 = win_probs[12] if len(win_probs) > 12 else (win_probs[-1] if len(win_probs)==12 else 0.0)
+    at_least_6_pct = f"{at_least_6*100:.1f}%"
+    at_least_8_pct = f"{at_least_8*100:.1f}%"
+    at_least_10_pct = f"{at_least_10*100:.1f}%"
+    exact_12_pct = f"{exact_12*100:.1f}%"
+
+    # --- Rank Calculations ---
+    def team_rank(df, col, team, ascending=False):
+        vals = df[col]
+        team_val = df.loc[df['Team'] == team, col].values[0]
+        if ascending:
+            rank = (vals < team_val).sum() + 1
+        else:
+            rank = (vals > team_val).sum() + 1
+        return rank
+
+    def conf_rank(df, conf, col, team, ascending=False):
+        df_conf = df[df['Conference'] == conf]
+        if df_conf.empty: return 1, 1
+        vals = df_conf[col]
+        team_val = df_conf.loc[df_conf['Team'] == team, col].values[0]
+        if ascending:
+            rank = (vals < team_val).sum() + 1
+        else:
+            rank = (vals > team_val).sum() + 1
+        return rank, len(df_conf)
+
+    # Defensive copy for ranking:
+    _df = df_expected.copy()
+
+    # Add derived win prob columns for ranking
+    _df["At Least 6 Wins Prob"] = 0.0
+    _df["At Least 8 Wins Prob"] = 0.0
+    _df["At Least 10 Wins Prob"] = 0.0
+    _df["Undefeated Prob"] = 0.0
+    for t in _df["Team"]:
+        sched_t = df_schedule[df_schedule[team_col] == t]
+        n_games = len(sched_t)
+        if "Win Probability" in sched_t.columns:
+            wp = sched_t["Win Probability"].astype(float).values
+        elif "Win Prob" in sched_t.columns:
+            wp = sched_t["Win Prob"].astype(float).values
+        else:
+            wp = np.full(n_games, 0.5)
+        dpt = np.zeros((n_games+1, n_games+1))
+        dpt[0,0]=1.0
+        for g in range(1,n_games+1):
+            p=wp[g-1]
+            for w in range(g+1):
+                win_p = dpt[g-1,w-1]*p if w>0 else 0
+                lose_p = dpt[g-1,w]*(1-p)
+                dpt[g,w]=win_p+lose_p
+        _df.loc[_df["Team"]==t, "At Least 6 Wins Prob"] = dpt[n_games,6:].sum() if len(dpt[n_games])>6 else 0.0
+        _df.loc[_df["Team"]==t, "At Least 8 Wins Prob"] = dpt[n_games,8:].sum() if len(dpt[n_games])>8 else 0.0
+        _df.loc[_df["Team"]==t, "At Least 10 Wins Prob"] = dpt[n_games,10:].sum() if len(dpt[n_games])>10 else 0.0
+        _df.loc[_df["Team"]==t, "Undefeated Prob"] = dpt[n_games,12] if len(dpt[n_games])>12 else (dpt[n_games,-1] if len(dpt[n_games])==12 else 0.0)
+
+    # --- Get stats and ranks for card grid ---
+    CARDS = [
+        # Label, Short, Stat, Color, RankCol, RankShort, rank color, Value
+        ("Power Rating", "Pwr", "Power Rating", "#002060", "Power Rating", "Rank", "#002060", f"{team_row['Power Rating']:.1f}"),
+        ("6+", "6+", "At Least 6 Wins Prob", "#00B0F0", "At Least 6 Wins Prob", "Rank %", "#00B0F0", at_least_6_pct),
+        ("8+", "8+", "At Least 8 Wins Prob", "#00B0F0", "At Least 8 Wins Prob", "Rank %", "#00B0F0", at_least_8_pct),
+        ("10+", "10+", "At Least 10 Wins Prob", "#00B0F0", "At Least 10 Wins Prob", "Rank %", "#00B0F0", at_least_10_pct),
+        ("12-0", "12-0", "Undefeated Prob", "#00B0F0", "Undefeated Prob", "Rank %", "#00B0F0", exact_12_pct),
+        ("Returning Production", "Ret.", "Returning Production", "#00B050", "Returning Production", "Rank", "#00B050", ret_prod),
+        ("Off. Returning Production", "Off.", "Off. Returning Production", "#00B050", "Off. Returning Production", "Rank", "#00B050", off_ret),
+        ("Def. Returning Production", "Def.", "Def. Returning Production", "#00B050", "Def. Returning Production", "Rank", "#00B050", def_ret),
+    ]
+
+    ranks = []
+    for c in CARDS:
+        col = c[4]
+        if "%" in str(c[7]):
+            # Rank by value as float
+            try:
+                val = float(str(c[7]).replace("%",""))/100.0
+            except:
+                val = 0.0
+            rank = team_rank(_df, col, selected_team, ascending=False)
+        elif "Returning Production" in col:
+            try:
+                val = float(str(c[7]).replace("%",""))/100.0
+            except:
+                val = 0.0
+            rank = team_rank(_df, col, selected_team, ascending=False)
+        else:
+            rank = team_rank(_df, col, selected_team, ascending=False)
+        ranks.append(rank)
+
+    # --- Conference/Overall ranks for display ---
+    overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
+    conf_teams = df_expected[df_expected["Conference"] == conference].copy()
+    conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
+    conf_teams["Conf Rank"] = range(1, len(conf_teams) + 1)
+    this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
+
+    # --- Expected Wins Rank & Expected Conf Wins Rank ---
+    exp_wins_rank = team_rank(_df, "Projected Overall Wins", selected_team, ascending=False)
+    exp_conf_rank, conf_size = conf_rank(_df, conference, "Projected Conference Wins", selected_team, ascending=False)
+
+    # --- Responsive settings ---
+    is_mob = is_mobile()
+    N = len(CARDS)
+    card_w = f"{100/(N+1):.4f}vw" if is_mob else "110px"
+    card_h = "32px" if is_mob else "52px"
+    logo_dim = 22 if is_mob else 48
+    value_font = "11px" if is_mob else "18px"
+    header_font = "8.5px" if is_mob else "14px"
+    rank_font = "8px" if is_mob else "12px"
+    sublabel_font = "7.3px" if is_mob else "11px"
+    margin = "0" if is_mob else "0 0 0 0"
+    card_radius = "4px"
+
+    # --- Card grid HTML ---
+    html = [f'<div style="width:100%;overflow-x:hidden;box-sizing:border-box;">']
+
+    # ---- Row 1: Stat Cards ----
+    html.append(f'<div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:100%;margin-bottom:2px;">')
+    # Team/conference logos, two stacked
+    html.append(
+        f'<div style="width:{card_w};height:{card_h};display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #888;border-radius:{card_radius};margin:{margin};">'
+        f'<img src="{logo_url}" width="{logo_dim}" style="display:block;"/>' +
+        (f'<img src="{conf_logo_url}" width="{logo_dim}" style="display:block;margin-top:1.5px;"/>' if conf_logo_url else '') +
+        f'</div>'
+    )
+    for i, c in enumerate(CARDS):
+        html.append(
+            f'<div style="width:{card_w};height:{card_h};background:{c[3]};border-radius:{card_radius};margin:{margin};display:flex;flex-direction:column;align-items:center;justify-content:center;">'
+            f'<div style="font-size:{header_font};font-weight:500;">{c[1] if is_mob else c[0]}</div>'
+            f'<div style="font-size:{value_font};font-weight:700;">{c[7]}</div>'
+            '</div>'
         )
-        lighter_card_style = (
-            "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-            "background:#00B0F0; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-            "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+    html.append('</div>')
+
+    # ---- Row 2: Ranks ----
+    html.append(f'<div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:100%;">')
+    html.append(f'<div style="width:{card_w};height:{card_h};"></div>')
+    for i, c in enumerate(CARDS):
+        html.append(
+            f'<div style="width:{card_w};height:{card_h};background:{c[6]};border-radius:{card_radius};margin:{margin};display:flex;flex-direction:column;align-items:center;justify-content:center;">'
+            f'<div style="font-size:{sublabel_font};font-weight:500;">{c[5]}</div>'
+            f'<div style="font-size:{rank_font};font-weight:700;">{ranks[i]}</div>'
+            '</div>'
         )
-        green_card_style = (
-            "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-            "background:#00B050; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-            "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
-        )
-        logo_dim = 48
-        card_html = f'''
-        <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
-            <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
-            {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
-                <span style="line-height:1.15;">{overall_rank}</span>
-            </div>
-            <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
-                <span style="line-height:1.15;">{this_conf_rank}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
-                <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span>
-                <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span>
-                <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct}</span>
-            </div>
-            <div style="{lighter_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
-                <span style="line-height:1.15; font-weight:bold;">{exact_12_pct}</span>
-            </div>
-            <div style="{green_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
-                <span style="line-height:1.15; font-weight:bold;">{ret_prod}</span>
-            </div>
-            <div style="{green_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Off. Ret.</span>
-                <span style="line-height:1.15; font-weight:bold;">{off_ret}</span>
-            </div>
-            <div style="{green_card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Def. Ret.</span>
-                <span style="line-height:1.15; font-weight:bold;">{def_ret}</span>
-            </div>
+    html.append('</div>')
+    html.append('</div>')
+
+    st.markdown("".join(html), unsafe_allow_html=True)
+
+    # --- Expected Record, Exp Wins Rank, Expected Conf Record, Exp Conf Wins Rank ---
+    card_h2 = "34px" if is_mob else "52px"
+    label_font2 = "10px" if is_mob else "15px"
+    record_font2 = "15px" if is_mob else "25px"
+    margin2 = "6px 0 10px 0" if is_mob else "10px 32px 12px 0"
+    exp_rec_w = "48vw" if is_mob else "250px"
+    exp_rec2_w = "90vw" if is_mob else "500px"
+    conf_rec_w = "90vw" if is_mob else "420px"
+    conf_rank_w = "38vw" if is_mob else "180px"
+
+    # Row: Expected Record & Rank
+    wide_html = f'''
+    <div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:1vw;width:100%;flex-wrap:wrap;margin-top:10px;">
+        <div style="background:#FFB347;border-radius:12px;border:1.5px solid #fff;margin:{margin2};width:{exp_rec_w};height:{card_h2};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:{label_font2};font-weight:600;text-align:center;padding:0 8px;box-sizing:border-box;">
+            <span style="font-size:0.95em;font-weight:400;color:#444;white-space:nowrap;">Expected Record</span>
+            <span style="font-size:{record_font2};font-weight:800;color:#002060;letter-spacing:-1px;line-height:1.1;">{record_str}</span>
         </div>
-        '''
-
-    st.markdown(card_html, unsafe_allow_html=True)
-
-    # --- Calculate Expected Records ---
-    proj_wins = team_row.get("Projected Overall Wins", None)
-    proj_losses = team_row.get("Projected Overall Losses", None)
-    proj_conf_wins = team_row.get("Projected Conference Wins", None)
-    proj_conf_losses = team_row.get("Projected Conference Losses", None)
-    
-    record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
-    conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
-    
-    # Color choices
-    record_bg = "#FFB347"    # Amber/Orange
-    conf_bg = "#9067B8"      # Purple
-    
-    if is_mobile():
-        card_width = "44vw"
-        card_height = "34px"
-        label_font = "12px"
-        record_font = "20px"
-        margin = "6px auto 10px auto"
-        wrap = "center"
-    else:
-        card_width = "182px"
-        card_height = "48px"
-        label_font = "14px"
-        record_font = "27px"
-        margin = "8px 24px 20px 0"
-        wrap = "flex-start"
-    
-    record_card = f'''
-    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{record_bg};
-    border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#222; border:2px solid #fff; margin:{margin};
-    width:{card_width}; height:{card_height}; font-size:{label_font}; font-weight:600; text-align:center; padding:0 8px; box-sizing:border-box;">
-        <span style="font-size:0.97em; font-weight:400; color:#444; white-space:nowrap;">Expected Record</span>
-        <span style="font-size:{record_font}; font-weight:800; color:#002060; letter-spacing:-1px; line-height:1.1;">{record_str}</span>
+        <div style="background:#FFB347;border-radius:12px;border:1.5px solid #fff;margin:{margin2};width:{exp_rec_w};height:{card_h2};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:{label_font2};font-weight:600;text-align:center;">
+            <span style="font-size:0.93em;font-weight:400;color:#444;">Exp. Wins Rank</span>
+            <span style="font-size:{record_font2};font-weight:700;color:#002060;">{exp_wins_rank}</span>
+        </div>
     </div>
     '''
-    
-    conf_card = f'''
-    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{conf_bg};
-    border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#fff; border:2px solid #fff; margin:{margin};
-    width:{card_width}; height:{card_height}; font-size:{label_font}; font-weight:600; text-align:center; padding:0 8px; box-sizing:border-box;">
-        <span style="font-size:0.97em; font-weight:400; color:#eee; white-space:nowrap;">Expected Conf. Record</span>
-        <span style="font-size:{record_font}; font-weight:800; color:#fff; letter-spacing:-1px; line-height:1.1;">{conf_record_str}</span>
+    # Row: Expected Conf Record & Rank
+    wide_html += f'''
+    <div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;gap:1vw;width:100%;flex-wrap:wrap;">
+        <div style="background:#D28DD6;border-radius:12px;border:1.5px solid #fff;margin:{margin2};width:{conf_rec_w};height:{card_h2};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:{label_font2};font-weight:600;text-align:center;padding:0 8px;box-sizing:border-box;">
+            <span style="font-size:0.97em;font-weight:400;color:#fff;white-space:nowrap;">Expected Conf. Record</span>
+            <span style="font-size:{record_font2};font-weight:800;color:#fff;letter-spacing:-1px;line-height:1.1;">{conf_record_str}</span>
+        </div>
+        <div style="background:#D28DD6;border-radius:12px;border:1.5px solid #fff;margin:{margin2};width:{conf_rank_w};height:{card_h2};display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:{label_font2};font-weight:600;text-align:center;">
+            <span style="font-size:0.93em;font-weight:400;color:#fff;">Exp. Conf. Wins Rank</span>
+            <span style="font-size:{record_font2};font-weight:700;color:#fff;">{exp_conf_rank}/{conf_size}</span>
+        </div>
     </div>
     '''
-    
-    # Align left on desktop, center on mobile
-    st.markdown(f'''
-    <div style="display:flex;flex-direction:row;justify-content:{wrap};align-items:center;gap:2vw;width:100%;flex-wrap:wrap;">
-        {record_card}
-        {conf_card}
-    </div>
-    ''', unsafe_allow_html=True)
-
+    st.markdown(wide_html, unsafe_allow_html=True)
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
