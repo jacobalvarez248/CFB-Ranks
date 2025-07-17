@@ -906,10 +906,24 @@ elif tab == "Team Dashboards":
 
     # Get actual card values from team_row and any external calculations
     def fmt_pct(val):
+        # Handle NaN, None, and pandas types safely
+        if val is None or (isinstance(val, float) and np.isnan(val)):
+            return ""
+        # For pandas Series, return blank (shouldn't happen, but safe)
+        if isinstance(val, pd.Series):
+            val = val.iloc[0] if not val.empty else None
+            if val is None or (isinstance(val, float) and np.isnan(val)):
+                return ""
         try:
-            return f"{float(val)*100:.1f}%" if val < 1.01 else f"{float(val):.1f}%"
+            val = float(val)
+            if val < 1.01:
+                return f"{val*100:.1f}%"
+            else:
+                return f"{val:.1f}%"
         except Exception:
-            return str(val) if val else ""
+            # Only check for emptiness in string, not pandas objects
+            val_str = str(val)
+            return val_str if val_str else ""
 
     card_values = [
         f"{team_row['Power Rating']:.1f}",
