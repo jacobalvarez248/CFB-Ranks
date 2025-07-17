@@ -850,22 +850,27 @@ elif tab == "Team Dashboards":
     if is_mobile():
         inject_mobile_css()
 
-    # === Team Selection ===
+    # === Select Team ===
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
     logo_url = team_row.get("Logo URL", None)
-    conference = team_row.get("Conference", "")
+    conference = team_row["Conference"] if "Conference" in team_row else ""
     conf_logo_url = None
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
 
-    # --- Schedule and win probabilities ---
+    # --- Win Probs, Returning Production, etc.
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
     opponents = sched["Opponent"].tolist()
     num_games = len(opponents)
-    win_prob_list = sched.get("Win Probability", sched.get("Win Prob", pd.Series([0.5]*num_games))).astype(float).values
+    if "Win Probability" in sched.columns:
+        win_prob_list = sched["Win Probability"].astype(float).values
+    elif "Win Prob" in sched.columns:
+        win_prob_list = sched["Win Prob"].astype(float).values
+    else:
+        win_prob_list = np.full(num_games, 0.5)
     dp = np.zeros((num_games + 1, num_games + 1))
     dp[0, 0] = 1.0
     for g in range(1, num_games + 1):
@@ -878,13 +883,18 @@ elif tab == "Team Dashboards":
     at_least_6 = win_probs[6:].sum() if len(win_probs) > 6 else 0.0
     at_least_8 = win_probs[8:].sum() if len(win_probs) > 8 else 0.0
     at_least_10 = win_probs[10:].sum() if len(win_probs) > 10 else 0.0
-    exact_12 = win_probs[12] if len(win_probs) > 12 else (win_probs[-1] if len(win_probs) == 12 else 0.0)
+    if len(win_probs) > 12:
+        exact_12 = win_probs[12]
+    elif len(win_probs) == 12:
+        exact_12 = win_probs[-1]
+    else:
+        exact_12 = 0.0
     at_least_6_pct = f"{at_least_6*100:.1f}%"
     at_least_8_pct = f"{at_least_8*100:.1f}%"
     at_least_10_pct = f"{at_least_10*100:.1f}%"
     exact_12_pct = f"{exact_12*100:.1f}%"
 
-    # --- Returning Production ---
+    # --- Returning Production (from ranking sheet)
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
     rank_row = df_ranking[df_ranking["Team"].str.strip() == selected_team.strip()]
@@ -893,8 +903,7 @@ elif tab == "Team Dashboards":
             if isinstance(val, str) and "%" in val: return val
             val_flt = float(val)
             return f"{val_flt*100:.1f}%" if val_flt <= 1.01 else f"{val_flt:.1f}%"
-        except Exception:
-            return str(val)
+        except Exception: return str(val)
     if not rank_row.empty:
         ret_prod = fmt_pct(rank_row.iloc[0].get("Returning Production", ""))
         off_ret = fmt_pct(rank_row.iloc[0].get("Off. Returning Production", ""))
@@ -902,39 +911,50 @@ elif tab == "Team Dashboards":
     else:
         ret_prod = off_ret = def_ret = ""
 
-    # --- Rankings Setup ---
+    # --- Rank calculations
     df_for_ranks = df_expected.copy()
-    n_teams = len(df_for_ranks)
-    n_conf_teams = len(df_for_ranks[df_for_ranks["Conference"] == conference])
-    # Power Rating rank (national)
-    df_for_ranks["Power Rating Rank"] = df_for_ranks["Power Rating"].rank(ascending=False, method='min').fillna(0).astype(int)
-    # Win probability ranks (national)
+    # All-team (136) ranks for each stat
+    stat_rank_cols = [
+        ("Power Rating", "Pwr. Rtg. Rank"),
+        ("6+", "6+ Rank"),
+        ("8+", "8+ Rank"),
+        ("10+", "10+ Rank"),
+        ("12-0", "12-0 Rank"),
+        ("Returning Production", "Ret. Prod. Rank"),
+        ("Off. Returning Production", "Off. Ret. Rank"),
+        ("Def. Returning Production", "Def. Ret. Rank"),
+    ]
+    df_for_ranks["Pwr. Rtg. Rank"] = df_for_ranks["Power Rating"].rank(ascending=False, method='min').fillna(0).astype(int)
+    # win probabilities: rebuild for each team for correct rankings
     win_prob_map = {}
     for team in df_for_ranks["Team"]:
         sched_team = df_schedule[df_schedule[team_col] == team].copy()
-        n_games_t = len(sched_team)
-        wp_vals = {"6+":0, "8+":0, "10+":0, "12-0":0}
-        if n_games_t > 0:
-            wpl = sched_team.get("Win Probability", sched_team.get("Win Prob", pd.Series([0.5]*n_games_t))).astype(float).values
-            dp_t = np.zeros((n_games_t + 1, n_games_t + 1))
-            dp_t[0, 0] = 1.0
-            for g in range(1, n_games_t + 1):
-                p = wpl[g-1]
-                for w in range(g+1):
-                    win_part = dp_t[g-1, w-1] * p if w > 0 else 0
-                    lose_part = dp_t[g-1, w] * (1 - p)
-                    dp_t[g, w] = win_part + lose_part
-            win_probs_t = dp_t[n_games_t, :]
-            wp_vals["6+"] = win_probs_t[6:].sum() if len(win_probs_t) > 6 else 0.0
-            wp_vals["8+"] = win_probs_t[8:].sum() if len(win_probs_t) > 8 else 0.0
-            wp_vals["10+"] = win_probs_t[10:].sum() if len(win_probs_t) > 10 else 0.0
-            wp_vals["12-0"] = win_probs_t[12] if len(win_probs_t) > 12 else (win_probs_t[-1] if len(win_probs_t) == 12 else 0.0)
-        win_prob_map[team] = wp_vals
+        num_games_t = len(sched_team)
+        if "Win Probability" in sched_team.columns:
+            wpl = sched_team["Win Probability"].astype(float).values
+        elif "Win Prob" in sched_team.columns:
+            wpl = sched_team["Win Prob"].astype(float).values
+        else:
+            wpl = np.full(num_games_t, 0.5)
+        dp_t = np.zeros((num_games_t + 1, num_games_t + 1))
+        dp_t[0, 0] = 1.0
+        for g in range(1, num_games_t + 1):
+            p = wpl[g-1]
+            for w in range(g+1):
+                win_part = dp_t[g-1, w-1] * p if w > 0 else 0
+                lose_part = dp_t[g-1, w] * (1 - p)
+                dp_t[g, w] = win_part + lose_part
+        win_probs_t = dp_t[num_games_t, :]
+        win_prob_map[team] = {
+            "6+": win_probs_t[6:].sum() if len(win_probs_t) > 6 else 0.0,
+            "8+": win_probs_t[8:].sum() if len(win_probs_t) > 8 else 0.0,
+            "10+": win_probs_t[10:].sum() if len(win_probs_t) > 10 else 0.0,
+            "12-0": win_probs_t[12] if len(win_probs_t) > 12 else (win_probs_t[-1] if len(win_probs_t) == 12 else 0.0),
+        }
     for k in ["6+", "8+", "10+", "12-0"]:
-        colname = f"{k} Prob"
-        df_for_ranks[colname] = df_for_ranks["Team"].map(lambda t: win_prob_map[t][k])
-        df_for_ranks[f"{k} Rank"] = df_for_ranks[colname].rank(ascending=False, method='min').fillna(0).astype(int)
-    # Returning Production ranks (national)
+        df_for_ranks[f"{k} Rank"] = df_for_ranks["Team"].map(lambda t: win_prob_map[t][k])
+        df_for_ranks[f"{k} Rank"] = df_for_ranks[f"{k} Rank"].rank(ascending=False, method='min').fillna(0).astype(int)
+    # Ret. Prod. ranks
     def get_prod(team, col):
         rr = df_ranking[df_ranking["Team"].str.strip() == team.strip()]
         if rr.empty: return np.nan
@@ -946,393 +966,120 @@ elif tab == "Team Dashboards":
         return v
     for k, rk, col in [
         ("Returning Production", "Ret. Prod. Rank", "Returning Production"),
-        ("Off. Returning Production", "Off. Ret. Prod. Rank", "Off. Returning Production"),
-        ("Def. Returning Production", "Def. Ret. Prod. Rank", "Def. Returning Production")
+        ("Off. Returning Production", "Off. Ret. Rank", "Off. Returning Production"),
+        ("Def. Returning Production", "Def. Ret. Rank", "Def. Returning Production")
     ]:
         df_for_ranks[rk] = df_for_ranks["Team"].map(lambda t: get_prod(t, col))
         df_for_ranks[rk] = df_for_ranks[rk].rank(ascending=False, method='min').fillna(0).astype(int)
-    # Preseason Rank and Expected Conf Wins Rank
-    if "Preseason Rank" not in df_for_ranks.columns:
-        df_for_ranks["Preseason Rank"] = list(range(1, len(df_for_ranks)+1))
+    # Conf. Rank for projected conf wins
     conf_col = "Projected Conference Wins"
-    df_for_ranks["Expected Conf. Wins Rank"] = (
+    df_for_ranks["Conf Rank"] = (
         df_for_ranks.groupby("Conference")[conf_col]
         .rank(ascending=False, method="min").fillna(0).astype(int)
     )
     this_team_ranks = df_for_ranks[df_for_ranks["Team"] == selected_team].iloc[0]
+    conf_size = len(df_for_ranks[df_for_ranks['Conference'] == conference])
+    total_teams = len(df_for_ranks)
 
-    # --- Card Definitions ---
+    # --- Card config
     stat_cards = [
-        {"label": "Conf.", "value": conference, "logo": conf_logo_url, "is_logo": True},
-        {"label": "Power Rating", "value": f"{team_row['Power Rating']:.1f}", "is_logo": False},
-        {"label": "6+", "value": at_least_6_pct, "is_logo": False},
-        {"label": "8+", "value": at_least_8_pct, "is_logo": False},
-        {"label": "10+", "value": at_least_10_pct, "is_logo": False},
-        {"label": "12-0", "value": exact_12_pct, "is_logo": False},
-        {"label": "Ret. Prod.", "value": ret_prod, "is_logo": False},
-        {"label": "Off. Ret.", "value": off_ret, "is_logo": False},
-        {"label": "Def. Ret.", "value": def_ret, "is_logo": False},
+        {
+            "label": "Pwr. Rtg." if is_mobile() else "Power Rating",
+            "value": f"{team_row['Power Rating']:.1f}" if pd.notnull(team_row['Power Rating']) else "",
+            "bg": "#112E5C",
+            "rank": this_team_ranks["Pwr. Rtg. Rank"], "rank_total": total_teams,
+            "rank_label": "Rk." if is_mobile() else "Pwr. Rtg. Rank",
+            "grp": "stat"
+        },
+        {"label": "6+", "value": at_least_6_pct, "bg": "#107BB8", "rank": this_team_ranks["6+ Rank"], "rank_total": total_teams, "rank_label": "Rk." if is_mobile() else "6+ Rank", "grp": "stat"},
+        {"label": "8+", "value": at_least_8_pct, "bg": "#107BB8", "rank": this_team_ranks["8+ Rank"], "rank_total": total_teams, "rank_label": "Rk." if is_mobile() else "8+ Rank", "grp": "stat"},
+        {"label": "10+", "value": at_least_10_pct, "bg": "#107BB8", "rank": this_team_ranks["10+ Rank"], "rank_total": total_teams, "rank_label": "Rk." if is_mobile() else "10+ Rank", "grp": "stat"},
+        {"label": "12-0", "value": exact_12_pct, "bg": "#107BB8", "rank": this_team_ranks["12-0 Rank"], "rank_total": total_teams, "rank_label": "Rk." if is_mobile() else "12-0 Rank", "grp": "stat"},
+        {"label": "Ret." if is_mobile() else "Ret. Prod.", "value": ret_prod, "bg": "#1E7A3E", "rank": this_team_ranks["Ret. Prod. Rank"], "rank_total": total_teams, "rank_label": "Rk." if is_mobile() else "Ret. Prod. Rank", "grp": "ret"},
+        {"label": "Off. Ret." if is_mobile() else "Off. Ret. Prod.", "value": off_ret, "bg": "#269946", "rank": this_team_ranks["Off. Ret. Rank"], "rank_total": total_teams, "rank_label": "Rk." if is_mobile() else "Off. Ret. Rank", "grp": "ret"},
+        {"label": "Def. Ret." if is_mobile() else "Def. Ret. Prod.", "value": def_ret, "bg": "#29B66B", "rank": this_team_ranks["Def. Ret. Rank"], "rank_total": total_teams, "rank_label": "Rk." if is_mobile() else "Def. Ret. Rank", "grp": "ret"},
     ]
-    stat_rank_cards = [
-        {"label": "Pwr. Rtg. Rank", "value": int(this_team_ranks["Power Rating Rank"]), "total": n_teams},
-        {"label": "6+ Rank", "value": int(this_team_ranks["6+ Rank"]), "total": n_teams},
-        {"label": "8+ Rank", "value": int(this_team_ranks["8+ Rank"]), "total": n_teams},
-        {"label": "10+ Rank", "value": int(this_team_ranks["10+ Rank"]), "total": n_teams},
-        {"label": "12-0 Rank", "value": int(this_team_ranks["12-0 Rank"]), "total": n_teams},
-        {"label": "Ret. Prod. Rank", "value": int(this_team_ranks["Ret. Prod. Rank"]), "total": n_teams},
-        {"label": "Off. Ret. Rank", "value": int(this_team_ranks["Off. Ret. Prod. Rank"]), "total": n_teams},
-        {"label": "Def. Ret. Rank", "value": int(this_team_ranks["Def. Ret. Prod. Rank"]), "total": n_teams},
-        {"label": "Conf Rank", "value": int(this_team_ranks["Expected Conf. Wins Rank"]), "total": n_conf_teams},
-    ]
+
+    # --- Card size & styles ---
+    logo_dim = 54 if not is_mobile() else 34
+    conf_logo_dim = 32 if not is_mobile() else 20
+    card_width = 75 if not is_mobile() else 46
+    card_height = 50 if not is_mobile() else 28
+    rank_height = 32 if not is_mobile() else 18
+    font_sz = 15 if not is_mobile() else 9
+    val_font_sz = 22 if not is_mobile() else 13
+    rank_font_sz = 12 if not is_mobile() else 8
+
+    # --- First row: team logo (no border), conf logo, stat cards
+    cards_html = [f'''
+    <div style="display:flex;align-items:stretch;flex-direction:row;gap:0px;justify-content:flex-start;width:100%;">
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:{logo_dim}px;max-width:{logo_dim}px;width:{logo_dim}px;margin:0 4px 0 0;padding:0;grid-row:1/span 2;">
+        <img src="{logo_url}" width="{logo_dim}" style="margin-bottom:3px;box-shadow:none;border:none;padding:0;"/>
+      </div>
+      <div style="display:flex;flex-direction:column;">
+        <div style="display:flex;flex-direction:row;align-items:stretch;gap:2px;">
+          <div style="background:#fff;min-width:{conf_logo_dim}px;max-width:{conf_logo_dim}px;width:{conf_logo_dim}px;display:flex;align-items:center;justify-content:center;">
+            <img src="{conf_logo_url}" width="{conf_logo_dim}" style="margin:0;box-shadow:none;border:none;padding:0;"/>
+          </div>
+    ''']
+    for c in stat_cards:
+        cards_html.append(f'''
+          <div style="background:{c['bg']};color:#fff;min-width:{card_width}px;max-width:{card_width}px;height:{card_height}px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:{font_sz}px;font-weight:600;text-align:center;box-sizing:border-box;">
+            <span style="font-size:{font_sz-2}px;">{c['label']}</span>
+            <span style="font-size:{val_font_sz}px;font-weight:900;">{c['value']}</span>
+          </div>
+        ''')
+    cards_html.append('</div>')  # end row 1
+
+    # --- Second row: Conf Rank under conf logo, other ranks under stats
+    cards_html.append('<div style="display:flex;flex-direction:row;align-items:stretch;gap:2px;">')
+    # Conference rank card under conf logo
+    cards_html.append(f'''
+      <div style="background:#9067B8; color:#fff;min-width:{conf_logo_dim}px;max-width:{conf_logo_dim}px;height:{rank_height}px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:{rank_font_sz-2}px;font-weight:600;text-align:center;box-sizing:border-box;">
+        <span style="font-size:{rank_font_sz-3}px;">Conf Rank</span>
+        <span style="font-size:{rank_font_sz+1}px;font-weight:900;">{int(this_team_ranks['Conf Rank'])} / {conf_size}</span>
+      </div>
+    ''')
+    for c in stat_cards:
+        cards_html.append(f'''
+          <div style="background:{c['bg']};color:#fff;min-width:{card_width}px;max-width:{card_width}px;height:{rank_height}px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:{rank_font_sz-2}px;font-weight:600;text-align:center;box-sizing:border-box;">
+            <span style="font-size:{rank_font_sz-4}px;">{c['rank_label']}</span>
+            <span style="font-size:{rank_font_sz+1}px;font-weight:900;">{int(c['rank'])} / {c['rank_total']}</span>
+          </div>
+        ''')
+    cards_html.append('</div>')  # end row 2
+    cards_html.append('</div>')  # end right flex
+    cards_html.append('</div>')  # end outer flex
+
+    # --- Third row: Expected record, expected conf record (color blocks)
     proj_wins = team_row.get("Projected Overall Wins", None)
     proj_losses = team_row.get("Projected Overall Losses", None)
     proj_conf_wins = team_row.get("Projected Conference Wins", None)
     proj_conf_losses = team_row.get("Projected Conference Losses", None)
     record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
     conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
-    expected_record_rank = int(this_team_ranks["Preseason Rank"])
-    expected_conf_rank = int(this_team_ranks["Expected Conf. Wins Rank"])
-    # -- Card styles
-    logo_dim = 70 if not is_mobile() else 42
-    card_h = 50 if is_mobile() else 65
-    card_w = 74 if is_mobile() else 84
-    label_fs = 9 if is_mobile() else 13
-    value_fs = 13 if is_mobile() else 18
-    rank_fs = 10 if is_mobile() else 14
-    gap = "7px" if is_mobile() else "14px"
-
-    # --- Build Card HTML: 3 Rows, Team Logo Spanning Vertically ---
-    team_logo_html = ""
-    if pd.notnull(logo_url) and isinstance(logo_url, str) and logo_url.startswith("http"):
-        team_logo_html = f'''
-            <td rowspan="3" style="vertical-align:middle; text-align:center; min-width:{logo_dim+16}px;">
-                <img src="{logo_url}" width="{logo_dim}" style="display:block;margin:auto;padding:3px 0 3px 0;" />
-            </td>
-        '''
-
-    # Row 1: Conference + stats
-    r1 = [f'''<td style="background:#fff; border:1px solid #eee; min-width:{card_w}px; text-align:center; height:{card_h}px;">{
-            f'<img src="{conf_logo_url}" width="{int(card_h*0.9)}"/>' if conf_logo_url else conference
-        }</td>''']
-    for c in stat_cards[1:]:
-        r1.append(
-            f'''<td style="background:#002060; color:#fff; border:1px solid #fff; min-width:{card_w}px; text-align:center; font-size:{label_fs}px; height:{card_h}px;">
-                <div style="font-size:{label_fs-1}px;">{c["label"]}</div>
-                <div style="font-size:{value_fs}px; font-weight:900;">{c["value"]}</div>
-            </td>'''
-        )
-    # Row 2: Rankings
-    r2 = []
-    for card in stat_rank_cards:
-        r2.append(
-            f'''<td style="background:#eee; border:1px solid #fff; min-width:{card_w}px; text-align:center; font-size:{rank_fs-2}px; height:{card_h-10}px;">
-                <div style="font-size:{rank_fs-2}px;">{card["label"]}</div>
-                <div style="font-size:{rank_fs}px; font-weight:700;">{card["value"]} / {card["total"]}</div>
-            </td>'''
-        )
-    # Row 3: Record/Conference record, and their ranks
-    r3 = [
-        f'''<td colspan="5" style="background:#FFB347; border:1px solid #fff; font-size:{label_fs}px; text-align:center; height:{card_h+2}px;">
-            <div style="font-size:{label_fs-1}px;">Expected Record</div>
-            <div style="font-size:{value_fs+1}px; font-weight:900;">{record_str}</div>
-            <div style="font-size:{rank_fs-2}px;">Rank: {expected_record_rank} / {n_teams}</div>
-        </td>''',
-        f'''<td colspan="4" style="background:#9067B8; border:1px solid #fff; color:#fff; font-size:{label_fs}px; text-align:center; height:{card_h+2}px;">
-            <div style="font-size:{label_fs-1}px;">Expected Conf. Record</div>
-            <div style="font-size:{value_fs+1}px; font-weight:900;">{conf_record_str}</div>
-            <div style="font-size:{rank_fs-2}px;">Conf. Rank: {expected_conf_rank} / {n_conf_teams}</div>
-        </td>''',
-    ]
-
-    cards_html = f"""
-    <div style="overflow-x:auto;max-width:100vw;">
-      <table style="border-collapse:collapse;margin:auto;">
-        <tbody>
-          <tr>{team_logo_html}{''.join(r1)}</tr>
-          <tr>{''.join(r2)}</tr>
-          <tr>{''.join(r3)}</tr>
-        </tbody>
-      </table>
+    expected_row_html = f'''
+    <div style="display:flex;flex-direction:row;gap:2px;margin-top:0;">
+      <div style="background:#FFB347;color:#222;flex:2 1 0;min-width:210px;max-width:400px;padding:0 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:{card_height+15}px;">
+        <span style="font-size:{font_sz-1}px;">Expected Record</span>
+        <span style="font-size:{val_font_sz+3}px;font-weight:900;">{record_str}</span>
+        <span style="font-size:{rank_font_sz-1}px;">Rank: {int(this_team_ranks["Pwr. Rtg. Rank"])} / {total_teams}</span>
+      </div>
+      <div style="background:#9067B8;color:#fff;flex:2 1 0;min-width:210px;max-width:400px;padding:0 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;height:{card_height+15}px;">
+        <span style="font-size:{font_sz-1}px;">Expected Conf. Record</span>
+        <span style="font-size:{val_font_sz+3}px;font-weight:900;">{conf_record_str}</span>
+        <span style="font-size:{rank_font_sz-1}px;">Conf Rank: {int(this_team_ranks["Conf Rank"])} / {conf_size}</span>
+      </div>
     </div>
-    """
-    st.markdown(cards_html, unsafe_allow_html=True)
-
-    # -----------------
-    # Win Probability Table + Chart (no changes)
-    # -----------------
-    fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
-    opponent_logos = []
-    for opp in opponents:
-        logo_url_opp = fallback_logo_url
-        try:
-            matches = logos_df["Team"].str.lower() == str(opp).strip().lower()
-            if matches.any():
-                logo_url_opp = logos_df.loc[matches, "Logo URL"].values[0]
-        except Exception:
-            pass
-        opponent_logos.append(logo_url_opp)
-
-    # Build rows for table (prob distribution after each game)
-    rows = []
-    for g in range(num_games):
-        row = {"Game": g+1, "Opponent": opponents[g]}
-        for w in range(num_games+1):
-            row[w] = dp[g+1, w]
-        rows.append(row)
-    # Table/Chart rendering (as in your code)
-    n_cols = 2 + num_games + 1
-    col_pct = 100 / n_cols
-    if is_mobile():
-        font_size = 6
-        pad = 0
-        logo_size = 10
-        table_style = (
-            f"font-size:{font_size}px; width:100%; min-width:100%; max-width:100%; "
-            "table-layout:fixed; border-collapse:collapse; border:none; margin:0; box-sizing:border-box;"
-        )
-        wrapper_style = (
-            "width:100%; min-width:100%; max-width:100%; margin:0; padding:0; overflow:hidden; box-sizing:border-box;"
-        )
-        visible_wins = list(range(num_games + 1))
-        game_col_style = opp_col_style = win_col_style = ""
-        cell_base_style = cell_last_style = ""
-    else:
-        font_size = 12
-        pad = 2
-        logo_size = 26
-        n_win_cols = num_games + 1
-        opp_col_pct = 20
-        game_col_pct = 7
-        win_col_pct = (100 - opp_col_pct - game_col_pct) / n_win_cols
-        table_style = (
-            "font-size:12px; width:100%; border-collapse:collapse; table-layout:fixed;"
-        )
-        wrapper_style = "width:100%; max-width:100vw; overflow-x:auto;"
-        visible_wins = list(range(num_games + 1))
-        game_col_style = f"text-align:center; width:{game_col_pct:.4f}%; min-width:38px; max-width:54px; white-space:nowrap;"
-        opp_col_style = f"text-align:left; width:{opp_col_pct:.4f}%; min-width:120px; max-width:270px; white-space:nowrap; overflow:hidden;"
-        win_col_style = f"text-align:center; width:{win_col_pct:.4f}%; min-width:24px; max-width:40px; white-space:nowrap; overflow:hidden;"
-        cell_base_style = win_col_style
-        cell_last_style = win_col_style
-
-    def cell_color(p):
-        if p <= 0: return "background-color:#fff;"
-        elif p < 0.25:
-            t = p / 0.25
-            r = int(224 + (94-224)*t)
-            g = int(75 + (160-75)*t)
-            b = int(90 + (238-90)*t)
-        else:
-            t = (p - 0.25) / 0.75
-            r = int(94 + (27-94)*t)
-            g = int(160 + (60-160)*t)
-            b = int(238 + (255-238)*t)
-        return f"background-color:rgb({r},{g},{b});"
-
-    table_html = [f'<div style="{wrapper_style}">', f'<table style="{table_style}">', "<thead><tr>"]
-    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {game_col_style}">Game</th>')
-    opp_header_text = "Opponent" if not is_mobile() else "Opp"
-    table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {opp_col_style}">{opp_header_text}</th>')
-    for w in visible_wins:
-        table_html.append(f'<th style="border:1px solid #bbb; padding:{pad}px; background:#d4e4f7; {win_col_style}">{w}</th>')
-    table_html.append("</tr></thead><tbody>")
-    for i, row in enumerate(rows):
-        table_html.append("<tr>")
-        table_html.append(f'<td style="{game_col_style}background:#f8fafb; font-weight:bold; text-align:center;">{row["Game"]}</td>')
-        logo_url = opponent_logos[i]
-        if is_mobile():
-            logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="display:block;margin:auto;" alt="">'
-        else:
-            logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="vertical-align:middle;margin-right:3px;"> {row["Opponent"]}'
-        table_html.append(f'<td style="{opp_col_style}background:#f8fafb;">{logo_html}</td>')
-        game_num = row["Game"]
-        for j, w in enumerate(visible_wins):
-            is_last = (j == len(visible_wins) - 1)
-            style = cell_last_style if is_last else win_col_style
-            if w > game_num:
-                cell_style = f"{style}background-color:#444; color:#fff; font-family:Arial; text-align:center;"
-                cell_text = ""
-            else:
-                val = row.get(w, 0.0)
-                pct = val * 100
-                cell_style = (
-                    f"{style}{cell_color(val)}"
-                    + "color:#222; text-align:center;"
-                )
-                cell_text = f"{pct:.1f}%"
-            table_html.append(f'<td style="{cell_style}">{cell_text}</td>')
-        table_html.append("</tr>")
-    table_html.append("</tbody></table></div>")
-
-    # Win prob chart
-    final_row = rows[-1]
-    win_counts = list(range(num_games + 1))
-    win_probs_chart = [final_row.get(w, 0.0) for w in win_counts]
-    win_probs_pct = [p * 100 for p in win_probs_chart]
-    df_win_dist = pd.DataFrame({"Wins": win_counts, "Probability": win_probs_pct})
-    df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
-
-    # Show table & chart: side by side on desktop, stacked on mobile
-    if not is_mobile():
-        left_col, right_col = st.columns([1, 1])
-        with left_col:
-            st.markdown("#### Probability Distribution of Wins After Each Game")
-            st.markdown("".join(table_html), unsafe_allow_html=True)
-        with right_col:
-            st.markdown("#### Win Probability Distribution")
-            bar = alt.Chart(df_win_dist).mark_bar(color="#002060").encode(
-                x=alt.X("Wins:O", axis=alt.Axis(title="Wins", labelAngle=0, labelColor="black", titleColor="black")),
-                y=alt.Y("Probability:Q", axis=alt.Axis(title="Probability (%)", labelColor="black", titleColor="black")),
-                tooltip=[
-                    alt.Tooltip("Wins:O", title="Wins"),
-                    alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
-                ]
-            )
-            text = bar.mark_text(
-                align='center', baseline='bottom', dy=-2, color='black', fontSize=10
-            ).encode(text="Label")
-            final_chart = (bar + text).properties(width=350, height=515, title="")
-            st.altair_chart(final_chart, use_container_width=True)
-    else:
-        st.markdown("#### Probability Distribution of Wins After Each Game")
-        st.markdown("".join(table_html), unsafe_allow_html=True)
-        st.markdown("#### Win Probability Distribution")
-        bar = alt.Chart(df_win_dist).mark_bar(color="#002060").encode(
-            x=alt.X("Wins:O", axis=alt.Axis(title="Wins", labelAngle=0, labelColor="black", titleColor="black")),
-            y=alt.Y("Probability:Q", axis=alt.Axis(title="Probability (%)", labelColor="black", titleColor="black")),
-            tooltip=[
-                alt.Tooltip("Wins:O", title="Wins"),
-                alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
-            ]
-        )
-        text = bar.mark_text(
-            align='center', baseline='bottom', dy=-2, color='black', fontSize=8
-        ).encode(text="Label")
-        final_chart = (bar + text).properties(width=340, height=240, title="")
-        st.altair_chart(final_chart, use_container_width=True)
-
-    # ---- Conference Standings Table (from your code, optional tweak for highlight) ----
-    if conference:
-        standings = df_expected[df_expected["Conference"] == conference].copy()
-        standings = standings.sort_values(
-            by="Projected Conference Wins", ascending=False
-        ).reset_index(drop=True)
-        standings.insert(0, "Projected Finish", standings.index + 1)
-        mobile_header_map = {
-            "Projected Finish": "Conf. Standings",
-            "Team": "Team",
-            "Power Rating": "Pwr. Rtg.",
-            "Projected Overall Wins": "Proj. Wins",
-            "Projected Conference Wins": "Proj. Conf. Wins",
-            "Projected Conference Losses": "Proj. Conf. Losses",
-            "Average Conference Game Quality": "Avg. Conf. Game Qty",
-            "Average Conference Schedule Difficulty": "Conf. Sched. Diff.",
-        }
-        mobile_cols = [
-            "Projected Finish", "Team", "Power Rating", "Projected Overall Wins",
-            "Projected Conference Wins", "Projected Conference Losses",
-            "Average Conference Game Quality", "Average Conference Schedule Difficulty"
-        ]
-        desktop_cols = [
-            "Projected Finish", "Team", "Power Rating", "Projected Overall Wins",
-            "Projected Conference Wins", "Projected Conference Losses",
-            "Average Conference Game Quality", "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
-        ]
-        pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
-        acgq_min, acgq_max = standings["Average Conference Game Quality"].min(), standings["Average Conference Game Quality"].max()
-        acsd_min, acsd_max = standings["Average Conference Schedule Difficulty"].min(), standings["Average Conference Schedule Difficulty"].max()
-
-        if is_mobile():
-            cols = [c for c in mobile_cols if c in standings.columns]
-            display_headers = [mobile_header_map[c] for c in cols]
-            table_style = (
-                "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
-            )
-            wrapper_style = (
-                "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
-            )
-            header_font = "font-size:13px; white-space:normal;"
-            cell_font = "font-size:13px; white-space:nowrap;"
-        else:
-            cols = [c for c in desktop_cols if c in standings.columns]
-            display_headers = cols.copy()
-            table_style = "width:100%; border-collapse:collapse;"
-            wrapper_style = "max-width:100%; overflow-x:auto;"
-            header_font = ""
-            cell_font = "white-space:nowrap; font-size:15px;"
-
-        standings_html = [
-            f'<div style="{wrapper_style}">',
-            f'<table style="{table_style}">',
-            '<thead><tr>'
-        ]
-        compact_cols_conf = [
-            "Projected Finish", "Power Rating", "Projected Overall Wins", "Projected Conference Wins",
-            "Projected Conference Losses", "Average Conference Game Quality",
-            "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
-        ]
-        for disp_col, c in zip(display_headers, cols):
-            th = (
-                'border:1px solid #ddd; padding:8px; text-align:center; '
-                'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
-            )
-            if c == "Team":
-                if is_mobile():
-                    th += " white-space:nowrap; min-width:48px; max-width:48px;"
-                else:
-                    th += " white-space:nowrap; min-width:180px; max-width:240px;"
-            elif not is_mobile() and c in compact_cols_conf:
-                th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
-            else:
-                th += " white-space:nowrap;"
-            th += header_font
-            standings_html.append(f"<th style='{th}'>{disp_col}</th>")
-        standings_html.append("</tr></thead><tbody>")
-        for _, row in standings.iterrows():
-            is_selected_team = (row["Team"] == selected_team)
-            standings_html.append("<tr>")
-            for c in cols:
-                v = row[c]
-                td = 'border:1px solid #ddd; padding:8px; text-align:center;'
-                td += cell_font
-                cell = v
-                if c == "Team":
-                    logo = row.get("Logo URL")
-                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
-                        if is_mobile():
-                            cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
-                        else:
-                            cell = (
-                                f'<div style="display:flex;align-items:center;">'
-                                f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
-                            )
-                    else:
-                        cell = "" if is_mobile() else v
-                else:
-                    if c == "Power Rating" and pd.notnull(v):
-                        t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
-                        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                        td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                        cell = f"{v:.1f}"
-                    elif c == "Average Conference Game Quality" and pd.notnull(v):
-                        t = (v - acgq_min) / (acgq_max - acgq_min) if acgq_max > acgq_min else 0
-                        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-                        td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
-                        cell = f"{v:.1f}"
-                    elif c == "Average Conference Schedule Difficulty" and pd.notnull(v):
-                        inv = 1 - ((v - acsd_min) / (acsd_max - acsd_min) if acsd_max > acsd_min else 0)
-                        r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
-                        td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
-                        cell = f"{v:.1f}"
-                    else:
-                        cell = v
-                if is_selected_team and "background-color" not in td:
-                    td += " background-color:#fffac8;"
-                standings_html.append(f"<td style='{td}'>{cell}</td>")
-            standings_html.append("</tr>")
-        standings_html.append("</tbody></table></div>")
-        st.markdown("#### Conference Standings")
-        st.markdown("".join(standings_html), unsafe_allow_html=True)
+    '''
+    # --- Output ---
+    st.markdown(
+        f'<div style="width:100%;max-width:100vw;min-width:0;margin-left:0;">'
+        + "".join(cards_html)
+        + expected_row_html
+        + '</div>',
+        unsafe_allow_html=True
+    )
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
