@@ -858,119 +858,77 @@ elif tab == "Industry Composite Ranking":
 
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
-    for col in ["At Least 6 Wins Prob", "At Least 8 Wins Prob", "At Least 10 Wins Prob", "Undefeated Prob"]:
-        if col not in df_expected.columns:
-            df_expected[col] = 0.0
-
-    # Mobile CSS for 1:1 match, prevents scrolling, tightens padding/margin
-    def inject_mobile_css():
-        st.markdown("""
-        <style>
-        @media (max-width: 740px) {
-            .block-container, [data-testid="stHorizontalBlock"], .main {
-                max-width: 100vw !important;
-                min-width: 100vw !important;
-                width: 100vw !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                box-sizing: border-box;
-            }
-            html, body { overflow-x: hidden !important; }
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-    if is_mobile():
-        inject_mobile_css()
-
+    # --- Team selection ---
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
-    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
-    conference = team_row["Conference"]
-    logo_url = team_row["Logo URL"]
+    
+    team_row = df_expected[df_expected["Team"] == selected_team]
+    if len(team_row) == 0:
+        st.error("Selected team not found in data.")
+        st.stop()
+    team_row = team_row.iloc[0]
+    
+    conference = team_row.get("Conference", "N/A")
+    logo_url = team_row.get("Logo URL", None)
     conf_logo_url = None
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
-
-    # Card settings
+    
     CARDS = [
         ("Power Rating", "Pwr", "Power Rating", "#002060"),
         ("6+ Wins Prob", "6+", "At Least 6 Wins Prob", "#00B0F0"),
         ("8+ Wins Prob", "8+", "At Least 8 Wins Prob", "#00B0F0"),
         ("10+ Wins Prob", "10+", "At Least 10 Wins Prob", "#00B0F0"),
         ("Undefeated Prob", "12-0", "Undefeated Prob", "#00B0F0"),
-        ("Returning Production", "Ret.", "Returning Production", "#00B050"),
-        ("Off. Ret. Prod.", "Off.", "Off. Returning Production", "#00B050"),
-        ("Def. Ret. Prod.", "Def.", "Def. Returning Production", "#00B050"),
+        # Add more cards if you have them in your dataframe
     ]
-
-    # Get actual card values from team_row and any external calculations
+    
     def fmt_pct(val):
-        # Handle NaN, None, and pandas types safely
-        if val is None or (isinstance(val, float) and np.isnan(val)):
-            return ""
-        # For pandas Series, return blank (shouldn't happen, but safe)
-        if isinstance(val, pd.Series):
-            val = val.iloc[0] if not val.empty else None
-            if val is None or (isinstance(val, float) and np.isnan(val)):
-                return ""
+        """Format as percent if value is numeric and <1, else as number."""
         try:
-            val = float(val)
-            if val < 1.01:
-                return f"{val*100:.1f}%"
-            else:
-                return f"{val:.1f}%"
+            if pd.isnull(val): return ""
+            v = float(val)
+            if v < 1.01: return f"{v * 100:.1f}%"
+            return f"{v:.1f}%" if v < 100 else f"{v:.0f}%"
         except Exception:
-            # Only check for emptiness in string, not pandas objects
-            val_str = str(val)
-            return val_str if val_str else ""
-
-    card_values = [
-        f"{team_row['Power Rating']:.1f}",
-        fmt_pct(team_row.get("At Least 6 Wins Prob", 0)),
-        fmt_pct(team_row.get("At Least 8 Wins Prob", 0)),
-        fmt_pct(team_row.get("At Least 10 Wins Prob", 0)),
-        fmt_pct(team_row.get("Undefeated Prob", 0)),
-        fmt_pct(team_row.get("Returning Production", 0)),
-        fmt_pct(team_row.get("Off. Returning Production", 0)),
-        fmt_pct(team_row.get("Def. Returning Production", 0)),
-    ]
-
-    # Prepare rank for each card
+            return str(val) if val is not None else ""
+    
+    # --- Card values ---
+    card_values = []
+    for _, _, col, _ in CARDS:
+        card_values.append(fmt_pct(team_row.get(col, np.nan)))
+    
+    # --- Card ranks ---
     ranks = []
-    for i, (long_label, short_label, col, color) in enumerate(CARDS):
-        if col == "Undefeated Prob":
-            colname = "Undefeated Prob"
+    for _, _, col, _ in CARDS:
+        # Use robust comparison even if col missing
+        if col in df_expected.columns:
+            val = team_row.get(col, np.nan)
+            # Use rank only if column is numeric
+            if np.issubdtype(df_expected[col].dtype, np.number):
+                rank = (df_expected[col] > val).sum() + 1
+                ranks.append(f"{rank}")
+            else:
+                ranks.append("-")
         else:
-            colname = col
-        # Rank among all 136 for all except conference wins
-        if col == "Projected Conference Wins":
-            df_conf = df_expected[df_expected["Conference"] == conference]
-            val = team_row[colname]
-            rank = (df_conf[colname] > val).sum() + 1
-            ranks.append(f"{rank}/{len(df_conf)}")
-        else:
-            val = team_row[colname]
-            rank = (df_expected[colname] > val).sum() + 1
-            ranks.append(f"{rank}")
-
-    # Layout settings
-    is_mob = is_mobile()
+            ranks.append("-")
+    
+    # --- Card display settings ---
     N = len(CARDS)
-    card_w = f"{100/(N+1):.3f}vw" if is_mob else "108px"
-    card_h = "30px" if is_mob else "54px"
-    logo_dim = 20 if is_mob else 48
-    value_font = "10px" if is_mob else "18px"
-    header_font = "8px" if is_mob else "14px"
-    rank_font = "7.5px" if is_mob else "12px"
-    sublabel_font = "7px" if is_mob else "11px"
-    margin = "0" if is_mob else "0 0 0 0"
+    card_w = f"{100/(N+1):.3f}vw" if st.session_state.get("FORCE_MOBILE", False) else "108px"
+    card_h = "30px" if st.session_state.get("FORCE_MOBILE", False) else "54px"
+    logo_dim = 20 if st.session_state.get("FORCE_MOBILE", False) else 48
+    value_font = "10px" if st.session_state.get("FORCE_MOBILE", False) else "18px"
+    header_font = "8px" if st.session_state.get("FORCE_MOBILE", False) else "14px"
+    rank_font = "7.5px" if st.session_state.get("FORCE_MOBILE", False) else "12px"
+    sublabel_font = "7px" if st.session_state.get("FORCE_MOBILE", False) else "11px"
+    margin = "0"
     card_radius = "5px"
-
+    
     # --- Card grid HTML ---
     html = [f'<div style="width:100%;overflow-x:hidden;box-sizing:border-box;">']
-
-    # Row 1: Stat Cards (with logo stacked at start)
+    
+    # Row 1: Stat Cards (logo first)
     html.append(f'<div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:100%;margin-bottom:2px;">')
     html.append(
         f'<div style="width:{card_w};height:{card_h};display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #888;border-radius:{card_radius};margin:{margin};">'
@@ -981,12 +939,12 @@ elif tab == "Team Dashboards":
     for i, c in enumerate(CARDS):
         html.append(
             f'<div style="width:{card_w};height:{card_h};background:{c[3]};border-radius:{card_radius};margin:{margin};display:flex;flex-direction:column;align-items:center;justify-content:center;">'
-            f'<div style="font-size:{header_font};font-weight:500;">{c[1] if is_mob else c[0]}</div>'
+            f'<div style="font-size:{header_font};font-weight:500;">{c[1]}</div>'
             f'<div style="font-size:{value_font};font-weight:700;">{card_values[i]}</div>'
             '</div>'
         )
     html.append('</div>')
-
+    
     # Row 2: Ranks
     html.append(f'<div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:100%;">')
     html.append(f'<div style="width:{card_w};height:{card_h};"></div>')
@@ -999,60 +957,7 @@ elif tab == "Team Dashboards":
         )
     html.append('</div>')
     html.append('</div>')
-
-    st.markdown("".join(html), unsafe_allow_html=True)
-
-    # --- Expected Wins Rank & Expected Conf Wins Rank ---
-    exp_wins_rank = team_rank(_df, "Projected Overall Wins", selected_team, ascending=False)
-    exp_conf_rank, conf_size = conf_rank(_df, conference, "Projected Conference Wins", selected_team, ascending=False)
-
-    # --- Responsive settings ---
-    is_mob = is_mobile()
-    N = len(CARDS)
-    card_w = f"{100/(N+1):.4f}vw" if is_mob else "110px"
-    card_h = "32px" if is_mob else "52px"
-    logo_dim = 22 if is_mob else 48
-    value_font = "11px" if is_mob else "18px"
-    header_font = "8.5px" if is_mob else "14px"
-    rank_font = "8px" if is_mob else "12px"
-    sublabel_font = "7.3px" if is_mob else "11px"
-    margin = "0" if is_mob else "0 0 0 0"
-    card_radius = "4px"
-
-    # --- Card grid HTML ---
-    html = [f'<div style="width:100%;overflow-x:hidden;box-sizing:border-box;">']
-
-    # ---- Row 1: Stat Cards ----
-    html.append(f'<div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:100%;margin-bottom:2px;">')
-    # Team/conference logos, two stacked
-    html.append(
-        f'<div style="width:{card_w};height:{card_h};display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid #888;border-radius:{card_radius};margin:{margin};">'
-        f'<img src="{logo_url}" width="{logo_dim}" style="display:block;"/>' +
-        (f'<img src="{conf_logo_url}" width="{logo_dim}" style="display:block;margin-top:1.5px;"/>' if conf_logo_url else '') +
-        f'</div>'
-    )
-    for i, c in enumerate(CARDS):
-        html.append(
-            f'<div style="width:{card_w};height:{card_h};background:{c[3]};border-radius:{card_radius};margin:{margin};display:flex;flex-direction:column;align-items:center;justify-content:center;">'
-            f'<div style="font-size:{header_font};font-weight:500;">{c[1] if is_mob else c[0]}</div>'
-            f'<div style="font-size:{value_font};font-weight:700;">{c[7]}</div>'
-            '</div>'
-        )
-    html.append('</div>')
-
-    # ---- Row 2: Ranks ----
-    html.append(f'<div style="display:flex;flex-direction:row;justify-content:flex-start;align-items:center;width:100%;">')
-    html.append(f'<div style="width:{card_w};height:{card_h};"></div>')
-    for i, c in enumerate(CARDS):
-        html.append(
-            f'<div style="width:{card_w};height:{card_h};background:{c[6]};border-radius:{card_radius};margin:{margin};display:flex;flex-direction:column;align-items:center;justify-content:center;">'
-            f'<div style="font-size:{sublabel_font};font-weight:500;">{c[5]}</div>'
-            f'<div style="font-size:{rank_font};font-weight:700;">{ranks[i]}</div>'
-            '</div>'
-        )
-    html.append('</div>')
-    html.append('</div>')
-
+    
     st.markdown("".join(html), unsafe_allow_html=True)
 
     # --- Expected Record, Exp Wins Rank, Expected Conf Record, Exp Conf Wins Rank ---
