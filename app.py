@@ -848,7 +848,7 @@ elif tab == "Industry Composite Ranking":
 if tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # Mobile CSS
+    # --- Mobile CSS
     if is_mobile():
         inject_mobile_css()
 
@@ -862,19 +862,19 @@ if tab == "Team Dashboards":
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
 
-    # ---- Win Probabilities for stat/rank cards ----
-    # Calculate for ALL teams so we can rank them
-    # (If you already have columns like "Win 6+", "Win 8+", etc., use those!)
+    # --- WIN PROBABILITIES (dynamic columns for all teams)
     win_thresh = [6, 8, 10, 12]
     for thresh in win_thresh:
-        df_expected[f"Win {thresh}+"] = np.nan
-    df_expected["Win 12-0"] = np.nan
-    # Loop through each team and calculate win probabilities
+        if f"Win {thresh}+" not in df_expected.columns:
+            df_expected[f"Win {thresh}+"] = np.nan
+    if "Win 12-0" not in df_expected.columns:
+        df_expected["Win 12-0"] = np.nan
+
+    # Calculate win probability columns for all teams (if not already present)
     for i, trow in df_expected.iterrows():
         tname = trow["Team"]
         sched = df_schedule[df_schedule[df_schedule.columns[0]] == tname]
         num_games = len(sched)
-        # Look for correct win prob column
         if "Win Probability" in sched.columns:
             win_prob_list = sched["Win Probability"].astype(float).values
         elif "Win Prob" in sched.columns:
@@ -894,154 +894,132 @@ if tab == "Team Dashboards":
             df_expected.at[i, f"Win {thresh}+"] = win_probs[thresh:].sum() if len(win_probs) > thresh else 0.0
         df_expected.at[i, "Win 12-0"] = win_probs[12] if len(win_probs) > 12 else (win_probs[-1] if len(win_probs) == 12 else 0.0)
 
-    # --- Stat Definitions for Card Strip ---
-    stat_defs = [
-        ("Conf. Rk", "Conference", "#002060", "Conference Rank", "conf"),
-        ("Power", "Power Rating", "#002060", "Power Rating Rank", "all"),
-        ("6+", "Win 6+", "#00B0F0", "Win 6+ Rank", "all"),
-        ("8+", "Win 8+", "#00B0F0", "Win 8+ Rank", "all"),
-        ("10+", "Win 10+", "#00B0F0", "Win 10+ Rank", "all"),
-        ("12-0", "Win 12-0", "#00B0F0", "Win 12-0 Rank", "all"),
-        ("Ret.", "Returning Production", "#00B050", "Ret Prod Rank", "all"),
-        ("Off.", "Off. Returning Production", "#00B050", "Off Ret Rank", "all"),
-        ("Def.", "Def. Returning Production", "#00B050", "Def Ret Rank", "all"),
-    ]
-    # --- Rank Calculation (add columns if not present) ---
+    # --- RANK CALCULATION ---
     df_ranks = df_expected.copy()
-    for label, col, color, rank_col, scope in stat_defs:
-        if col not in df_ranks.columns:
-            continue
-        df_ranks[col] = pd.to_numeric(df_ranks[col], errors="coerce")
-        if scope == "all":
+    # Power Rating, Win 6+, Win 8+, Win 10+, Win 12-0, Returning Prod, Off, Def
+    rank_defs = [
+        ("Power Rating", "Power Rating Rank"),
+        ("Win 6+", "Win 6+ Rank"),
+        ("Win 8+", "Win 8+ Rank"),
+        ("Win 10+", "Win 10+ Rank"),
+        ("Win 12-0", "Win 12-0 Rank"),
+        ("Returning Production", "Ret Prod Rank"),
+        ("Off. Returning Production", "Off Ret Rank"),
+        ("Def. Returning Production", "Def Ret Rank"),
+    ]
+    for col, rank_col in rank_defs:
+        if col in df_ranks.columns:
             df_ranks[rank_col] = df_ranks[col].rank(ascending=False, method="min").astype("Int64")
-    # Conference Rank: by Power Rating within conference
-    if conference and "Power Rating" in df_ranks.columns:
-        conf_teams = df_ranks[df_ranks["Conference"] == conference].copy()
-        conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
-        conf_teams["Conference Rank"] = range(1, len(conf_teams) + 1)
-        for team, rank in zip(conf_teams["Team"], conf_teams["Conference Rank"]):
-            df_ranks.loc[df_ranks["Team"] == team, "Conference Rank"] = rank
+    # Conference Rank (by Power Rating within conference)
+    if "Power Rating" in df_ranks.columns:
+        for conf in df_ranks["Conference"].unique():
+            conf_teams = df_ranks[df_ranks["Conference"] == conf]
+            conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
+            conf_teams["Conference Rank"] = range(1, len(conf_teams) + 1)
+            for team, rank in zip(conf_teams["Team"], conf_teams["Conference Rank"]):
+                df_ranks.loc[df_ranks["Team"] == team, "Conference Rank"] = rank
 
-    # --- Prepare Cards for This Team ---
+    # --- CARD DEFINITIONS ---
+    stat_defs = [
+        # Label,                  Stat col,                     Color,     Rank col,               Rank Scope
+        ("Conf. Rk",             "Conference Rank",             "#002060", None,                   "conf"),
+        ("Power",                "Power Rating",                "#002060", "Power Rating Rank",    "all"),
+        ("6+",                   "Win 6+",                      "#00B0F0", "Win 6+ Rank",          "all"),
+        ("8+",                   "Win 8+",                      "#00B0F0", "Win 8+ Rank",          "all"),
+        ("10+",                  "Win 10+",                     "#00B0F0", "Win 10+ Rank",         "all"),
+        ("12-0",                 "Win 12-0",                    "#00B0F0", "Win 12-0 Rank",        "all"),
+        ("Ret.",                 "Returning Production",        "#00B050", "Ret Prod Rank",         "all"),
+        ("Off.",                 "Off. Returning Production",   "#00B050", "Off Ret Rank",          "all"),
+        ("Def.",                 "Def. Returning Production",   "#00B050", "Def Ret Rank",          "all"),
+    ]
+
+    stat_labels = [x[0] for x in stat_defs]
+    stat_colors = [x[2] for x in stat_defs]
     this_team = df_ranks[df_ranks["Team"] == selected_team].iloc[0]
-    stat_cards, rank_cards = [], []
-    for label, col, color, rank_col, scope in stat_defs:
-        val = this_team.get(col, "")
-        # Format value
-        if "Win" in label or "Ret" in label:
+
+    stat_values = []
+    rank_values = []
+    for label, stat_col, color, rank_col, rank_scope in stat_defs:
+        # Value
+        val = this_team.get(stat_col, "")
+        if "Ret" in label or ("Win" in label and "+" in label) or ("12-0" in label):
             try:
                 v = float(val)
                 val = f"{v*100:.1f}%" if v <= 1.01 else f"{v:.1f}%"
-            except: pass
+            except Exception:
+                val = str(val)
         elif isinstance(val, float):
             val = f"{val:.1f}"
         elif isinstance(val, int):
-            val = f"{val}"
-        else:
             val = str(val)
+        stat_values.append(val)
+
         # Rank value
-        if scope == "all":
-            rk = this_team.get(rank_col, None)
-            rk_str = (
-                f"{rk}{'st' if rk==1 else 'nd' if rk==2 else 'rd' if rk==3 else 'th'}"
-                if pd.notnull(rk) else "-"
-            )
-            rank_scope_str = f"of {len(df_ranks)}"
-        elif scope == "conf":
-            conf_teams = df_ranks[df_ranks["Conference"] == conference]
-            rk = this_team.get(rank_col, None)
-            rk_str = (
-                f"{rk}{'st' if rk==1 else 'nd' if rk==2 else 'rd' if rk==3 else 'th'}"
-                if pd.notnull(rk) else "-"
-            )
-            rank_scope_str = f"of {len(conf_teams)}"
-        stat_cards.append(f"""
-        <div style="
-            display:flex; flex-direction:column; align-items:center; justify-content:center;
+        rk = None
+        if rank_scope == "conf":
+            rk = this_team.get("Conference Rank", None)
+            rk_str = f"{rk}th" if pd.notnull(rk) else "-"
+            if rk == 1: rk_str = "1st"
+            elif rk == 2: rk_str = "2nd"
+            elif rk == 3: rk_str = "3rd"
+        else:
+            if rank_col:
+                rk = this_team.get(rank_col, None)
+            if pd.notnull(rk):
+                rk_str = f"{int(rk)}th"
+                if int(rk) == 1: rk_str = "1st"
+                elif int(rk) == 2: rk_str = "2nd"
+                elif int(rk) == 3: rk_str = "3rd"
+            else:
+                rk_str = "-"
+        rank_values.append(rk_str)
+
+    # --- CARD HTML ---
+    stat_cards = [
+        f"""
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
             background:{color}; border-radius:10px 10px 0 0; width:62px; height:44px;
-            color:#fff; font-size:1.25em; font-weight:800; margin:0 6px 0 0; border:1px solid #fff;
+            color:#fff; font-size:1.18em; font-weight:800; margin:0 6px 0 0; border:1px solid #fff;
             box-shadow:0 0.5px 2px #eee;">
-            <span style="font-size:0.82em; font-weight:600; color:rgba(255,255,255,0.90); margin-bottom:1px;">{label}</span>
-            <span style="font-size:1.15em; line-height:1.15;">{val}</span>
+            <span style="font-size:0.80em; font-weight:600; color:rgba(255,255,255,0.90); margin-bottom:1px;">{label}</span>
+            <span style="font-size:1.10em; line-height:1.15;">{value}</span>
         </div>
-        """)
-        rank_cards.append(f"""
-        <div style="
-            display:flex; flex-direction:column; align-items:center; justify-content:center;
+        """
+        for label, color, value in zip(stat_labels, stat_colors, stat_values)
+    ]
+
+    rank_cards = [
+        f"""
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center;
             background:#fff; border-radius:0 0 10px 10px; width:62px; height:28px;
-            color:{color}; font-size:1.05em; font-weight:700; margin:0 6px 0 0; border:1px solid {color};
+            color:{color}; font-size:1.02em; font-weight:700; margin:0 6px 0 0; border:1px solid {color};
             box-shadow:0 0.5px 2px #eee;">
-            <span style="font-size:0.92em; color:{color}; font-weight:700;">{rk_str}</span>
-            <span style="font-size:0.70em; color:#444; font-weight:400;">{rank_scope_str}</span>
+            <span style="font-size:0.95em; color:{color}; font-weight:700;">{value}</span>
         </div>
-        """)
+        """
+        for color, value in zip(stat_colors, rank_values)
+    ]
 
-    # --- Logo Strip ---
-    logo_dim = 48 if not is_mobile() else 26
-    logo_html = f'<img src="{logo_url}" width="{logo_dim}" style="vertical-align:middle; margin-right:4px;"/>' if logo_url else ""
-    conf_logo_html = f'<img src="{conf_logo_url}" width="{logo_dim}" style="vertical-align:middle; margin-left:0px;"/>' if conf_logo_url else ""
-    logos_html = f"""
-        <div style="display:flex; flex-direction:row; align-items:center; margin-right:16px; margin-left:2px;">
-            {logo_html}
-            {conf_logo_html if conf_logo_url else ''}
-        </div>
-    """
+    logo_html = f'<img src="{logo_url}" width="48" style="vertical-align:middle; margin-right:4px;"/>' if logo_url else ""
+    conf_logo_html = f'<img src="{conf_logo_url}" width="48" style="vertical-align:middle; margin-left:0px;"/>' if conf_logo_url else ""
 
-    # --- Card Row HTML ---
     cards_row_html = f"""
-    <div style="display:flex; flex-direction:row; align-items:flex-end; margin-bottom:0px;">
-        {''.join(stat_cards)}
-    </div>
-    <div style="display:flex; flex-direction:row; align-items:flex-start; margin-bottom:16px;">
-        {''.join(rank_cards)}
+    <div style="display:flex; flex-direction:row; align-items:center; gap:8px; margin-top:10px; margin-bottom:6px;">
+        <div style="display:flex; flex-direction:row; align-items:center; margin-right:16px; margin-left:2px;">
+            {logo_html}{conf_logo_html}
+        </div>
+        <div>
+            <div style="display:flex; flex-direction:row; align-items:flex-end; margin-bottom:0px;">
+                {''.join(stat_cards)}
+            </div>
+            <div style="display:flex; flex-direction:row; align-items:flex-start; margin-bottom:16px;">
+                {''.join(rank_cards)}
+            </div>
+        </div>
     </div>
     """
 
-    st.markdown(f"""
-    <div style="display:flex; flex-direction:row; align-items:center; gap:8px; margin-top:10px; margin-bottom:6px;">
-        {logos_html}
-        <div>
-            {cards_row_html}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # === Expected Record Cards ===
-    proj_wins = team_row.get("Projected Overall Wins", None)
-    proj_losses = team_row.get("Projected Overall Losses", None)
-    proj_conf_wins = team_row.get("Projected Conference Wins", None)
-    proj_conf_losses = team_row.get("Projected Conference Losses", None)
-    record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
-    conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
-    record_bg, conf_bg = "#FFB347", "#9067B8"
-    card_width = "182px" if not is_mobile() else "44vw"
-    card_height = "48px" if not is_mobile() else "34px"
-    label_font = "14px" if not is_mobile() else "12px"
-    record_font = "27px" if not is_mobile() else "20px"
-    margin = "8px 24px 20px 0" if not is_mobile() else "6px auto 10px auto"
-    wrap = "flex-start" if not is_mobile() else "center"
-    record_card = f'''
-    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{record_bg};
-    border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#222; border:2px solid #fff; margin:{margin};
-    width:{card_width}; height:{card_height}; font-size:{label_font}; font-weight:600; text-align:center; padding:0 8px; box-sizing:border-box;">
-        <span style="font-size:0.97em; font-weight:400; color:#444; white-space:nowrap;">Expected Record</span>
-        <span style="font-size:{record_font}; font-weight:800; color:#002060; letter-spacing:-1px; line-height:1.1;">{record_str}</span>
-    </div>
-    '''
-    conf_card = f'''
-    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{conf_bg};
-    border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#fff; border:2px solid #fff; margin:{margin};
-    width:{card_width}; height:{card_height}; font-size:{label_font}; font-weight:600; text-align:center; padding:0 8px; box-sizing:border-box;">
-        <span style="font-size:0.97em; font-weight:400; color:#eee; white-space:nowrap;">Expected Conf. Record</span>
-        <span style="font-size:{record_font}; font-weight:800; color:#fff; letter-spacing:-1px; line-height:1.1;">{conf_record_str}</span>
-    </div>
-    '''
-    st.markdown(f'''
-    <div style="display:flex;flex-direction:row;justify-content:{wrap};align-items:center;gap:2vw;width:100%;flex-wrap:wrap;">
-        {record_card}
-        {conf_card}
-    </div>
-    ''', unsafe_allow_html=True)
+    st.markdown(cards_row_html, unsafe_allow_html=True)
     
     # Add all team-specific tables/charts below as needed
     # --- Opponent logos (above the table rendering) ---
