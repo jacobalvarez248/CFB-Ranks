@@ -127,6 +127,11 @@ for col in ["Power Rating", "Average Game Quality", "Schedule Difficulty Rating"
     if col in df_expected.columns:
         df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').round(1)
 
+# Ensure these columns exist for all teams (as zeros or NaN if you don't have calculations)
+for col in ["At Least 6 Wins Prob", "At Least 8 Wins Prob", "At Least 10 Wins Prob", "Undefeated Prob"]:
+    if col not in df_expected.columns:
+        df_expected[col] = 0.0  # or np.nan if you prefer
+
 # --- Sidebar & Tabs ---
 tab = st.sidebar.radio(
     "Navigation",
