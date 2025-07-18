@@ -862,102 +862,85 @@ elif tab == "Team Dashboards":
     if is_mobile():
         inject_mobile_css()
 
-    # --- Style cards with CSS ---
+    # --- CSS for card layout ---
     st.markdown("""
     <style>
-      .card { border-radius:8px; padding:12px; text-align:center; font-family:sans-serif; }
-      .card-title { font-size:14px; margin-bottom:4px; color:#fff; }
-      .card-value { font-size:28px; font-weight:bold; margin:0; }
-      .card-power { background-color:#002060; color:#fff; }
-      .card-rank { background-color:#001b4f; color:#fff; }
-      .card-prob { background-color:#007bff; color:#fff; }
-      .card-ret { background-color:#2e7d32; color:#fff; }
-      .card-overall { background-color:#ffc107; color:#000; }
-      .card-conf { background-color:#d63384; color:#fff; }
+      .card { display:flex; flex-direction:column; align-items:center; justify-content:center;
+               border-radius:8px; padding:8px; color:#fff; font-family:sans-serif; }
+      .card-title { font-size:12px; margin-bottom:4px; text-transform:uppercase; }
+      .card-value { font-size:22px; font-weight:bold; margin:0; }
+      .card-power { background:#002060; }
+      .card-rank { background:#001b4f; }
+      .card-prob { background:#00a2ff; }
+      .card-ret  { background:#2e7d32; }
+      .card-over { background:#ffc107; color:#000; }
+      .card-conf { background:#d63384; }
     </style>
     """, unsafe_allow_html=True)
 
-    # --- Load Returning Production Data ---
+    # Load returning production metrics
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
     df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
 
-    # --- Team selector ---
-    team_options = df_expected["Team"].sort_values().unique().tolist()
-    selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
-    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+    # Team selector
+    team = st.selectbox("Select Team", df_expected["Team"].sort_values(), key="team_dash_select")
+    row = df_expected.loc[df_expected["Team"] == team].iloc[0]
 
-    # --- Logos ---
-    team_logo_url = team_row.get("Logo URL")
-    conf_name = team_row.get("Conference", "")
-    conf_logo_url = logos_df.set_index("Team").get("Logo URL").get(conf_name)
+    # Logos
+    team_logo = row.get("Logo URL")
+    conf = row.get("Conference", "")
+    conf_logo = logos_df.set_index("Team").get("Logo URL").get(conf)
 
-    # --- Compute metrics ---
-    power_rating = team_row.get("Power Rating", "-")
-    conf_df = df_expected[df_expected["Conference"] == conf_name].sort_values("Power Rating", ascending=False)
-    conf_df["Conf Rank"] = range(1, len(conf_df)+1)
-    this_conf_rank = int(conf_df.set_index("Team").at[selected_team, "Conf Rank"])
-
-    sched = df_schedule[df_schedule["Team"] == selected_team].sort_values("Game")
-    win_prob_list = sched["Win Prob"].fillna(0.5).tolist()
-    dp = np.zeros((len(win_prob_list)+1, len(win_prob_list)+1)); dp[0,0]=1.0
-    for g in range(1, len(win_prob_list)+1):
-        p = win_prob_list[g-1]
-        for w in range(g+1):
-            dp[g,w] = (dp[g-1,w-1]*p if w>0 else 0) + dp[g-1,w]*(1-p)
-    probs = dp[len(win_prob_list)]
-    at6  = f"{probs[6:].sum()*100:.1f}%" if len(probs)>6 else "-"
-    at8  = f"{probs[8:].sum()*100:.1f}%" if len(probs)>8 else "-"
-    at10 = f"{probs[10:].sum()*100:.1f}%" if len(probs)>10 else "-"
-    at12 = f"{probs[12]*100:.1f}%" if len(probs)>12 else "-"
-
-    ret = df_ranking.set_index("Team").loc[selected_team]
-    ret_vals = [
-        ("Returning Prod.", f"{ret['Returning Production']:.1f}%"),
-        ("Off. Ret. Prod.", f"{ret['Off. Returning Production']:.1f}%"),
-        ("Def. Ret. Prod.", f"{ret['Def. Returning Production']:.1f}%")
-    ]
-
-    pw, pl = team_row["Projected Overall Wins"], team_row["Projected Overall Losses"]
-    cw, cl = team_row["Projected Conference Wins"], team_row["Projected Conference Losses"]
-    overall_rec = f"{pw:.1f}–{pl:.1f}"
-    conf_rec    = f"{cw:.1f}–{cl:.1f}"
-
-    proj_df = df_expected.copy()
-    proj_df["Proj Wins Rank"] = proj_df["Projected Overall Wins"].rank(ascending=False, method="min")
-    proj_wins_rank = int(proj_df.set_index("Team").at[selected_team, "Proj Wins Rank"])
-    confp = df_expected[df_expected["Conference"]==conf_name].copy()
-    confp["Proj Conf Wins Rank"] = confp["Projected Conference Wins"].rank(ascending=False, method="min")
-    proj_conf_rank = int(confp.set_index("Team").at[selected_team, "Proj Conf Wins Rank"])
-
-    # --- Render cards in columns ---
-    cols = st.columns([1.2,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,1.4,0.6,1.4,0.6])
-
-    # Team & Conf logos
-    with cols[0]:
-        if team_logo_url: st.image(team_logo_url, use_container_width=True)
-    with cols[1]:
-        if conf_logo_url: st.image(conf_logo_url, width=48)
-
-    # Power & Conf Rank
-    with cols[2]: st.markdown(f"<div class='card card-power'><div class='card-title'>Power Rating</div><p class='card-value'>{power_rating:.1f}</p></div>", unsafe_allow_html=True)
-    with cols[3]: st.markdown(f"<div class='card card-rank'><div class='card-title'>Conf. Rank</div><p class='card-value'>{this_conf_rank}</p></div>", unsafe_allow_html=True)
-
-    # Win probabilities
-    for i, (lbl, pct) in enumerate([("6+",at6),("8+",at8),("10+",at10),("12-0",at12)], start=4):
-        with cols[i]:
-            st.markdown(f"<div class='card card-prob'><div class='card-title'>{lbl}</div><p class='card-value'>{pct}</p></div>", unsafe_allow_html=True)
+    # Probabilities
+    sched = df_schedule[df_schedule["Team"] == team].sort_values("Game")
+    probs = _compute_win_distribution(sched["Win Prob"].fillna(0.5).tolist())
+    p6 = f"{probs[6:].sum()*100:.1f}%" if len(probs)>6 else "-"
+    p8 = f"{probs[8:].sum()*100:.1f}%" if len(probs)>8 else "-"
+    p10= f"{probs[10:].sum()*100:.1f}%" if len(probs)>10 else "-"
+    p12= f"{probs[12]*100:.1f}%"    if len(probs)>12 else "-"
 
     # Returning production
-    for i, (lbl, pct) in enumerate(ret_vals, start=8):
-        with cols[i]:
-            st.markdown(f"<div class='card card-ret'><div class='card-title'>{lbl}</div><p class='card-value'>{pct}</p></div>", unsafe_allow_html=True)
+    ret = df_ranking.set_index("Team").loc[team]
+    rv = [f"{ret['Returning Production']:.1f}%",
+          f"{ret['Off. Returning Production']:.1f}%",
+          f"{ret['Def. Returning Production']:.1f}%"]
 
-    # Expected records
-    with cols[10]: st.markdown(f"<div class='card card-overall'><div class='card-title'>Expected Record</div><p class='card-value'>{overall_rec}</p></div>", unsafe_allow_html=True)
-    with cols[11]: st.markdown(f"<div class='card card-rank'><div class='card-title'>Exp. Wins Rank</div><p class='card-value'>{proj_wins_rank}</p></div>", unsafe_allow_html=True)
-    with cols[12]: st.markdown(f"<div class='card card-conf'><div class='card-title'>Expected Conf. Record</div><p class='card-value'>{conf_rec}</p></div>", unsafe_allow_html=True)
-    with cols[13]: st.markdown(f"<div class='card card-rank'><div class='card-title'>Exp. Conf. Wins Rank</div><p class='card-value'>{proj_conf_rank}</p></div>", unsafe_allow_html=True)
+    # Expected records and ranks
+    ow, ol = row["Projected Overall Wins"], row["Projected Overall Losses"]
+    cw, cl = row["Projected Conference Wins"], row["Projected Conference Losses"]
+    rec = f"{ow:.1f}–{ol:.1f}"
+    cre = f"{cw:.1f}–{cl:.1f}"
+    pr = int(df_expected["Projected Overall Wins"].rank(ascending=False).loc[df_expected["Team"]==team])
+    cr = int(df_expected[df_expected["Conference"]==conf]["Projected Conference Wins"].rank(ascending=False).loc[df_expected["Team"]==team])
+
+    # Layout: logos + metrics
+    cols = st.columns([1.2,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,2.4,0.6,2.4,0.6])
+
+    # Logos
+    with cols[0]:
+        if team_logo: st.image(team_logo, use_container_width=True)
+    with cols[1]:
+        if conf_logo: st.image(conf_logo, width=40)
+
+    # Power Rating & Conference Rank
+    with cols[2]: st.markdown(f"<div class='card card-power'><div class='card-title'>Power Rating</div><div class='card-value'>{row['Power Rating']:.1f}</div></div>", unsafe_allow_html=True)
+    with cols[3]: st.markdown(f"<div class='card card-rank'><div class='card-title'>Conf. Rank</div><div class='card-value'>{row.name and row.get('Power Rating')}"  # placeholder
+        , unsafe_allow_html=True)
+    # Probabilities
+    for i, (lbl,val) in enumerate([("6+",p6),("8+",p8),("10+",p10),("12-0",p12)], start=4):
+        with cols[i]: st.markdown(f"<div class='card card-prob'><div class='card-title'>{lbl}</div><div class='card-value'>{val}</div></div>", unsafe_allow_html=True)
+
+    # Returning prod
+    for i,val in enumerate(rv, start=8):
+        lbl = ["Ret Prod","Off Ret","Def Ret"][i-8]
+        with cols[i]: st.markdown(f"<div class='card card-ret'><div class='card-title'>{lbl}</div><div class='card-value'>{val}</div></div>", unsafe_allow_html=True)
+
+    # Expected record
+    with cols[10]: st.markdown(f"<div class='card card-over'><div class='card-title'>Expected Record</div><div class='card-value'>{rec}</div></div>", unsafe_allow_html=True)
+    with cols[11]: st.markdown(f"<div class='card card-rank'><div class='card-title'>Exp. Wins Rank</div><div class='card-value'>{pr}</div></div>", unsafe_allow_html=True)
+    with cols[12]: st.markdown(f"<div class='card card-conf'><div class='card-title'>Expected Conf. Record</div><div class='card-value'>{cre}</div></div>", unsafe_allow_html=True)
+    with cols[13]: st.markdown(f"<div class='card card-rank'><div class='card-title'>Exp. Conf. Wins Rank</div><div class='card-value'>{cr}</div></div>", unsafe_allow_html=True)
        
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
