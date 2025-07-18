@@ -845,7 +845,6 @@ elif tab == "Industry Composite Ranking":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
-
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
@@ -853,127 +852,101 @@ elif tab == "Team Dashboards":
     if is_mobile():
         inject_mobile_css()
 
+    # --- Responsive CSS for cards ---
+    st.markdown("""
+    <style>
+      .dash-row { display:flex; flex-wrap:wrap; gap:8px; overflow-x:hidden; }
+      .dash-card {
+        flex:1 1 120px; max-width:120px; min-width:80px; height:100px;
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        border-radius:8px; padding:8px; box-sizing:border-box; font-family:sans-serif;
+        color:#fff;
+      }
+      .dash-title { font-size:12px; margin:0 0 4px; text-transform:uppercase; }
+      .dash-value { font-size:18px; font-weight:bold; margin:0; }
+      .dash-sub { font-size:10px; color:rgba(255,255,255,0.7); margin-top:2px; }
+      .c-power { background:#002060; }
+      .c-rank  { background:#001b4f; }
+      .c-prob  { background:#007bff; }
+      .c-ret   { background:#2e7d32; }
+      .c-over  { background:#ffc107; color:#000; }
+      .c-conf  { background:#d63384; }
+    </style>
+    """, unsafe_allow_html=True)
+
     # --- Select Team ---
-    team_options = df_expected["Team"].sort_values().unique().tolist()
-    selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
-    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
-    logo_url = team_row.get("Logo URL") if pd.notnull(team_row.get("Logo URL")) else None
-    conference = team_row.get("Conference", "")
-    conf_logo_url = logos_df.set_index("Team").get("Logo URL").get(conference)
+    teams = df_expected["Team"].sort_values().tolist()
+    selected = st.selectbox("Select Team", teams, key="team_dash_select")
+    tr = df_expected.query("Team == @selected").iloc[0]
+    logo = tr.get("Logo URL")
+    conf = tr.get("Conference", "")
+    conf_logo = logos_df.set_index("Team").get("Logo URL").get(conf)
 
-    # --- Power Rating & Conference Rank ---
-    power_rating = team_row.get("Power Rating", 0)
-    # Compute Power Rating rank across all teams
-    power_rank = int(df_expected["Power Rating"].rank(ascending=False, method="min").loc[df_expected["Team"] == selected_team])
-    # Compute Conference Rank as before
-    conf_df = (
-        df_expected[df_expected["Conference"] == conference]
-        .sort_values("Power Rating", ascending=False)
-        .reset_index(drop=True)
-    )
-    conf_df["Conf Rank"] = conf_df.index + 1
-    this_conf_rank = int(conf_df.loc[conf_df["Team"] == selected_team, "Conf Rank"].iloc[0])
+    # --- Compute Ranks ---
+    # Power Rating rank
+    power_val = tr["Power Rating"]
+    power_rank = int(df_expected["Power Rating"].rank(ascending=False, method="min").loc[df_expected["Team"]==selected])
+    # Conference rank by Power Rating
+    cdf = df_expected[df_expected["Conference"]==conf].sort_values("Power Rating",ascending=False)
+    cdf["ConfRank"] = range(1,len(cdf)+1)
+    conf_rank = int(cdf.set_index("Team").at[selected,"ConfRank"])
 
-    # --- Win-Probability Distribution (DP) & Ranks ---
-    # Selected team thresholds
-    sched = df_schedule[df_schedule["Team"] == selected_team].sort_values("Game")
-    win_prob_list = sched["Win Prob"].fillna(0.5).tolist()
-    n = len(win_prob_list)
-    dp = np.zeros((n+1, n+1))
-    dp[0, 0] = 1.0
-    for g in range(1, n+1):
-        p = win_prob_list[g-1]
-        for w in range(g+1):
-            dp[g, w] = (dp[g-1, w-1] * p if w > 0 else 0) + dp[g-1, w] * (1 - p)
-    selected_dist = dp[n]
-    sel_vals = {
-        "6+": selected_dist[6:].sum() if n>=6 else 0,
-        "8+": selected_dist[8:].sum() if n>=8 else 0,
-        "10+": selected_dist[10:].sum() if n>=10 else 0,
-        "12-0": selected_dist[12] if n>=12 else 0
-    }
-    # Compute thresholds for all teams for ranking
-    th_data = {}
-    for t in team_options:
-        wl = df_schedule[df_schedule["Team"]==t]["Win Prob"].fillna(0.5).tolist()
-        m = len(wl)
-        dp2 = np.zeros((m+1, m+1)); dp2[0,0]=1.0
-        for i in range(1, m+1):
-            p2 = wl[i-1]
-            for w2 in range(i+1):
-                dp2[i,w2] = (dp2[i-1,w2-1]*p2 if w2>0 else 0) + dp2[i-1,w2]*(1-p2)
-        dist2 = dp2[m]
-        th_data[t] = [
-            dist2[6:].sum() if m>=6 else 0,
-            dist2[8:].sum() if m>=8 else 0,
-            dist2[10:].sum() if m>=10 else 0,
-            dist2[12] if m>=12 else 0
-        ]
-    th_df = pd.DataFrame(th_data, index=["6+","8+","10+","12-0"]).T
-    th_ranks = th_df.rank(ascending=False, method="min")
-
-    # Format selected thresholds with ranks
-    thresholds = []
-    for lbl in ["6+","8+","10+","12-0"]:
-        val = sel_vals[lbl]
-        pct = f"{val*100:.1f}%"
-        rank = int(th_ranks.loc[selected_team, lbl])
-        thresholds.append((lbl, pct, rank))
+    # --- Win Thresholds & Ranks ---
+    def compute_dp(win_list):
+        m = len(win_list)
+        dp = [[0]*(m+1) for _ in range(m+1)]; dp[0][0]=1
+        for i in range(1,m+1):
+            p=win_list[i-1]
+            for w in range(i+1): dp[i][w]=(dp[i-1][w-1]*p if w>0 else 0)+dp[i-1][w]*(1-p)
+        return dp[m]
+    # Gather distributions
+    dist_sel = compute_dp(df_schedule.query("Team==@selected")["Win Prob"].fillna(0.5).tolist())
+    labels=["6+","8+","10+","12-0"]
+    sel_vals={lbl:sum(dist_sel[int(lbl.rstrip('+0')):]) for lbl in labels}
+    # All teams for ranks
+    th_data={t:compute_dp(df_schedule.query("Team==@t")["Win Prob"].fillna(0.5).tolist()) for t in teams}
+    # build DataFrame
+    df_th = pd.DataFrame({t:{lbl:sum(arr[int(lbl.rstrip('+0')):]) for lbl,arr in [(lbl,th) for lbl,th in th_data.items()]} for t in th_data}).T
+    th_ranks = df_th.rank(ascending=False,method="min")
+    thresholds=[(lbl,f"{sel_vals[lbl]*100:.1f}%",int(th_ranks.at[selected,lbl])) for lbl in labels]
 
     # --- Returning Production & Ranks ---
-    df_ranking = load_sheet(data_path, "Ranking", header=1)
-    df_ranking.columns = df_ranking.columns.str.strip()
-    df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
-    for col in ["Returning Production", "Off. Returning Production", "Def. Returning Production"]:
-        df_ranking[col + " Rank"] = df_ranking[col].rank(ascending=False, method="min")
-    rr = df_ranking.set_index("Team").loc[selected_team]
-    ret_fmt = []
-    for key, col in [("Ret. Prod.", "Returning Production"), ("Off. Ret.", "Off. Returning Production"), ("Def. Ret.", "Def. Returning Production")]:
-        val = rr[col]
-        pct = f"{val:.1f}%"
-        rank = int(rr[col + " Rank"])
-        ret_fmt.append((key, pct, rank))
+    df_r = load_sheet(data_path,"Ranking",header=1)
+    df_r.columns=df_r.columns.str.strip(); df_r["Team"]=df_r["Team"].str.strip()
+    for col in ["Returning Production","Off. Returning Production","Def. Returning Production"]:
+        df_r[col+"Rank"]=df_r[col].rank(ascending=False,method="min")
+    rr=df_r.set_index("Team").loc[selected]
+    ret_metrics=[(k,f"{rr[c]:.1f}%",int(rr[c+"Rank"])) for k,c in [("Ret. Prod.","Returning Production"),("Off. Ret.","Off. Returning Production"),("Def. Ret.","Def. Returning Production")]]
 
     # --- Expected Records & Ranks ---
-    pw, pl = team_row.get("Projected Overall Wins", 0), team_row.get("Projected Overall Losses", 0)
-    cw, cl = team_row.get("Projected Conference Wins", 0), team_row.get("Projected Conference Losses", 0)
-    overall_rec = f"{pw:.1f}–{pl:.1f}" if pd.notnull(pw) else "-"
-    conf_rec    = f"{cw:.1f}–{cl:.1f}" if pd.notnull(cw) else "-"
-    proj_df2 = df_expected.copy()
-    proj_df2["ProjWinsRank"] = proj_df2["Projected Overall Wins"].rank(ascending=False, method="min")
-    proj_wins_rank = int(proj_df2.set_index("Team").at[selected_team, "ProjWinsRank"])
-    conf_proj2 = df_expected[df_expected["Conference"] == conference].copy()
-    conf_proj2["ProjConfRank"] = conf_proj2["Projected Conference Wins"].rank(ascending=False, method="min")
-    proj_conf_wins_rank = int(conf_proj2.set_index("Team").at[selected_team, "ProjConfRank"])
+    ow,ol=tr["Projected Overall Wins"],tr["Projected Overall Losses"]
+    cw,cl=tr["Projected Conference Wins"],tr["Projected Conference Losses"]
+    rec=f"{ow:.1f}–{ol:.1f}"; cre=f"{cw:.1f}–{cl:.1f}"
+    orank=int(df_expected["Projected Overall Wins"].rank(ascending=False,method="min").loc[df_expected["Team"]==selected])
+    crank=int(df_expected[df_expected["Conference"]==conf]["Projected Conference Wins"].rank(ascending=False,method="min").loc[df_expected["Team"]==selected])
 
     # --- Render Cards ---
-    cols = st.columns([1.2] + [0.8]*10 + [1.4, 0.6, 1.4, 0.6])
-    # Team Logo
+    st.markdown('<div class="dash-row">',unsafe_allow_html=True)
+    cols=st.columns([1.2,0.8]+[0.8]*4+[0.8]*3+[0.8]*3+[2.0,0.6,2.0,0.6])
     with cols[0]:
-        if logo_url: st.image(logo_url, use_column_width=True)
-    # Conf Logo
+        if logo:st.image(logo,use_column_width=True)
     with cols[1]:
-        if conf_logo_url: st.image(conf_logo_url, width=48)
-    # Power Rating
-    with cols[2]:
-        st.markdown(f"**Power Rating**  \n# {power_rating}  \n_#{power_rank}_")
-    # Conference Rank
-    with cols[3]:
-        st.markdown(f"**Conf. Rank**  \n# {this_conf_rank}")
-    # Win-Probability Thresholds with ranks
-    for idx, (lbl, pct, rank) in enumerate(thresholds, start=4):
-        with cols[idx]:
-            st.markdown(f"**{lbl}**  \n# {pct}  \n_(#{rank})_")
-    # Returning Production with ranks
-    for idx, (lbl, pct, rank) in enumerate(ret_fmt, start=8):
-        with cols[idx]:
-            st.markdown(f"**{lbl}**  \n# {pct}  \n_(#{rank})_")
-    # Expected Records & Ranks remain separate
-    with cols[11]: st.markdown(f"**Expected Record**  \n# {overall_rec}")
-    with cols[12]: st.markdown(f"**Exp. Wins Rank**  \n# {proj_wins_rank}")
-    with cols[13]: st.markdown(f"**Expected Conf. Record**  \n# {conf_rec}")
-    with cols[14]: st.markdown(f"**Exp. Conf. Wins Rank**  \n# {proj_conf_wins_rank}")
-
+        if conf_logo:st.image(conf_logo,width=40)
+    # Power & Ranks
+    with cols[2]:st.markdown(f"<div class='dash-card c-power'><div class='dash-title'>Power Rating</div><div class='dash-value'>{power_val:.1f}</div><div class='dash-sub'>#{power_rank}</div></div>",unsafe_allow_html=True)
+    with cols[3]:st.markdown(f"<div class='dash-card c-rank'><div class='dash-title'>Conf. Rank</div><div class='dash-value'>#{conf_rank}</div></div>",unsafe_allow_html=True)
+    # Win thresholds
+    for i,(l,v,r) in enumerate(thresholds,start=4):
+        with cols[i]:st.markdown(f"<div class='dash-card c-prob'><div class='dash-title'>{l}</div><div class='dash-value'>{v}</div><div class='dash-sub'>#{r}</div></div>",unsafe_allow_html=True)
+    # Returning production
+    for i,(l,v,r) in enumerate(ret_metrics,start=8):
+        with cols[i]:st.markdown(f"<div class='dash-card c-ret'><div class='dash-title'>{l}</div><div class='dash-value'>{v}</div><div class='dash-sub'>#{r}</div></div>",unsafe_allow_html=True)
+    # Expected records
+    with cols[12]:st.markdown(f"<div class='dash-card c-over'><div class='dash-title'>Expected Record</div><div class='dash-value'>{rec}</div><div class='dash-sub'>#{orank}</div></div>",unsafe_allow_html=True)
+    with cols[13]:st.markdown(f"<div class='dash-card c-rank'><div class='dash-title'>Exp. Wins Rank</div><div class='dash-value'>#{orank}</div></div>",unsafe_allow_html=True)
+    with cols[14]:st.markdown(f"<div class='dash-card c-conf'><div class='dash-title'>Expected Conf. Record</div><div class='dash-value'>{cre}</div><div class='dash-sub'>#{crank}</div></div>",unsafe_allow_html=True)
+    with cols[15]:st.markdown(f"<div class='dash-card c-rank'><div class='dash-title'>Exp. Conf. Wins Rank</div><div class='dash-value'>#{crank}</div></div>",unsafe_allow_html=True)
+    st.markdown('</div>',unsafe_allow_html=True)
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
