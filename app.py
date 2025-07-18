@@ -944,7 +944,7 @@ elif tab == "Team Dashboards":
 
     # Returning Production
         for idx, (lbl, pct) in enumerate([("Ret. Prod.", ret_prod), ("Off. Ret.", off_ret), ("Def. Ret.", def_ret)], start=8):
-        with cols[idx]:
+            with cols[idx]:
             st.markdown(f"**{lbl}**  
 # {pct}")
        
