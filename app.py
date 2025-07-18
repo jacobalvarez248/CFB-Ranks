@@ -32,6 +32,16 @@ logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
 
+# --- Returning Production Data ---
+# Load the "Ranking" sheet to get returning production metrics
+from pathlib import Path
+# Ensure data_path is defined as the path to your Excel file
+# (data_path is already defined near the top of your script)
+df_ranking = load_sheet(data_path, "Ranking", header=1)
+# Clean up column names and team values
+df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
+df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
+
 # ... elsewhere, near top
 def inject_mobile_css():
     st.markdown("""
@@ -933,14 +943,7 @@ elif tab == "Team Dashboards":
 
     # Returning Production
     for idx, (lbl, pct) in enumerate([("Ret. Prod.", ret_prod), ("Off. Ret.", off_ret), ("Def. Ret.", def_ret)], start=8):
-        with cols[idx]:
-            st.markdown(f"**{lbl}**  \n# {pct}")
 
-    # Expected Records & Ranks
-    with cols[11]: st.markdown(f"**Expected Record**  \n# {overall_rec}")
-    with cols[12]: st.markdown(f"**Exp. Wins Rank**  \n# {proj_wins_rank}")
-    with cols[13]: st.markdown(f"**Expected Conf. Record**  \n# {conf_rec}")
-    with cols[14]: st.markdown(f"**Exp. Conf. Wins Rank**  \n# {proj_conf_wins_rank}")
         
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
