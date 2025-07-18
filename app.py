@@ -872,7 +872,7 @@ elif tab == "Team Dashboards":
     this_conf_rank = int(conf_df.loc[conf_df["Team"] == selected_team, "Conf Rank"].values[0])
 
     # --- Win-Probability Distribution (DP) ---
-    sched = df_schedule[df_schedule["Team"] == selected_team].sort_values("Game #")
+    sched = df_schedule[df_schedule["Team"] == selected_team].sort_values("Game")
     win_prob_list = sched["Win Prob"].fillna(0.5).tolist()
     n = len(win_prob_list)
     dp = np.zeros((n+1, n+1))
