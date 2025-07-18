@@ -927,14 +927,20 @@ elif tab == "Team Dashboards":
     # Selected team distribution
     sel_wl = df_schedule[df_schedule["Team"] == selected]["Win Prob"].fillna(0.5).tolist()
     sel_dist = compute_dp(sel_wl)
-    sel_vals = {lbl: sum(sel_dist[int(lbl.rstrip('+0')):]) for lbl in labels}
+    def parse_thresh(lbl):
+        if lbl.endswith('+'):
+            return int(lbl[:-1])
+        if '-' in lbl:
+            return int(lbl.split('-')[0])
+        return int(lbl)
+    sel_vals = {lbl: sum(sel_dist[parse_thresh(lbl):]) for lbl in labels}
 
     # All teams distributions for ranking
     all_thr = {}
     for team in teams:
         wl = df_schedule[df_schedule["Team"] == team]["Win Prob"].fillna(0.5).tolist()
         dist = compute_dp(wl)
-        all_thr[team] = {lbl: sum(dist[int(lbl.rstrip('+0')):]) for lbl in labels}
+        all_thr[team] = {lbl: sum(dist[parse_thresh(lbl):]) for lbl in labels}
     df_thr = pd.DataFrame.from_dict(all_thr, orient='index', columns=labels)
     thr_ranks = df_thr.rank(ascending=False, method="min")
     thresholds = [
