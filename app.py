@@ -855,6 +855,7 @@ elif tab == "Industry Composite Ranking":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
+
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
@@ -940,6 +941,12 @@ elif tab == "Team Dashboards":
     for idx, (lbl, pct) in enumerate([("6+", at6), ("8+", at8), ("10+", at10), ("12-0", at12)], start=4):
         with cols[idx]:
             st.markdown(f"**{lbl}**  \n# {pct}")
+
+    # Returning Production
+    for idx, (lbl, pct) in enumerate([(\"Ret. Prod.\", ret_prod), (\"Off. Ret.\", off_ret), (\"Def. Ret.\", def_ret)], start=8):
+        with cols[idx]:
+            st.markdown(f"**{lbl}**  
+# {pct}")
 
     # Returning Production
     for idx, (lbl, pct) in enumerate([("Ret. Prod.", ret_prod), ("Off. Ret.", off_ret), ("Def. Ret.", def_ret)], start=8):
