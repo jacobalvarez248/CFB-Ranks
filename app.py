@@ -1075,6 +1075,7 @@ elif tab == "Team Dashboards":
     st.markdown('</div>', unsafe_allow_html=True)
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
+    sched = df_schedule[df_schedule["Team"] == selected].sort_values("Game #")
     if not sched.empty:
         sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
 
