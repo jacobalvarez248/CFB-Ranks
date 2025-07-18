@@ -892,15 +892,21 @@ elif tab == "Team Dashboards":
     conf = row.get("Conference", "")
     conf_logo = logos_df.set_index("Team").get("Logo URL").get(conf)
 
-    # Probabilities
-    sched = df_schedule[df_schedule["Team"] == team].sort_values("Game")
-    probs = _compute_win_distribution(sched["Win Prob"].fillna(0.5).tolist())
-    p6 = f"{probs[6:].sum()*100:.1f}%" if len(probs)>6 else "-"
-    p8 = f"{probs[8:].sum()*100:.1f}%" if len(probs)>8 else "-"
-    p10= f"{probs[10:].sum()*100:.1f}%" if len(probs)>10 else "-"
-    p12= f"{probs[12]*100:.1f}%"    if len(probs)>12 else "-"
+        # Probabilities
+    win_prob_list = sched["Win Prob"].fillna(0.5).tolist()
+    n = len(win_prob_list)
+    dp = np.zeros((n+1, n+1)); dp[0,0] = 1.0
+    for g in range(1, n+1):
+        p = win_prob_list[g-1]
+        for w in range(g+1):
+            dp[g,w] = (dp[g-1,w-1] * p if w > 0 else 0) + dp[g-1,w] * (1 - p)
+    probs = dp[n]
+    p6 = f"{probs[6:].sum()*100:.1f}%"  if n >= 6  else "-"
+    p8 = f"{probs[8:].sum()*100:.1f}%"  if n >= 8  else "-"
+    p10= f"{probs[10:].sum()*100:.1f}%" if n >=10  else "-"
+    p12= f"{probs[12]*100:.1f}%"      if n >=12  else "-"
 
-    # Returning production
+    # Returning production"
     ret = df_ranking.set_index("Team").loc[team]
     rv = [f"{ret['Returning Production']:.1f}%",
           f"{ret['Off. Returning Production']:.1f}%",
