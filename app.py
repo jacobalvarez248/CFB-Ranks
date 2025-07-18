@@ -888,7 +888,7 @@ elif tab == "Team Dashboards":
     at12 = f"{probs[12]*100:.1f}%"      if n >= 12 else "-"
 
     # --- Returning Production Metrics ---
-    rank_row = df_ranking[df_ranking["Team"] == selected_team].iloc[0]
+    rank_row = df_rankings[df_rankings["Team"] == selected_team].iloc[0]
     ret_prod = f"{rank_row['Returning Production']:.1f}%"
     off_ret  = f"{rank_row['Off. Returning Production']:.1f}%"
     def_ret  = f"{rank_row['Def. Returning Production']:.1f}%"
@@ -941,6 +941,7 @@ elif tab == "Team Dashboards":
     with cols[12]: st.markdown(f"**Exp. Wins Rank**  \n# {proj_wins_rank}")
     with cols[13]: st.markdown(f"**Expected Conf. Record**  \n# {conf_rec}")
     with cols[14]: st.markdown(f"**Exp. Conf. Wins Rank**  \n# {proj_conf_wins_rank}")
+        
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
         sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
