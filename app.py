@@ -888,7 +888,7 @@ elif tab == "Team Dashboards":
     at12 = f"{probs[12]*100:.1f}%"      if n >= 12 else "-"
 
     # --- Returning Production Metrics ---
-    rank_row = df_ranking[df_rankings["Team"] == selected_team].iloc[0]
+    rank_row = df_ranking[df_ranking["Team"] == selected_team].iloc[0]
     ret_prod = f"{rank_row['Returning Production']:.1f}%"
     off_ret  = f"{rank_row['Off. Returning Production']:.1f}%"
     def_ret  = f"{rank_row['Def. Returning Production']:.1f}%"
