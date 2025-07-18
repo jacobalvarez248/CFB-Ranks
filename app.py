@@ -845,237 +845,256 @@ elif tab == "Industry Composite Ranking":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
+
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # Mobile styling
+    # In Team Dashboards tab:
     if is_mobile():
         inject_mobile_css()
-
-    # --- Responsive CSS ---
-    st.markdown("""
-    <style>
-      .dash-row {
-        display:flex;
-        flex-wrap:wrap;
-        gap:8px;
-        overflow-x:hidden;
-      }
-      .dash-card {
-        flex:1 1 80px;
-        min-width:80px;
-        max-width:120px;
-        height:100px;
-        display:flex;
-        flex-direction:column;
-        align-items:center;
-        justify-content:center;
-        border-radius:8px;
-        padding:8px;
-        box-sizing:border-box;
-        font-family:sans-serif;
-        color:#fff;
-      }
-      .dash-title { font-size:12px; margin:0 0 4px; text-transform:uppercase; }
-      .dash-value { font-size:18px; font-weight:bold; margin:0; }
-      .dash-sub { font-size:10px; color:rgba(255,255,255,0.7); margin-top:2px; }
-      .c-power { background:#002060; }
-      .c-rank  { background:#001b4f; }
-      .c-prob  { background:#007bff; }
-      .c-ret   { background:#2e7d32; }
-      .c-over  { background:#ffc107; color:#000; }
-      .c-conf  { background:#d63384; }
-    </style>
-    """, unsafe_allow_html=True)
-
     # --- Select Team ---
-    teams = df_expected["Team"].sort_values().tolist()
-    selected = st.selectbox("Select Team", teams, key="team_dash_select")
-    tr = df_expected.loc[df_expected["Team"] == selected].iloc[0]
-    logo = tr.get("Logo URL")
-    conf = tr.get("Conference", "")
-    conf_logo = logos_df.set_index("Team")["Logo URL"].get(conf)
+    team_options = df_expected["Team"].sort_values().unique().tolist()
+    selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
+    team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
+    conference = team_row["Conference"] if "Conference" in team_row else ""
+    conf_logo_url = None
+    if conference in logos_df["Team"].values:
+        conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
 
-    # --- Compute Ranks ---
-    # Power Rating and its rank
-    power_val = tr.get("Power Rating", 0)
-    power_rank = int(
-        df_expected["Power Rating"].rank(ascending=False, method="min")
-        .loc[df_expected["Team"] == selected]
-    )
-    # Conference rank
-    cdf = (
-        df_expected[df_expected["Conference"] == conf]
-        .sort_values("Power Rating", ascending=False)
-        .reset_index(drop=True)
-    )
-    cdf["ConfRank"] = cdf.index + 1
-    conf_rank = int(cdf.set_index("Team").at[selected, "ConfRank"])
+    # --- Rank Info ---
+    overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
+    conf_teams = df_expected[df_expected["Conference"] == conference].copy()
+    conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
+    conf_teams["Conf Rank"] = range(1, len(conf_teams) + 1)
+    this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
 
-    # --- Win-Prob Thresholds & Ranks ---
-    def compute_dp(win_list):
-        m = len(win_list)
-        dp = [[0] * (m+1) for _ in range(m+1)]
-        dp[0][0] = 1
-        for i in range(1, m+1):
-            p = win_list[i-1]
-            for w in range(i+1):
-                dp[i][w] = (dp[i-1][w-1] * p if w > 0 else 0) + dp[i-1][w] * (1 - p)
-        return dp[m]
+    # --- Schedule ---
+    team_col = [col for col in df_schedule.columns if "Team" in col][0]
+    sched = df_schedule[df_schedule[team_col] == selected_team].copy()
+    opponents = sched["Opponent"].tolist()
+    num_games = len(opponents)
 
-    labels = ["6+", "8+", "10+", "12-0"]
-    # Selected team distribution
-    sel_wl = df_schedule[df_schedule["Team"] == selected]["Win Prob"].fillna(0.5).tolist()
-    sel_dist = compute_dp(sel_wl)
-    def parse_thresh(lbl):
-        if lbl.endswith('+'):
-            return int(lbl[:-1])
-        if '-' in lbl:
-            return int(lbl.split('-')[0])
-        return int(lbl)
-    sel_vals = {lbl: sum(sel_dist[parse_thresh(lbl):]) for lbl in labels}
+    # --- Win Probabilities ---
+    if "Win Probability" in sched.columns:
+        win_prob_list = sched["Win Probability"].astype(float).values
+    elif "Win Prob" in sched.columns:
+        win_prob_list = sched["Win Prob"].astype(float).values
+    else:
+        win_prob_list = np.full(num_games, 0.5)  # fallback
+    dp = np.zeros((num_games + 1, num_games + 1))
+    dp[0, 0] = 1.0
+    for g in range(1, num_games + 1):
+        p = win_prob_list[g-1]
+        for w in range(g+1):
+            win_part = dp[g-1, w-1] * p if w > 0 else 0
+            lose_part = dp[g-1, w] * (1 - p)
+            dp[g, w] = win_part + lose_part
+    win_probs = dp[num_games, :]
+    at_least_6 = win_probs[6:].sum() if len(win_probs) > 6 else 0.0
+    at_least_8 = win_probs[8:].sum() if len(win_probs) > 8 else 0.0
+    at_least_10 = win_probs[10:].sum() if len(win_probs) > 10 else 0.0
+    if len(win_probs) > 12:
+        exact_12 = win_probs[12]
+    elif len(win_probs) == 12:
+        exact_12 = win_probs[-1]
+    else:
+        exact_12 = 0.0
+    at_least_6_pct = f"{at_least_6*100:.1f}%"
+    at_least_8_pct = f"{at_least_8*100:.1f}%"
+    at_least_10_pct = f"{at_least_10*100:.1f}%"
+    exact_12_pct = f"{exact_12*100:.1f}%"
+    # ================
+    rows = []
+    for g in range(1, num_games + 1):
+        opp = opponents[g-1] if (g-1) < len(opponents) else ""
+        row = {
+            "Game": g,
+            "Opponent": opp
+        }
+        for w in range(num_games + 1):
+            row[w] = dp[g, w]
+        rows.append(row)
+# =====================
+    # --- Returning Production ---
+    df_ranking = load_sheet(data_path, "Ranking", header=1)
+    df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
+    rank_row = df_ranking[df_ranking["Team"].str.strip() == selected_team.strip()]
+    def fmt_pct(val):
+        try:
+            if isinstance(val, str) and "%" in val:
+                return val
+            val_flt = float(val)
+            return f"{val_flt*100:.1f}%" if val_flt <= 1.01 else f"{val_flt:.1f}%"
+        except Exception:
+            return str(val)
+    if not rank_row.empty:
+        ret_prod = fmt_pct(rank_row.iloc[0].get("Returning Production", ""))
+        off_ret = fmt_pct(rank_row.iloc[0].get("Off. Returning Production", ""))
+        def_ret = fmt_pct(rank_row.iloc[0].get("Def. Returning Production", ""))
+    else:
+        ret_prod = off_ret = def_ret = ""
 
-    # All teams distributions for ranking
-    all_thr = {}
-    for team in teams:
-        wl = df_schedule[df_schedule["Team"] == team]["Win Prob"].fillna(0.5).tolist()
-        dist = compute_dp(wl)
-        all_thr[team] = {lbl: sum(dist[parse_thresh(lbl):]) for lbl in labels}
-    df_thr = pd.DataFrame.from_dict(all_thr, orient='index', columns=labels)
-    thr_ranks = df_thr.rank(ascending=False, method="min")
-    thresholds = [
-        (lbl,
-         f"{sel_vals[lbl]*100:.1f}%",
-         int(thr_ranks.at[selected, lbl]))
-        for lbl in labels
-    ]
-
-    # --- Returning Production & Ranks ---
-    df_r = load_sheet(data_path, "Ranking", header=1)
-    df_r.columns = df_r.columns.str.strip()
-    df_r["Team"] = df_r["Team"].str.strip()
-    for col in ["Returning Production", "Off. Returning Production", "Def. Returning Production"]:
-        df_r[col + "Rank"] = df_r[col].rank(ascending=False, method="min")
-    rr = df_r.set_index("Team").loc[selected]
-    ret_metrics = []
-    for key, col in [("Ret. Prod.", "Returning Production"),
-                     ("Off. Ret.", "Off. Returning Production"),
-                     ("Def. Ret.", "Def. Returning Production")]:
-        val = rr[col]
-        pct = f"{val*100:.1f}%"
-        rank = int(rr[col + "Rank"])
-        ret_metrics.append((key, pct, rank))
-
-    # --- Expected Records & Ranks ---
-    ow, ol = tr.get("Projected Overall Wins", 0), tr.get("Projected Overall Losses", 0)
-    cw, cl = tr.get("Projected Conference Wins", 0), tr.get("Projected Conference Losses", 0)
-    rec = f"{ow:.1f}–{ol:.1f}" if pd.notnull(ow) else "-"
-    cre = f"{cw:.1f}–{cl:.1f}" if pd.notnull(cw) else "-"
-    orank = int(
-        df_expected["Projected Overall Wins"].rank(ascending=False, method="min")
-        .loc[df_expected["Team"] == selected]
-    )
-    crank = int(
-        df_expected[df_expected["Conference"] == conf]["Projected Conference Wins"]
-        .rank(ascending=False, method="min")
-        .loc[df_expected["Team"] == selected]
-    )
-
-    # --- Render Cards ---
-    st.markdown('<div class="dash-row">', unsafe_allow_html=True)
-    cols = st.columns([1.2, 0.8] + [0.8]*4 + [0.8]*3 + [0.8]*3 + [2.0, 0.6, 2.0, 0.6])
-
-    # Logos
-    with cols[0]:
-        if logo:
-            st.image(logo, use_container_width=True)
-    with cols[1]:
-        if conf_logo:
-            st.image(conf_logo, width=40)
-
-    # Power Rating
-    with cols[2]:
-        st.markdown(
-            f"<div class='dash-card c-power'>"
-            f"<div class='dash-title'>Power Rating</div>"
-            f"<div class='dash-value'>{power_val:.1f}</div>"
-            f"<div class='dash-sub'>#{power_rank}</div>"
-            f"</div>",
-            unsafe_allow_html=True
+    # --- CARD STRIP (Responsive, no sidebar overlap) ---
+    if is_mobile():
+        # MOBILE CSS ONLY injected here
+        st.markdown("""
+        <style>
+        /* Only on mobile: force content full width and no scroll */
+        [data-testid="stHorizontalBlock"] { max-width:100vw !important; }
+        .block-container, .main { padding-left:0 !important; padding-right:0 !important; }
+        body, html { overflow-x: hidden !important; }
+        </style>
+        """, unsafe_allow_html=True)
+        n_items = 11  # logos + 9 cards
+        card_width = 100 / n_items - 0.5
+        card_base = (
+            f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; "
+            "margin:0; background: #00B050; color: #fff; border-radius: 4px; border: 1px solid #fff; "
+            "padding: 2px 0; display: flex; flex-direction: column; align-items: center; "
+            "font-size:8px; font-weight:700; text-align:center; box-sizing: border-box;"
         )
-    # Conference Rank
-    with cols[3]:
-        st.markdown(
-            f"<div class='dash-card c-rank'>"
-            f"<div class='dash-title'>Conf. Rank</div>"
-            f"<div class='dash-value'>#{conf_rank}</div>"
-            f"</div>",
-            unsafe_allow_html=True
+        lighter_card = card_base.replace('#00B050', '#00B0F0')
+        dark_card = card_base.replace('#00B050', '#002060')
+        logo_style = f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; text-align:center; margin:0;"
+        logo_dim = 20
+        card_html = f'''
+        <div style="display:flex;flex-direction:row;flex-wrap:nowrap;justify-content:flex-start;align-items:center;
+            width:100vw;max-width:100vw;min-width:100vw;box-sizing:border-box;overflow-x:hidden;gap:0.5vw;margin:10px 0;">
+            <div style="{logo_style}">
+                <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;vertical-align:middle;"/>
+                {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block; margin-left:0.5vw;vertical-align:middle;'/>" if conf_logo_url else ""}
+            </div>
+            <div style="{dark_card}"><span style="font-size:0.8em;">Rank</span>{overall_rank}</div>
+            <div style="{dark_card}"><span style="font-size:0.8em;">Conf. Rk</span>{this_conf_rank}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_6_pct}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">8+</span>{at_least_8_pct}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">10+</span>{at_least_10_pct}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">12-0</span>{exact_12_pct}</div>
+            <div style="{card_base}"><span style="font-size:0.8em;">Ret.</span>{ret_prod}</div>
+            <div style="{card_base}"><span style="font-size:0.8em;">Off.</span>{off_ret}</div>
+            <div style="{card_base}"><span style="font-size:0.8em;">Def.</span>{def_ret}</div>
+        </div>
+        '''
+    else:
+        # DESKTOP (no sidebar overlap, no global CSS)
+        card_style = (
+            "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+            "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+            "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
         )
+        lighter_card_style = (
+            "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+            "background:#00B0F0; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+            "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        )
+        green_card_style = (
+            "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+            "background:#00B050; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
+            "height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        )
+        logo_dim = 48
+        card_html = f'''
+        <div style="display: flex; align-items: center; gap:14px; margin-top:8px; margin-bottom:10px;">
+            <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
+            {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
+                <span style="line-height:1.15;">{overall_rank}</span>
+            </div>
+            <div style="{card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
+                <span style="line-height:1.15;">{this_conf_rank}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct}</span>
+            </div>
+            <div style="{lighter_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
+                <span style="line-height:1.15; font-weight:bold;">{exact_12_pct}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
+                <span style="line-height:1.15; font-weight:bold;">{ret_prod}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Off. Ret.</span>
+                <span style="line-height:1.15; font-weight:bold;">{off_ret}</span>
+            </div>
+            <div style="{green_card_style}">
+                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Def. Ret.</span>
+                <span style="line-height:1.15; font-weight:bold;">{def_ret}</span>
+            </div>
+        </div>
+        '''
 
-    # Win Thresholds
-    for idx, (lbl, pct, rk) in enumerate(thresholds, start=4):
-        with cols[idx]:
-            st.markdown(
-                f"<div class='dash-card c-prob'>"
-                f"<div class='dash-title'>{lbl}</div>"
-                f"<div class='dash-value'>{pct}</div>"
-                f"<div class='dash-sub'>#{rk}</div>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
+    st.markdown(card_html, unsafe_allow_html=True)
 
-    # Returning Production
-    for idx, (lbl, pct, rk) in enumerate(ret_metrics, start=8):
-        with cols[idx]:
-            st.markdown(
-                f"<div class='dash-card c-ret'>"
-                f"<div class='dash-title'>{lbl}</div>"
-                f"<div class='dash-value'>{pct}</div>"
-                f"<div class='dash-sub'>#{rk}</div>"
-                f"</div>",
-                unsafe_allow_html=True
-            )
+    # --- Calculate Expected Records ---
+    proj_wins = team_row.get("Projected Overall Wins", None)
+    proj_losses = team_row.get("Projected Overall Losses", None)
+    proj_conf_wins = team_row.get("Projected Conference Wins", None)
+    proj_conf_losses = team_row.get("Projected Conference Losses", None)
+    
+    record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
+    conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
+    
+    # Color choices
+    record_bg = "#FFB347"    # Amber/Orange
+    conf_bg = "#9067B8"      # Purple
+    
+    if is_mobile():
+        card_width = "44vw"
+        card_height = "34px"
+        label_font = "12px"
+        record_font = "20px"
+        margin = "6px auto 10px auto"
+        wrap = "center"
+    else:
+        card_width = "182px"
+        card_height = "48px"
+        label_font = "14px"
+        record_font = "27px"
+        margin = "8px 24px 20px 0"
+        wrap = "flex-start"
+    
+    record_card = f'''
+    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{record_bg};
+    border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#222; border:2px solid #fff; margin:{margin};
+    width:{card_width}; height:{card_height}; font-size:{label_font}; font-weight:600; text-align:center; padding:0 8px; box-sizing:border-box;">
+        <span style="font-size:0.97em; font-weight:400; color:#444; white-space:nowrap;">Expected Record</span>
+        <span style="font-size:{record_font}; font-weight:800; color:#002060; letter-spacing:-1px; line-height:1.1;">{record_str}</span>
+    </div>
+    '''
+    
+    conf_card = f'''
+    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{conf_bg};
+    border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#fff; border:2px solid #fff; margin:{margin};
+    width:{card_width}; height:{card_height}; font-size:{label_font}; font-weight:600; text-align:center; padding:0 8px; box-sizing:border-box;">
+        <span style="font-size:0.97em; font-weight:400; color:#eee; white-space:nowrap;">Expected Conf. Record</span>
+        <span style="font-size:{record_font}; font-weight:800; color:#fff; letter-spacing:-1px; line-height:1.1;">{conf_record_str}</span>
+    </div>
+    '''
+    
+    # Align left on desktop, center on mobile
+    st.markdown(f'''
+    <div style="display:flex;flex-direction:row;justify-content:{wrap};align-items:center;gap:2vw;width:100%;flex-wrap:wrap;">
+        {record_card}
+        {conf_card}
+    </div>
+    ''', unsafe_allow_html=True)
 
-    # Expected Records
-    with cols[12]:
-        st.markdown(
-            f"<div class='dash-card c-over'>"
-            f"<div class='dash-title'>Expected Record</div>"
-            f"<div class='dash-value'>{rec}</div>"
-            f"<div class='dash-sub'>#{orank}</div>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-    with cols[13]:
-        st.markdown(
-            f"<div class='dash-card c-rank'>"
-            f"<div class='dash-title'>Exp. Wins Rank</div>"
-            f"<div class='dash-value'>#{orank}</div>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-    with cols[14]:
-        st.markdown(
-            f"<div class='dash-card c-conf'>"
-            f"<div class='dash-title'>Expected Conf. Record</div>"
-            f"<div class='dash-value'>{cre}</div>"
-            f"<div class='dash-sub'>#{crank}</div>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-    with cols[15]:
-        st.markdown(
-            f"<div class='dash-card c-rank'>"
-            f"<div class='dash-title'>Exp. Conf. Wins Rank</div>"
-            f"<div class='dash-value'>#{crank}</div>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
-    sched = df_schedule[df_schedule["Team"] == selected].sort_values("Game #")
     if not sched.empty:
         sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
 
