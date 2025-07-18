@@ -947,11 +947,7 @@ elif tab == "Team Dashboards":
         with cols[idx]:
             st.markdown(f"**{lbl}**  
 # {pct}")
-
-    # Returning Production
-    for idx, (lbl, pct) in enumerate([("Ret. Prod.", ret_prod), ("Off. Ret.", off_ret), ("Def. Ret.", def_ret)], start=8):
-
-        
+       
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
         sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
