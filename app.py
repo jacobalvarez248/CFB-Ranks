@@ -855,7 +855,7 @@ elif tab == "Industry Composite Ranking":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
-elif tab == "Team Dashboards":
+    elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
     # Mobile styling for smaller screens
@@ -874,24 +874,81 @@ elif tab == "Team Dashboards":
 
     # --- Power Rating & Conference Rank ---
     power_rating = team_row.get("Power Rating", "-")
-    conf_df = df_expected[df_expected["Conference"] == conf_name].sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    conf_df = (
+        df_expected[df_expected["Conference"] == conf_name]
+        .sort_values("Power Rating", ascending=False)
+        .reset_index(drop=True)
+    )
     conf_df["Conf Rank"] = conf_df.index + 1
     this_conf_rank = int(conf_df.loc[conf_df["Team"] == selected_team, "Conf Rank"].values[0])
 
     # --- Win-Probability Distribution (DP) ---
-    sched = df_schedule[df_schedule["Team"] == selected_team].sort_values("Game")
+    sched = (
+        df_schedule[df_schedule["Team"] == selected_team]
+        .sort_values("Game")
+    )
     win_prob_list = sched["Win Prob"].fillna(0.5).tolist()
     n = len(win_prob_list)
-    dp = np.zeros((n+1, n+1)); dp[0,0] = 1.0
+    dp = np.zeros((n+1, n+1))
+    dp[0, 0] = 1.0
     for g in range(1, n+1):
         p = win_prob_list[g-1]
         for w in range(g+1):
-            dp[g,w] = (dp[g-1,w-1] * p if w>0 else 0) + dp[g-1,w] * (1 - p)
+            dp[g, w] = (
+                (dp[g-1, w-1] * p if w > 0 else 0)
+                + dp[g-1, w] * (1 - p)
+            )
     probs = dp[n]
-    at6  = f"{probs[6:].sum()*100:.1f}%" if n>=6 else "-"
-    at8  = f"{probs[8:].sum()*100:.1f}%" if n>=8 else "-"
-    at10 = f"{probs[10:].sum()*100:.1f}%" if n>=10 else "-"
-    at12 = f"{probs[12]*100:.1f}%" if n>=12 else "-"
+    at6  = f"{probs[6:].sum()*100:.1f}%"  if n >= 6  else "-"
+    at8  = f"{probs[8:].sum()*100:.1f}%"  if n >= 8  else "-"
+    at10 = f"{probs[10:].sum()*100:.1f}%" if n >= 10 else "-"
+    at12 = f"{probs[12]*100:.1f}%"      if n >= 12 else "-"
+
+    # --- Returning Production Metrics ---
+    rank_row = df_ranking[df_ranking["Team"] == selected_team].iloc[0]
+    ret_prod = f"{rank_row['Returning Production']:.1f}%"
+    off_ret  = f"{rank_row['Off. Returning Production']:.1f}%"
+    def_ret  = f"{rank_row['Def. Returning Production']:.1f}%"
+
+    # --- Expected Records & Derived Ranks ---
+    pw, pl = (
+        team_row.get("Projected Overall Wins"),
+        team_row.get("Projected Overall Losses")
+    )
+    cw, cl = (
+        team_row.get("Projected Conference Wins"),
+        team_row.get("Projected Conference Losses")
+    )
+    overall_rec = (
+        f"{pw:.1f}–{pl:.1f}" if pd.notnull(pw) and pd.notnull(pl) else "-"
+    )
+    conf_rec = (
+        f"{cw:.1f}–{cl:.1f}" if pd.notnull(cw) and pd.notnull(cl) else "-"
+    )
+    proj_df = df_expected.copy()
+    proj_df["Proj Wins Rank"] = (
+        proj_df["Projected Overall Wins"].rank(
+            ascending=False, method="min"
+        )
+    )
+    proj_wins_rank = int(
+        proj_df.loc[
+            proj_df["Team"] == selected_team,
+            "Proj Wins Rank"
+        ].values[0]
+    )
+    conf_proj = df_expected[df_expected["Conference"] == conf_name].copy()
+    conf_proj["Proj Conf Wins Rank"] = (
+        conf_proj["Projected Conference Wins"].rank(
+            ascending=False, method="min"
+        )
+    )
+    proj_conf_wins_rank = int(
+        conf_proj.loc[
+            conf_proj["Team"] == selected_team,
+            "Proj Conf Wins Rank"
+        ].values[0]
+    )
 
     # --- Layout Cards ---
     cols = st.columns([1.2] + [0.8]*10 + [1.4, 0.6, 1.4, 0.6])
@@ -899,7 +956,7 @@ elif tab == "Team Dashboards":
     # Team Logo (spans rows visually)
     with cols[0]:
         if team_logo_url:
-            st.image(team_logo_url, use_column_width=True)
+            st.image(team_logo_url, use_container_width=True)
 
     # Conference Logo
     with cols[1]:
@@ -908,29 +965,43 @@ elif tab == "Team Dashboards":
 
     # Power Rating & Conference Rank
     with cols[2]:
-        st.markdown(f"**Power Rating**  \n# {power_rating}")
+        st.markdown(f"**Power Rating**  
+# {power_rating}")
     with cols[3]:
-        st.markdown(f"**Conf. Rank**  \n# {this_conf_rank}")
+        st.markdown(f"**Conf. Rank**  
+# {this_conf_rank}")
 
     # Win-Probability Thresholds
-    for idx, (lbl, pct) in enumerate([("6+", at6), ("8+", at8), ("10+", at10), ("12-0", at12)], start=4):
+    for idx, (lbl, pct) in enumerate(
+        [("6+", at6), ("8+", at8), ("10+", at10), ("12-0", at12)],
+        start=4
+    ):
         with cols[idx]:
-            st.markdown(f"**{lbl}**  \n# {pct}")
+            st.markdown(f"**{lbl}**  
+# {pct}")
 
-    # Returning Production
-    for idx, (lbl, pct) in enumerate([("Ret. Prod.", ret_prod), ("Off. Ret.", off_ret), ("Def. Ret.", def_ret)], start=8):
+    # Returning Production Cards
+    for idx, (lbl, pct) in enumerate(
+        [("Ret. Prod.", ret_prod), ("Off. Ret.", off_ret), ("Def. Ret.", def_ret)],
+        start=8
+    ):
         with cols[idx]:
-            st.markdown(f"**{lbl}**  \n# {pct}")
+            st.markdown(f"**{lbl}**  
+# {pct}")
 
     # Expected Records & Ranks
     with cols[11]:
-        st.markdown(f"**Expected Record**  \n# {overall_rec}")
+        st.markdown(f"**Expected Record**  
+# {overall_rec}")
     with cols[12]:
-        st.markdown(f"**Exp. Wins Rank**  \n# {proj_wins_rank}")
+        st.markdown(f"**Exp. Wins Rank**  
+# {proj_wins_rank}")
     with cols[13]:
-        st.markdown(f"**Expected Conf. Record**  \n# {conf_rec}")
+        st.markdown(f"**Expected Conf. Record**  
+# {conf_rec}")
     with cols[14]:
-        st.markdown(f"**Exp. Conf. Wins Rank**  \n# {proj_conf_wins_rank}")
+        st.markdown(f"**Exp. Conf. Wins Rank**  
+# {proj_conf_wins_rank}")
        
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
