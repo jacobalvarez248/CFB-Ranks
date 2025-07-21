@@ -1723,14 +1723,42 @@ elif tab == "Team Dashboards":
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
 
-    # --- PREPARE DATA FOR SCATTER PLOT --
+    # --- (1) Build df_ranking_clean ---
+
+    # Load the Rankings sheet (or use your previous df_ranking)
+    df_ranking = load_sheet(data_path, "Ranking", header=1)
+    df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
     
-    # (1) Find where selected_team is in the ranking
-    selected_idx = df_ranking_clean.index[df_ranking_clean["Team"] == selected_team][0]
-    N = 5  # Number of neighbors above and below
+    # Find the correct columns (in case columns have shifted)
+    def first_col_index(cols, name):
+        return [i for i, c in enumerate(cols) if c == name][0]
+    
+    cols = df_ranking.columns.tolist()
+    team_idx = first_col_index(cols, "Team")
+    power_idx = first_col_index(cols, "Power Rating")
+    off_idx = first_col_index(cols, "Off. Power Rating")
+    def_idx = first_col_index(cols, "Def. Power Rating")
+    
+    df_ranking_clean = df_ranking.iloc[:, [team_idx, power_idx, off_idx, def_idx]].copy()
+    df_ranking_clean.columns = ["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
+    
+    for col in ["Power Rating", "Off. Power Rating", "Def. Power Rating"]:
+        df_ranking_clean[col] = pd.to_numeric(df_ranking_clean[col], errors="coerce")
+    df_ranking_clean = df_ranking_clean.dropna(subset=["Power Rating", "Off. Power Rating", "Def. Power Rating"])
+    
+    df_ranking_clean = df_ranking_clean.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    
+    # --- (2) Now, get selected_idx safely ---
+    
+    if selected_team in df_ranking_clean["Team"].values:
+        selected_idx = df_ranking_clean.index[df_ranking_clean["Team"] == selected_team][0]
+    else:
+        st.warning(f"Selected team '{selected_team}' not found in ranking.")
+        selected_idx = 0  # fallback
+    
+    N = 5  # neighborhood size
     num_teams = len(df_ranking_clean)
     
-    # (2) Determine slice range for neighbors
     if selected_idx < N:
         start = 0
         end = min(2 * N + 1, num_teams)
@@ -1741,26 +1769,21 @@ elif tab == "Team Dashboards":
         start = selected_idx - N
         end = selected_idx + N + 1
     
-    # (3) Get the neighboring teams
     df_neighbors = df_ranking_clean.iloc[start:end].copy()
     
-    # (4) Build the scatter_df for plotting
     scatter_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
     scatter_df.columns = scatter_df.columns.astype(str).str.strip()
     scatter_df = scatter_df.apply(pd.to_numeric, errors='coerce')
     scatter_df = scatter_df.dropna().reset_index(drop=True)
     
-    st.write("scatter_df columns:", scatter_df.columns.tolist())
-    st.write(scatter_df)
-    
-    # (5) Now plot:
-    import altair as alt
+    # --- (3) Plot! ---
     
     chart = alt.Chart(scatter_df).mark_circle(size=100, color='blue').encode(
         x=alt.X('Off. Power Rating', axis=alt.Axis(title='Offensive Power Rating')),
         y=alt.Y('Def. Power Rating', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
     )
     st.altair_chart(chart, use_container_width=True)
+    
 
 
 elif tab == "Charts & Graphs":
