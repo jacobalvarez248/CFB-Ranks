@@ -1771,38 +1771,19 @@ elif tab == "Team Dashboards":
     
     df_neighbors = df_ranking_clean.iloc[start:end].copy()
     
-    # --- Add Team names for tooltips ---
-    scatter_df = df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
-    scatter_df["Off. Power Rating"] = pd.to_numeric(scatter_df["Off. Power Rating"], errors="coerce")
-    scatter_df["Def. Power Rating"] = pd.to_numeric(scatter_df["Def. Power Rating"], errors="coerce")
-    scatter_df = scatter_df.dropna().reset_index(drop=True)
+    st.write(scatter_df.dtypes)
+    st.write(scatter_df)
     
-    import altair as alt
+    # Try plotting with renamed columns for safety:
+    scatter_df2 = scatter_df.copy()
+    scatter_df2.columns = ["Off", "Def"]
     
-    chart = alt.Chart(scatter_df).mark_circle(size=110, color='blue').encode(
-        x=alt.X('Off. Power Rating', axis=alt.Axis(title='Offensive Power Rating')),
-        y=alt.Y('Def. Power Rating', axis=alt.Axis(title='Defensive Power Rating (lower is better)')),
-        tooltip=[
-            alt.Tooltip('Team', title="Team"),
-            alt.Tooltip('Off. Power Rating', title="Offense", format=".1f"),
-            alt.Tooltip('Def. Power Rating', title="Defense", format=".1f")
-        ]
+    chart = alt.Chart(scatter_df2).mark_circle(size=100, color='blue').encode(
+        x=alt.X('Off:Q', axis=alt.Axis(title='Offensive Power Rating')),
+        y=alt.Y('Def:Q', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
     )
-    
-    text = alt.Chart(scatter_df).mark_text(
-        align='left', dx=7, dy=0, fontSize=13, color='black'
-    ).encode(
-        x='Off. Power Rating',
-        y='Def. Power Rating',
-        text='Team'
-    )
-    
-    st.altair_chart(chart + text, use_container_width=True)
-
-
-    
-
-
+    st.altair_chart(chart, use_container_width=True)
+ 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
