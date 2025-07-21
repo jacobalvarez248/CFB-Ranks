@@ -1620,7 +1620,7 @@ elif tab == "Team Dashboards":
                 "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
             )
             wrapper_style = (
-                "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
+                "max-width:100vw; width:100vw; overflow-x:auto; margin:0 auto;"
             )
             header_font = "font-size:13px; white-space:normal;"
             cell_font = "font-size:13px; white-space:nowrap;"
