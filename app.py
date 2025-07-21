@@ -527,7 +527,6 @@ elif tab == "Conference Overviews":
             st.altair_chart(chart, use_container_width=True)
    
     # --- Conference Standings Table ---
-    st.markdown("#### Conference Standings")
     conference_options = sorted(df_expected["Conference"].dropna().unique())
     selected_conf = st.selectbox("Select Conference", conference_options, index=0)
     standings = df_expected[df_expected["Conference"] == selected_conf].copy()
