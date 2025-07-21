@@ -1771,8 +1771,8 @@ elif tab == "Team Dashboards":
     
     df_neighbors = df_ranking_clean.iloc[start:end].copy()
     
-    st.write(scatter_df.dtypes)
-    st.write(scatter_df)
+    st.write(df_neighbors.dtypes)
+    st.write(df_neighbors)
     
     # Try plotting with renamed columns for safety:
     scatter_df2 = scatter_df.copy()
