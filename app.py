@@ -1060,15 +1060,15 @@ elif tab == "Team Dashboards":
                 <span style="line-height:1.15; font-weight:bold;">{power_rating_str}</span>
             </div>
             <div style="{lighter_card}">
-                <span style="font-size:0.8em;">6+</span>
+                <span style="font-size:0.8em;">6+ Wins</span>
                 <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct_str}</span>
             </div>
             <div style="{lighter_card}">
-                <span style="font-size:0.8em;">8+</span>
+                <span style="font-size:0.8em;">8+ Wins</span>
                 <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct_str}</span>
             </div>
             <div style="{lighter_card}">
-                <span style="font-size:0.8em;">10+</span>
+                <span style="font-size:0.8em;">10+ Wins</span>
                 <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct_str}</span>
             </div>
             <div style="{lighter_card}">
