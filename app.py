@@ -4,7 +4,7 @@ from pathlib import Path
 import altair as alt
 import io
 import numpy as np
-
+import matplotlib.pyplot as plt
 # Helper to load Excel sheets via xlwings or pandas/openpyxl
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
     try:
@@ -1767,6 +1767,11 @@ elif tab == "Team Dashboards":
     )
     st.altair_chart(chart, use_container_width=True)
 
+
+    plt.scatter(df_neighbors["Off. Power Rating"], df_neighbors["Def. Power Rating"])
+    plt.xlabel("Off. Power Rating")
+    plt.ylabel("Def. Power Rating")
+    st.pyplot(plt)
 
 
 elif tab == "Charts & Graphs":
