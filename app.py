@@ -1631,83 +1631,97 @@ elif tab == "Team Dashboards":
             wrapper_style = "max-width:100%; overflow-x:auto;"
             header_font = ""
             cell_font = "white-space:nowrap; font-size:15px;"
-
     
-    # --- Scatterplot of Similar Teams (Off Rating vs Def Rating) ---
-
-    # Use the correct columns for offense/defense and logo URL
-    sorted_df = df_expected.sort_values(by="Power Rating", ascending=False).reset_index(drop=True)
-    selected_idx_sorted = sorted_df.index[sorted_df["Team"] == selected_team][0]
-    
-    n_neighbors = 5
-    n_total = 2 * n_neighbors + 1
-    
-    start_idx = max(selected_idx_sorted - n_neighbors, 0)
-    end_idx = start_idx + n_total
-    if end_idx > len(sorted_df):
-        end_idx = len(sorted_df)
-        start_idx = max(end_idx - n_total, 0)
-    
-    nearby_teams_df = sorted_df.iloc[start_idx:end_idx].copy()
-    nearby_teams_df["Is_Selected"] = nearby_teams_df["Team"] == selected_team
-    
-    # Defensive Rating: invert y-axis so "better" is higher
-    y_axis = alt.Y('Defensive Rating:Q', title='Defensive Rating (Lower is better)', scale=alt.Scale(reverse=True),
-                   axis=alt.Axis(labelFontSize=12, titleFontSize=14))
-    
-    base = alt.Chart(nearby_teams_df).encode(
-        x=alt.X('Offensive Rating:Q', title='Offensive Rating', axis=alt.Axis(labelFontSize=12, titleFontSize=14)),
-        y=y_axis,
-    )
-    
-    logo_points = alt.Chart(nearby_teams_df).transform_filter(
-        alt.datum.Is_Selected == False
-    ).mark_image(
-        width=40 if is_mobile() else 46,
-        height=40 if is_mobile() else 46
-    ).encode(
-        x=alt.X('Offensive Rating:Q', title='Offensive Rating', axis=alt.Axis(labelFontSize=12, titleFontSize=14)),
-        y=alt.Y('Defensive Rating:Q', title='Defensive Rating (Lower is better)', scale=alt.Scale(reverse=True), axis=alt.Axis(labelFontSize=12, titleFontSize=14)),
-        url='Logo URL:N',
-        tooltip=['Team', 'Offensive Rating', 'Defensive Rating', 'Power Rating']
-    )
-    
-    highlight_point = alt.Chart(nearby_teams_df).transform_filter(
-        alt.datum.Is_Selected == True
-    ).mark_image(
-        width=60 if is_mobile() else 68,
-        height=60 if is_mobile() else 68,
-        opacity=1
-    ).encode(
-        x=alt.X('Offensive Rating:Q'),
-        y=alt.Y('Defensive Rating:Q'),
-        url='Logo URL:N',
-        tooltip=['Team', 'Offensive Rating', 'Defensive Rating', 'Power Rating']
-    )
-    scatter_chart = (logo_points + highlight_point).properties(
-        width='container',
-        height=350 if is_mobile() else 420,
-        title=""
-    )
-    
+        # ---- Table HTML ----
+        standings_html = [
+            f'<div style="{wrapper_style}">',
+            f'<table style="{table_style}">',
+            '<thead><tr>'
+        ]
+        compact_cols_conf = [
+            "Projected Finish", "Power Rating", "Projected Overall Wins", "Projected Conference Wins",
+            "Projected Conference Losses", "Average Conference Game Quality",
+            "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
+        ]
+        for disp_col, c in zip(display_headers, cols):
+            th = (
+                'border:1px solid #ddd; padding:8px; text-align:center; '
+                'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+            )
+            if c == "Team":
+                if is_mobile():
+                    th += " white-space:normal; min-width:24vw; max-width:36vw; font-size:12px; line-height:1.1;"
+                else:
+                    th += " white-space:nowrap; min-width:180px; max-width:240px;"
+            elif not is_mobile() and c in compact_cols_conf:
+                th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
+            else:
+                th += " white-space:nowrap;"
+            th += header_font
+            standings_html.append(f"<th style='{th}'>{disp_col}</th>")
+        standings_html.append("</tr></thead><tbody>")
         
-    # --- Responsive layout: standings table + scatter chart ---
-    if not is_mobile():
-        # Desktop: standings left, scatter right
-        col1, col2 = st.columns([1, 1])
-        with col1:
+        for _, row in standings.iterrows():
+            is_selected_team = (row["Team"] == selected_team)
+            standings_html.append("<tr>")
+            for c in cols:
+                v = row[c]
+                td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+                td += cell_font
+                cell = v
+        
+                # --- Your existing coloring/logic here (see previous answers) ---
+                if c == "Team":
+                    logo = row.get("Logo URL")
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        if is_mobile():
+                            cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                        else:
+                            cell = (
+                                f'<div style="display:flex;align-items:center;">'
+                                f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                            )
+                    else:
+                        cell = "" if is_mobile() else v
+                else:
+                    # Power Rating conditional coloring
+                    if c == "Power Rating" and pd.notnull(v):
+                        t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                        td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                        cell = f"{v:.1f}"
+                    # Average Conference Game Quality
+                    elif c == "Average Conference Game Quality" and pd.notnull(v):
+                        t = (v - acgq_min) / (acgq_max - acgq_min) if acgq_max > acgq_min else 0
+                        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                        td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                        cell = f"{v:.1f}"
+                    # Average Conference Schedule Difficulty (inverse)
+                    elif c == "Average Conference Schedule Difficulty" and pd.notnull(v):
+                        inv = 1 - ((v - acsd_min) / (acsd_max - acsd_min) if acsd_max > acsd_min else 0)
+                        r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                        td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
+                        cell = f"{v:.1f}"
+                    else:
+                        cell = v
+        
+                # --- Row highlight (but not if already #E2EFDA) ---
+                if is_selected_team and "background-color" not in td:
+                    td += " background-color:#fffac8;"
+        
+                standings_html.append(f"<td style='{td}'>{cell}</td>")
+            standings_html.append("</tr>")
+        standings_html.append("</tbody></table></div>")
+        
+                # Render
+        if not is_mobile():
+            # On desktop, make width same as win dist table (left side)
+            with left_col:
+                st.markdown("#### Conference Standings")
+                st.markdown("".join(standings_html), unsafe_allow_html=True)
+        else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-        with col2:
-            st.markdown("#### Similar Teams: Offense vs Defense")
-            st.altair_chart(scatter_chart, use_container_width=True)
-    else:
-        # Mobile: stack
-        st.markdown("#### Conference Standings")
-        st.markdown("".join(standings_html), unsafe_allow_html=True)
-        st.markdown("#### Similar Teams: Offense vs Defense")
-        st.altair_chart(scatter_chart, use_container_width=True)
-
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
