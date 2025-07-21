@@ -1807,7 +1807,7 @@ elif tab == "Team Dashboards":
     )
     
     # --- Logo images for points with a valid URL ---
-    logo_size = 40  # adjust as needed
+    logo_size = 30  # adjust as needed
     points_with_logo = (
         alt.Chart(scatter_df2)
            .transform_filter(logo_cond)
@@ -1820,8 +1820,8 @@ elif tab == "Team Dashboards":
            )
     )
     
-    # --- Combine layers: circles first, then logos on top ---
-    chart = points_no_logo + points_with_logo
+    # --- Combine layers: logos on top then circles
+    chart = points_with_logo + points_no_logo
     
     # --- Render in two‐column layout on desktop, full‐width on mobile ---
     if not is_mobile():
