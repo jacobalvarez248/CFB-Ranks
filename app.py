@@ -1793,36 +1793,43 @@ elif tab == "Team Dashboards":
     # --- show team logos in scatter, fallback to blue circle when missing ---
     logo_size = 40  # adjust as you like
     
-    # logos layer
-    points_with_logo = alt.Chart(scatter_df2).transform_filter(
-        alt.datum["Logo URL"] != None
-    ).mark_image(
-        width=logo_size,
-        height=logo_size
-    ).encode(
-        x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max]), axis=alt.Axis(title="Offensive Power Rating")),
-        y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max]), axis=alt.Axis(title="Defensive Power Rating")),
-        url="Logo URL:N",
-        tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
+    # only rows where Logo URL is neither null nor the empty string
+    logo_cond = (
+        (alt.datum["Logo URL"] != None) & 
+        (alt.datum["Logo URL"] != "")
     )
     
-    # fallback circle layer
-    points_no_logo = alt.Chart(scatter_df2).transform_filter(
-        alt.datum["Logo URL"] == None
-    ).mark_circle(
-        size=100,
-        color="steelblue"
-    ).encode(
-        x="Off:Q",
-        y="Def:Q",
-        tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
+    points_with_logo = (
+        alt.Chart(scatter_df2)
+           .transform_filter(logo_cond)
+           .mark_image(width=logo_size, height=logo_size)
+           .encode(
+               x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max]),
+                       axis=alt.Axis(title="Offensive Power Rating")),
+               y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max]),
+                       axis=alt.Axis(title="Defensive Power Rating")),
+               url="Logo URL:N",
+               tooltip=["Team:N", "Off:Q", "Def:Q"]
+           )
     )
     
-    # combine
+    # fallback circles for anything missing Logo URL
+    points_no_logo = (
+        alt.Chart(scatter_df2)
+           .transform_filter(~logo_cond)
+           .mark_circle(size=100, color="steelblue")
+           .encode(
+               x="Off:Q",
+               y="Def:Q",
+               tooltip=["Team:N", "Off:Q", "Def:Q"]
+           )
+    )
+    
+    # combine them
     chart = (points_with_logo + points_no_logo).properties(
-        width="container",
-        height=300  # or whatever height you prefer
+        width="container", height=300
     )
+
 
     # --- Replace standalone scatter with a two-column layout ---
     if not is_mobile():
