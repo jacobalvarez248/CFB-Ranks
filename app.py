@@ -1055,7 +1055,7 @@ elif tab == "Team Dashboards":
                 <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;vertical-align:middle;"/>
                 {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block; margin-left:0.5vw;vertical-align:middle;'/>" if conf_logo_url else ""}
             </div>
-            <div style="{card_base}">
+            <div style="{dark_card}">
                 <span style="font-size:0.8em;">Pwr. Rtg.</span>
                 <span style="line-height:1.15; font-weight:bold;">{power_rating_str}</span>
             </div>
