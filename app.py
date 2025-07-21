@@ -1203,11 +1203,10 @@ elif tab == "Team Dashboards":
     </div>
     ''', unsafe_allow_html=True)
 
-
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
         sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
-
+    
         def format_opp_rank(x):
             if pd.isnull(x):
                 return ""
@@ -1216,8 +1215,9 @@ elif tab == "Team Dashboards":
                 return "FCS" if val <= 0 else f"{int(round(val))}"
             except Exception:
                 return str(x)
-
+    
         sched["Opponent Rank"] = sched["Opponent Ranking"].apply(format_opp_rank)
+    
         def fmt_spread(x):
             if pd.isnull(x):
                 return ""
@@ -1229,22 +1229,39 @@ elif tab == "Team Dashboards":
         sched["Projected Spread"] = sched["Spread"].apply(fmt_spread)
         sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
-
-        # MOBILE header/column maps
+    
+        # --- ADD: Location prefix to Opponent ---
+        def format_opp_cell(row):
+            location = str(row.get("Location", "")).strip().lower()
+            opp = row["Opponent"]
+            if not opp or pd.isnull(opp):
+                return ""
+            if location == "home":
+                return f"vs {opp}"
+            elif location == "away":
+                return f"at {opp}"
+            elif location == "neutral":
+                return f"vs {opp} (Neutral)"
+            else:
+                return opp  # fallback
+    
+        sched["Opponent_Display"] = sched.apply(format_opp_cell, axis=1)
+    
+        # --- MOBILE header/column maps (replace 'Opponent' with 'Opponent_Display') ---
         mobile_headers = {
             "Date": "Date",
-            "Opponent": "Opp.",
+            "Opponent_Display": "Opp.",
             "Opponent Rank": "Opp. Rank",
             "Projected Spread": "Proj. Spread",
             "Win Probability": "Win Prob.",
             "Game Quality": "Game Qty"
         }
         mobile_cols = list(mobile_headers.keys())
-
-        # DESKTOP version (original)
-        desktop_headers = ["Game", "Date", "Opponent", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
-
-        # Choose headers/columns based on device
+    
+        # --- DESKTOP version (replace 'Opponent' with 'Opponent_Display') ---
+        desktop_headers = ["Game", "Date", "Opponent_Display", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
+    
+        # --- Choose headers/columns based on device ---
         if is_mobile():
             headers = [mobile_headers[c] for c in mobile_cols]
             use_cols = mobile_cols
@@ -1263,10 +1280,10 @@ elif tab == "Team Dashboards":
             wrapper_style = "max-width:100%; overflow-x:auto;"
             header_font = ""
             cell_font = "white-space:nowrap; font-size:15px;"
-
+    
         gq_vals = pd.to_numeric(sched["Game Quality"], errors='coerce')
         gq_min, gq_max = gq_vals.min(), gq_vals.max()
-
+    
         def win_prob_data_bar(pct_str):
             try:
                 pct = float(pct_str.strip('%'))
@@ -1279,13 +1296,13 @@ elif tab == "Team Dashboards":
                 )
             except Exception:
                 return f'<div style="width:100%; text-align:center; font-weight:600; color:#111;">{pct_str}</div>'
-
+    
         header_style = (
             "background-color:#002060; color:white; text-align:center; padding:8px; "
             "position:sticky; top:0; z-index:2; font-weight:bold;"
         )
         cell_style = "border:1px solid #ddd; padding:8px; text-align:center;"
-
+    
         html = [
             f'<div style="{wrapper_style}">',
             f'<table style="{table_style}">',
@@ -1300,14 +1317,14 @@ elif tab == "Team Dashboards":
             else:
                 html.append(f'<th style="{header_style}{header_font}">{h}</th>')
         html.append('</tr></thead><tbody>')
-
+    
         for _, row in sched.iterrows():
             html.append('<tr>')
             for col in use_cols:
                 val = row[col]
                 style = cell_style + cell_font + "padding:4px;"
-                if is_mobile() and col == "Opponent":
-                    style += "min-width:30vw; max-width:38vw; word-break:break-word; font-size:11px;"
+                if is_mobile() and col == "Opponent_Display":
+                    style += "min-width:30vw; max-width:38vw; word-break:break-word; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:normal;"
                 elif is_mobile():
                     style += "min-width:11vw; max-width:19vw; font-size:11px;"
                 # Projected Spread styling
@@ -1334,11 +1351,11 @@ elif tab == "Team Dashboards":
                         style += f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'}; font-weight:600;"
                     except Exception:
                         pass
-
+    
                 html.append(f'<td style="{style}">{val}</td>')
             html.append('</tr>')
         html.append('</tbody></table></div>')
-
+    
         st.markdown("".join(html), unsafe_allow_html=True)
 
     # Add all team-specific tables/charts below as needed
