@@ -1723,71 +1723,173 @@ elif tab == "Team Dashboards":
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
 
-    # --- (1) Build df_ranking_clean ---
+        # --- (1) Build df_ranking_clean ---
 
-    # Load the Rankings sheet (or use your previous df_ranking)
-    df_ranking = load_sheet(data_path, "Ranking", header=1)
-    df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
+        # Load the Rankings sheet (or use your previous df_ranking)
+        df_ranking = load_sheet(data_path, "Ranking", header=1)
+        df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
     
-    # Find the correct columns (in case columns have shifted)
-    def first_col_index(cols, name):
-        return [i for i, c in enumerate(cols) if c == name][0]
+        # Find the correct columns (in case columns have shifted)
+        def first_col_index(cols, name):
+            return [i for i, c in enumerate(cols) if c == name][0]
     
-    cols = df_ranking.columns.tolist()
-    team_idx = first_col_index(cols, "Team")
-    power_idx = first_col_index(cols, "Power Rating")
-    off_idx = first_col_index(cols, "Off. Power Rating")
-    def_idx = first_col_index(cols, "Def. Power Rating")
+        cols = df_ranking.columns.tolist()
+        team_idx = first_col_index(cols, "Team")
+        power_idx = first_col_index(cols, "Power Rating")
+        off_idx = first_col_index(cols, "Off. Power Rating")
+        def_idx = first_col_index(cols, "Def. Power Rating")
     
-    df_ranking_clean = df_ranking.iloc[:, [team_idx, power_idx, off_idx, def_idx]].copy()
-    df_ranking_clean.columns = ["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
+        df_ranking_clean = df_ranking.iloc[:, [team_idx, power_idx, off_idx, def_idx]].copy()
+        df_ranking_clean.columns = ["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
     
-    for col in ["Power Rating", "Off. Power Rating", "Def. Power Rating"]:
-        df_ranking_clean[col] = pd.to_numeric(df_ranking_clean[col], errors="coerce")
-    df_ranking_clean = df_ranking_clean.dropna(subset=["Power Rating", "Off. Power Rating", "Def. Power Rating"])
+        for col in ["Power Rating", "Off. Power Rating", "Def. Power Rating"]:
+            df_ranking_clean[col] = pd.to_numeric(df_ranking_clean[col], errors="coerce")
+        df_ranking_clean = df_ranking_clean.dropna(subset=["Power Rating", "Off. Power Rating", "Def. Power Rating"])
     
-    df_ranking_clean = df_ranking_clean.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+        df_ranking_clean = df_ranking_clean.sort_values("Power Rating", ascending=False).reset_index(drop=True)
     
-    # --- (2) Now, get selected_idx safely ---
+        # --- (2) Get selected neighborhood ---
+        if selected_team in df_ranking_clean["Team"].values:
+            selected_idx = df_ranking_clean.index[df_ranking_clean["Team"] == selected_team][0]
+        else:
+            st.warning(f"Selected team '{selected_team}' not found in ranking.")
+            selected_idx = 0  # fallback
     
-    if selected_team in df_ranking_clean["Team"].values:
-        selected_idx = df_ranking_clean.index[df_ranking_clean["Team"] == selected_team][0]
-    else:
-        st.warning(f"Selected team '{selected_team}' not found in ranking.")
-        selected_idx = 0  # fallback
+        N = 5  # neighborhood size
+        num_teams = len(df_ranking_clean)
     
-    N = 5  # neighborhood size
-    num_teams = len(df_ranking_clean)
+        if selected_idx < N:
+            start = 0
+            end = min(2 * N + 1, num_teams)
+        elif selected_idx > num_teams - N - 1:
+            start = max(0, num_teams - (2 * N + 1))
+            end = num_teams
+        else:
+            start = selected_idx - N
+            end = selected_idx + N + 1
     
-    if selected_idx < N:
-        start = 0
-        end = min(2 * N + 1, num_teams)
-    elif selected_idx > num_teams - N - 1:
-        start = max(0, num_teams - (2 * N + 1))
-        end = num_teams
-    else:
-        start = selected_idx - N
-        end = selected_idx + N + 1
+        df_neighbors = df_ranking_clean.iloc[start:end].copy()
     
-    df_neighbors = df_ranking_clean.iloc[start:end].copy()
+        # Prepare Off/Def/Team/Logo URL for Altair
+        scatter_df2 = df_neighbors[["Off. Power Rating", "Def. Power Rating", "Team"]].copy()
+        scatter_df2.columns = ["Off", "Def", "Team"]
+        # Add Logo URL from logos_df
+        scatter_df2 = scatter_df2.merge(
+            logos_df[["Team", "Logo URL"]],
+            left_on="Team",
+            right_on="Team",
+            how="left"
+        )
     
-    # Prepare Off/Def/Team/Logo URL for Altair
-    scatter_df2 = df_neighbors[["Off. Power Rating", "Def. Power Rating", "Team"]].copy()
-    scatter_df2.columns = ["Off", "Def", "Team"]
-    # Add Logo URL from logos_df (already cleaned and upper-cased)
-    scatter_df2 = scatter_df2.merge(
-        logos_df[["Team", "Logo URL"]],
-        left_on="Team",
-        right_on="Team",
-        how="left"
-    )
-
+        # Mark selected team for highlight
+        scatter_df2["Selected"] = scatter_df2["Team"].eq(selected_team)
     
-    chart = alt.Chart(scatter_df2).mark_circle(size=100, color='blue').encode(
-        x=alt.X('Off:Q', axis=alt.Axis(title='Offensive Power Rating')),
-        y=alt.Y('Def:Q', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
-    )
-    st.altair_chart(chart, use_container_width=True)
+        # --- Responsive rendering: table left, chart right (desktop); stacked on mobile ---
+        if not is_mobile():
+            left, right = st.columns([1.2, 1])
+            with left:
+                st.markdown("#### Power Rating Neighbors (Table)")
+                # Show standings table for the neighborhood (reuse or simplify as desired)
+                html = ['<table style="width:100%; border-collapse:collapse;">']
+                html.append('<tr style="background:#002060; color:white;">')
+                html.extend([
+                    "<th>Team</th>", "<th>Off.</th>", "<th>Def.</th>", "<th>Power</th>"
+                ])
+                html.append("</tr>")
+                for _, row in scatter_df2.iterrows():
+                    style = "background:#fffac8;" if row["Selected"] else ""
+                    team_cell = row["Team"]
+                    logo_url = row["Logo URL"]
+                    if pd.notnull(logo_url) and str(logo_url).startswith("http"):
+                        team_cell = (
+                            f'<div style="display:flex;align-items:center;">'
+                            f'<img src="{logo_url}" width="26" style="margin-right:8px;"/>{team_cell}</div>'
+                        )
+                    html.append(f'<tr style="{style}">')
+                    html.append(f"<td>{team_cell}</td>")
+                    html.append(f"<td>{row['Off']:.1f}</td>")
+                    html.append(f"<td>{row['Def']:.1f}</td>")
+                    html.append(f"<td>{df_neighbors.loc[df_neighbors['Team'] == row['Team'], 'Power Rating'].values[0]:.1f}</td>")
+                    html.append("</tr>")
+                html.append("</table>")
+                st.markdown("".join(html), unsafe_allow_html=True)
+            with right:
+                st.markdown("#### Power Ratings: Offense vs Defense")
+                # --- Altair scatter with logos ---
+                chart_points = alt.Chart(scatter_df2).transform_calculate(
+                    url="datum['Logo URL']"
+                ).mark_image(
+                    width=38,
+                    height=38
+                ).encode(
+                    x=alt.X('Off:Q', axis=alt.Axis(title='Offensive Power Rating')),
+                    y=alt.Y('Def:Q', axis=alt.Axis(title='Defensive Power Rating (lower is better)')),
+                    url="Logo URL:N",
+                    tooltip=[
+                        alt.Tooltip('Team', title='Team'),
+                        alt.Tooltip('Off', format=".1f", title='Off Rating'),
+                        alt.Tooltip('Def', format=".1f", title='Def Rating')
+                    ]
+                ).transform_filter("datum['Logo URL'] != null && datum['Logo URL'].startsWith('http')")
+                
+                # Fallback: for teams with no logo, show a circle
+                chart_circles = alt.Chart(scatter_df2).mark_circle(size=120).encode(
+                    x='Off:Q',
+                    y='Def:Q',
+                    color=alt.condition(
+                        alt.datum.Selected,
+                        alt.value("red"),  # highlight selected
+                        alt.value("#1e90ff")
+                    ),
+                    tooltip=[
+                        alt.Tooltip('Team', title='Team'),
+                        alt.Tooltip('Off', format=".1f", title='Off Rating'),
+                        alt.Tooltip('Def', format=".1f", title='Def Rating')
+                    ]
+                ).transform_filter("datum['Logo URL'] == null || !datum['Logo URL'].startsWith('http')")
+                
+                # Layer logos and circles
+                chart = (chart_points + chart_circles).properties(
+                    height=340, width=340
+                ).interactive()
+                st.altair_chart(chart, use_container_width=True)
+        else:
+            st.markdown("#### Power Ratings: Offense vs Defense (Neighborhood)")
+            # Mobile: just chart, logos/circles
+            chart_points = alt.Chart(scatter_df2).transform_calculate(
+                url="datum['Logo URL']"
+            ).mark_image(
+                width=20,
+                height=20
+            ).encode(
+                x=alt.X('Off:Q', axis=alt.Axis(title='Offense')),
+                y=alt.Y('Def:Q', axis=alt.Axis(title='Defense (lower=better)')),
+                url="Logo URL:N",
+                tooltip=[
+                    alt.Tooltip('Team', title='Team'),
+                    alt.Tooltip('Off', format=".1f", title='Off'),
+                    alt.Tooltip('Def', format=".1f", title='Def')
+                ]
+            ).transform_filter("datum['Logo URL'] != null && datum['Logo URL'].startsWith('http')")
+            chart_circles = alt.Chart(scatter_df2).mark_circle(size=60).encode(
+                x='Off:Q',
+                y='Def:Q',
+                color=alt.condition(
+                    alt.datum.Selected,
+                    alt.value("red"),
+                    alt.value("#1e90ff")
+                ),
+                tooltip=[
+                    alt.Tooltip('Team', title='Team'),
+                    alt.Tooltip('Off', format=".1f", title='Off'),
+                    alt.Tooltip('Def', format=".1f", title='Def')
+                ]
+            ).transform_filter("datum['Logo URL'] == null || !datum['Logo URL'].startsWith('http')")
+            chart = (chart_points + chart_circles).properties(
+                height=210, width=210
+            ).interactive()
+            st.altair_chart(chart, use_container_width=True)
+    
 
  
 elif tab == "Charts & Graphs":
