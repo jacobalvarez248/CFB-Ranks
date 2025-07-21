@@ -1042,6 +1042,36 @@ elif tab == "Team Dashboards":
         def_ret = fmt_pct(rank_row.iloc[0].get("Def. Returning Production", ""))
     else:
         ret_prod = off_ret = def_ret = ""
+    # Determine logo size based on layout
+    mobile_logo_dim = 20
+    desktop_logo_dim = 48
+    logo_dim = mobile_logo_dim if is_mobile() else desktop_logo_dim
+
+    if is_mobile():
+        inject_mobile_css()
+    
+        # rest of your mobile‐only style setup…
+        logo_dim = 20
+        # now you can safely use {logo_dim} in your mobile f-string
+        card_html = f'''
+          <div style="…">
+            <img src="{logo_url}" width="{logo_dim}"/>
+            …
+          </div>
+        '''
+        st.markdown(card_html, unsafe_allow_html=True)
+    
+    else:
+        # your desktop style setup...
+        logo_dim = 48
+        # now {logo_dim} is in scope here too
+        card_html = f'''
+          <div style="…">
+            <img src="{logo_url}" width="{logo_dim}"/>
+            …
+          </div>
+        '''
+        st.markdown(card_html, unsafe_allow_html=True)
 
     # --- CARD STRIP (Responsive, no sidebar overlap) ---
     if is_mobile():
