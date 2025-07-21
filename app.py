@@ -862,58 +862,37 @@ elif tab == "Team Dashboards":
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
     
-    # --- Build df_nearby: 5 above and 5 below selected team, by Power Rating ---
-    off_col = "Off. Power Rating"
-    def_col = "Def. Power Rating"
-    logo_col = "Logo URL"
+    # --- Load Schedule sheet with correct headers ---
+    df_schedule = load_sheet(data_path, "Schedule", header=1)
+    df_schedule.columns = [str(c).strip() for c in df_schedule.columns]
     
-    # Now use the clean column names
-    off_col = "Off. Power Rating"
-    def_col = "Def. Power Rating"
-    logo_col = "Logo URL"
+    # --- Merge Off/Def Power Ratings into main df_expected by Team ---
+    merge_cols = ["Team", "Off. Power Rating", "Def. Power Rating"]
+    df_expected = df_expected.merge(
+        df_schedule[merge_cols].drop_duplicates("Team"), on="Team", how="left"
+    )
     
-    # Sort all teams by Power Rating descending (higher = better)
+    # --- Now, find 5 teams above and 5 below the selected team by Power Rating ---
     df_sorted = df_expected.sort_values("Power Rating", ascending=False).reset_index(drop=True)
     team_idx = df_sorted[df_sorted["Team"] == selected_team].index[0]
-    st.write("df_expected columns:", list(df_expected.columns))
-    st.write("df_sorted columns:", list(df_sorted.columns))
-
+    
     N = 5  # Teams above and below
     total_teams = len(df_sorted)
     start_idx = max(team_idx - N, 0)
     end_idx = min(team_idx + N + 1, total_teams)
-    
-    # Adjust if near top or bottom
     if team_idx - N < 0:
         end_idx = min(end_idx + (N - team_idx), total_teams)
     if team_idx + N + 1 > total_teams:
         start_idx = max(start_idx - ((team_idx + N + 1) - total_teams), 0)
     
     df_nearby = df_sorted.iloc[start_idx:end_idx].copy()
-    st.write("df_nearby columns:", list(df_nearby.columns))
-    st.write("df_nearby head:", df_nearby.head(3))
-
-    # After making df_nearby:
-    df_nearby.columns = [str(col).strip() for col in df_nearby.columns]
-    def fuzzy_find(target, columns):
-        # Remove punctuation and lowercase for best effort
-        import re
-        tgt = re.sub(r"[^a-zA-Z0-9]", "", target).lower()
-        for c in columns:
-            c_norm = re.sub(r"[^a-zA-Z0-9]", "", c).lower()
-            if tgt in c_norm:
-                return c
-        return None
+    df_nearby.columns = [str(col).strip() for col in df_nearby.columns]  # Clean column names
     
-    off_col = fuzzy_find("Off. Power Rating", df_nearby.columns)
-    def_col = fuzzy_find("Def. Power Rating", df_nearby.columns)
-    logo_col = fuzzy_find("Logo URL", df_nearby.columns)
+    off_col = "Off. Power Rating"
+    def_col = "Def. Power Rating"
+    logo_col = "Logo URL"
     
-    st.write("Using off_col:", off_col)
-    st.write("Using def_col:", def_col)
-    st.write("Using logo_col:", logo_col)
-
-    # --- Off vs Def Power Rating Scatter Plot for Nearby Teams ---
+    # Defensive: ensure the columns exist and are numeric
     df_nearby[off_col] = pd.to_numeric(df_nearby[off_col], errors="coerce")
     df_nearby[def_col] = pd.to_numeric(df_nearby[def_col], errors="coerce")
     df_nearby = df_nearby.dropna(subset=[off_col, def_col, logo_col])
@@ -967,6 +946,7 @@ elif tab == "Team Dashboards":
             with right_col:
                 st.markdown("#### Off. vs Def. Power Rating (Nearest Teams)")
                 st.altair_chart(chart, use_container_width=True)
+
 
     # --- Rank Info ---
     overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
