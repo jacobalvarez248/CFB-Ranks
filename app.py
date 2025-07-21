@@ -1722,8 +1722,6 @@ elif tab == "Team Dashboards":
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-    st.markdown("#### Offensive vs Defensive Power Rating")
-    st.altair_chart(chart, use_container_width=True)
     
     # --- (1) Build df_ranking_clean ---
 
@@ -1833,19 +1831,26 @@ elif tab == "Team Dashboards":
     
     # --- Combine layers: logos on top then circles
     chart = points_with_logo + points_no_logo
-    
-    # --- Render in two‐column layout on desktop, full‐width on mobile ---
+
+    # --- Side-by-side Standings & Scatter (desktop) or stacked (mobile) ---
     if not is_mobile():
-        # two equal columns; left stays empty (or you can put something else there)
-        left_col, right_col = st.columns([1,1])
-        with right_col:
+        col1, col2 = st.columns([1, 1])
+    
+        with col1:
+            st.markdown("#### Conference Standings")
+            st.markdown("".join(standings_html), unsafe_allow_html=True)
+    
+        with col2:
             st.markdown("#### Offensive vs Defensive Power Rating")
             st.altair_chart(chart, use_container_width=True)
+    
     else:
-        # on mobile, still full-width
+        # mobile: chart above table (or reverse if you prefer)
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
-
+    
+        st.markdown("#### Conference Standings")
+        st.markdown("".join(standings_html), unsafe_allow_html=True)
 
 
 elif tab == "Charts & Graphs":
