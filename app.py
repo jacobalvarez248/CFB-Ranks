@@ -1533,44 +1533,7 @@ elif tab == "Team Dashboards":
             title=""
         )
         st.altair_chart(final_chart, use_container_width=True)
-    else:
-        st.markdown("#### Probability Distribution of Wins After Each Game")
-        st.markdown("".join(table_html), unsafe_allow_html=True)
-        st.markdown("#### Win Probability Distribution")
-        bar = alt.Chart(df_win_dist).mark_bar(
-            color="#002060"
-        ).encode(
-            x=alt.X("Wins:O", axis=alt.Axis(
-                title="Wins",
-                labelAngle=0,
-                labelColor="black",
-                titleColor="black"
-            )),
-            y=alt.Y("Probability:Q", axis=alt.Axis(
-                title="Probability (%)",
-                labelColor="black",
-                titleColor="black"
-            )),
-            tooltip=[
-                alt.Tooltip("Wins:O", title="Wins"),
-                alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
-            ]
-        )
-        text = bar.mark_text(
-            align='center',
-            baseline='bottom',
-            dy=-2,
-            color='black',
-            fontSize=8
-        ).encode(
-            text="Label"
-        )
-        final_chart = (bar + text).properties(
-            width=340,
-            height=240,
-            title=""
-        )
-        st.altair_chart(final_chart, use_container_width=True)
+    
     # ---- Conference Standings Table below Win Distribution ----
 
     # Only render if a team is selected
