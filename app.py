@@ -875,7 +875,9 @@ elif tab == "Team Dashboards":
     # Sort all teams by Power Rating descending (higher = better)
     df_sorted = df_expected.sort_values("Power Rating", ascending=False).reset_index(drop=True)
     team_idx = df_sorted[df_sorted["Team"] == selected_team].index[0]
-    
+    st.write("df_expected columns:", list(df_expected.columns))
+    st.write("df_sorted columns:", list(df_sorted.columns))
+
     N = 5  # Teams above and below
     total_teams = len(df_sorted)
     start_idx = max(team_idx - N, 0)
@@ -888,6 +890,9 @@ elif tab == "Team Dashboards":
         start_idx = max(start_idx - ((team_idx + N + 1) - total_teams), 0)
     
     df_nearby = df_sorted.iloc[start_idx:end_idx].copy()
+    st.write("df_nearby columns:", list(df_nearby.columns))
+    st.write("df_nearby head:", df_nearby.head(3))
+
     # After making df_nearby:
     df_nearby.columns = [str(col).strip() for col in df_nearby.columns]
     def fuzzy_find(target, columns):
