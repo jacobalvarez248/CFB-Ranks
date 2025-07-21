@@ -1041,9 +1041,10 @@ elif tab == "Team Dashboards":
         card_base = (
             f"flex: 1 1 {card_width:.2f}vw; min-width:52px; max-width:{card_width:.2f}vw; "
             "margin:0; background: #00B050; color: #fff; border-radius: 4px; border: 1px solid #fff; "
-            "padding: 1px 0; min-height:48px; display: flex; flex-direction: column; align-items: center; "
-            "font-size:8px; font-weight:700; text-align:center; box-sizing: border-box;"
+            "padding: 8px 0; display: flex; flex-direction: column; align-items: center; "
+            "font-size:7px; font-weight:700; text-align:center; box-sizing: border-box;"
         )
+
         lighter_card = card_base.replace('#00B050', '#00B0F0')
         dark_card = card_base.replace('#00B050', '#002060')
         logo_style = f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; text-align:center; margin:0;"
