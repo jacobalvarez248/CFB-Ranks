@@ -1051,12 +1051,12 @@ elif tab == "Team Dashboards":
             <div style="{dark_card}"><span style="font-size:0.8em;">Rank</span>{overall_rank}</div>
             <div style="{dark_card}"><span style="font-size:0.8em;">Conf. Rk</span>{this_conf_rank}</div>
             <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_6_pct_str}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_8_pct_str}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_10_pct_str}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{exact_12_pct}</div>
-            <div style="{card_base}"><span style="font-size:0.8em;">Ret.</span>{ret_prod}</div>
-            <div style="{card_base}"><span style="font-size:0.8em;">Off.</span>{off_ret}</div>
-            <div style="{card_base}"><span style="font-size:0.8em;">Def.</span>{def_ret}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">8+</span>{at_least_8_pct_str}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">10+</span>{at_least_10_pct_str}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">12-0</span>{exact_12_pct}</div>
+            <div style="{card_base}"><span style="font-size:0.8em;">Ret.</span>{ret_prod_str}</div>
+            <div style="{card_base}"><span style="font-size:0.8em;">Off.</span>{off_ret_str}</div>
+            <div style="{card_base}"><span style="font-size:0.8em;">Def.</span>{def_ret_str}</div>
         </div>
         '''
     else:
