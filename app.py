@@ -1775,9 +1775,10 @@ elif tab == "Team Dashboards":
     
     # Now plot:
     chart = alt.Chart(scatter_df).mark_circle(size=100, color='blue').encode(
-        x=alt.X('Off. Power Rating', axis=alt.Axis(title='Offensive Power Rating')),
-        y=alt.Y('Def. Power Rating', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
+        x=alt.X('Off. Power Rating:Q', axis=alt.Axis(title='Offensive Power Rating')),
+        y=alt.Y('Def. Power Rating:Q', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
     )
+
     st.altair_chart(chart, use_container_width=True)
     
 
