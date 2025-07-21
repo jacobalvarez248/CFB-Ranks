@@ -1723,22 +1723,20 @@ elif tab == "Team Dashboards":
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
     
-   # --- Similar Teams Offense vs. Defense Scatter Plot (No Logos) ---
-    
-    # 1. Load Off/Def Power Ratings from "Ranking" tab
+    # 1. Load and clean ratings
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
     df_ranking = df_ranking[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
     
-    # 2. Merge with Power Rating for sorting
+    # Merge for power sort
     df_all = df_expected[["Team", "Power Rating"]].merge(
         df_ranking, on="Team", how="left"
     )
     df_all = df_all.sort_values("Power Rating", ascending=False).reset_index(drop=True)
     
-    # 3. Find selected team index and neighbor slice
+    # Find neighbors
     selected_idx = df_all.index[df_all["Team"] == selected_team][0]
-    N = 5  # Teams above/below
+    N = 5
     num_teams = len(df_all)
     if selected_idx < N:
         start = 0
@@ -1753,7 +1751,21 @@ elif tab == "Team Dashboards":
     df_neighbors = df_all.iloc[start:end].copy()
     df_neighbors["Selected"] = df_neighbors["Team"] == selected_team
     
-    # --- Altair Scatter Plot (Dots, no logos) ---
+    # -- CLEAN COLUMN NAMES (just in case) --
+    df_neighbors.columns = [c.strip() for c in df_neighbors.columns]
+    
+    # --- FORCE NUMERIC ---
+    df_neighbors["Off. Power Rating"] = pd.to_numeric(df_neighbors["Off. Power Rating"], errors="coerce")
+    df_neighbors["Def. Power Rating"] = pd.to_numeric(df_neighbors["Def. Power Rating"], errors="coerce")
+    
+    # --- DROP ROWS WITH NANs ---
+    df_neighbors = df_neighbors.dropna(subset=["Off. Power Rating", "Def. Power Rating"])
+    
+    # --- DIAGNOSTICS (optional, remove when happy) ---
+    st.write("Teams in scatter:", len(df_neighbors))
+    st.write(df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating", "Selected"]])
+    
+    # --- Altair Plot ---
     size_normal = 90 if not is_mobile() else 50
     size_selected = 350 if not is_mobile() else 160
     
@@ -1767,7 +1779,6 @@ elif tab == "Team Dashboards":
         ]
     )
     
-    # Non-selected teams as blue dots
     points = base.transform_filter(
         alt.datum.Selected == False
     ).mark_circle(
@@ -1775,7 +1786,6 @@ elif tab == "Team Dashboards":
         color="#004085"
     )
     
-    # Selected team as orange, larger dot with black outline
     highlight = base.transform_filter(
         alt.datum.Selected == True
     ).mark_circle(
@@ -1791,17 +1801,15 @@ elif tab == "Team Dashboards":
         title="Closest Teams by Power Rating: Off vs. Def"
     )
     
-    # --- Responsive Placement ---
     if is_mobile():
         st.markdown("#### Similar Teams: Offense vs. Defense Rating")
         st.altair_chart(chart, use_container_width=True)
     else:
-        # Place next to conference standings (adjust columns as needed)
         left, right = st.columns([1, 1])
         with right:
             st.markdown("#### Similar Teams: Offense vs. Defense Rating")
             st.altair_chart(chart, use_container_width=True)
-     
+         
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
