@@ -934,6 +934,89 @@ elif tab == "Team Dashboards":
         def_ret = fmt_pct(rank_row.iloc[0].get("Def. Returning Production", ""))
     else:
         ret_prod = off_ret = def_ret = ""
+    # --- Universe Size ---
+    num_teams = df_expected["Team"].nunique()
+    
+    # --- Helper for Ranking (higher is better) ---
+    def get_rank(series, val, ascending=False):
+        arr = pd.to_numeric(series, errors='coerce').dropna()
+        if pd.isnull(val) or len(arr) == 0:
+            return ""
+        # For percent: convert 80% to 0.8 if needed
+        arr = arr.apply(lambda x: x/100 if x > 1.01 else x)
+        if val > 1.01:
+            val = val / 100
+        rank = (arr >= val).sum() if not ascending else (arr <= val).sum()
+        return f"({rank}/{len(arr)})"
+    
+    # --- Returning Production Cards ---
+    def percent_to_float(x):
+        try:
+            if isinstance(x, str) and '%' in x:
+                x = x.replace('%','')
+            val = float(x)
+            return val/100 if val > 1.01 else val
+        except:
+            return float('nan')
+    
+    if not rank_row.empty:
+        team_ret_prod = percent_to_float(rank_row.iloc[0].get("Returning Production", ""))
+        team_off_ret = percent_to_float(rank_row.iloc[0].get("Off. Returning Production", ""))
+        team_def_ret = percent_to_float(rank_row.iloc[0].get("Def. Returning Production", ""))
+    else:
+        team_ret_prod = team_off_ret = team_def_ret = float('nan')
+    
+    ret_rank = get_rank(df_ranking["Returning Production"], team_ret_prod)
+    off_ret_rank = get_rank(df_ranking["Off. Returning Production"], team_off_ret)
+    def_ret_rank = get_rank(df_ranking["Def. Returning Production"], team_def_ret)
+    
+    ret_prod_str = f"{ret_prod} {ret_rank}"
+    off_ret_str = f"{off_ret} {off_ret_rank}"
+    def_ret_str = f"{def_ret} {def_ret_rank}"
+    
+    # --- WIN PROB RANKS ---
+    # Calculate for ALL TEAMS
+    win_prob_metrics = { "at_least_6": [], "at_least_8": [], "at_least_10": [], "exact_12": [] }
+    
+    for team in df_expected["Team"]:
+        sched_team = df_schedule[df_schedule[team_col] == team].copy()
+        n_games = len(sched_team)
+        if "Win Probability" in sched_team.columns:
+            wp_list = sched_team["Win Probability"].astype(float).values
+        elif "Win Prob" in sched_team.columns:
+            wp_list = sched_team["Win Prob"].astype(float).values
+        else:
+            wp_list = np.full(n_games, 0.5)
+        dp = np.zeros((n_games + 1, n_games + 1))
+        dp[0, 0] = 1.0
+        for g in range(1, n_games + 1):
+            p = wp_list[g-1]
+            for w in range(g+1):
+                win_part = dp[g-1, w-1] * p if w > 0 else 0
+                lose_part = dp[g-1, w] * (1 - p)
+                dp[g, w] = win_part + lose_part
+        win_probs = dp[n_games, :]
+        win_prob_metrics["at_least_6"].append(win_probs[6:].sum() if len(win_probs) > 6 else 0.0)
+        win_prob_metrics["at_least_8"].append(win_probs[8:].sum() if len(win_probs) > 8 else 0.0)
+        win_prob_metrics["at_least_10"].append(win_probs[10:].sum() if len(win_probs) > 10 else 0.0)
+        if len(win_probs) > 12:
+            win_prob_metrics["exact_12"].append(win_probs[12])
+        elif len(win_probs) == 12:
+            win_prob_metrics["exact_12"].append(win_probs[-1])
+        else:
+            win_prob_metrics["exact_12"].append(0.0)
+    
+    # --- Get this team's value and rank ---
+    at_least_6_rank = get_rank(win_prob_metrics["at_least_6"], at_least_6)
+    at_least_8_rank = get_rank(win_prob_metrics["at_least_8"], at_least_8)
+    at_least_10_rank = get_rank(win_prob_metrics["at_least_10"], at_least_10)
+    exact_12_rank = get_rank(win_prob_metrics["exact_12"], exact_12)
+    
+    at_least_6_pct_str = f"{at_least_6*100:.1f}% {at_least_6_rank}"
+    at_least_8_pct_str = f"{at_least_8*100:.1f}% {at_least_8_rank}"
+    at_least_10_pct_str = f"{at_least_10*100:.1f}% {at_least_10_rank}"
+    exact_12_pct_str = f"{exact_12*100:.1f}% {exact_12_rank}"
+
 
     # --- CARD STRIP (Responsive, no sidebar overlap) ---
     if is_mobile():
@@ -967,10 +1050,10 @@ elif tab == "Team Dashboards":
             </div>
             <div style="{dark_card}"><span style="font-size:0.8em;">Rank</span>{overall_rank}</div>
             <div style="{dark_card}"><span style="font-size:0.8em;">Conf. Rk</span>{this_conf_rank}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_6_pct}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">8+</span>{at_least_8_pct}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">10+</span>{at_least_10_pct}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">12-0</span>{exact_12_pct}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_6_pct_str}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_8_pct_str}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_10_pct_str}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{exact_12_pct}</div>
             <div style="{card_base}"><span style="font-size:0.8em;">Ret.</span>{ret_prod}</div>
             <div style="{card_base}"><span style="font-size:0.8em;">Off.</span>{off_ret}</div>
             <div style="{card_base}"><span style="font-size:0.8em;">Def.</span>{def_ret}</div>
