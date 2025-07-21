@@ -1017,6 +1017,12 @@ elif tab == "Team Dashboards":
     at_least_10_pct_str = f"{at_least_10*100:.1f}% {at_least_10_rank}"
     exact_12_pct_str = f"{exact_12*100:.1f}% {exact_12_rank}"
 
+    # Power rating and rank string
+    team_power = float(team_row["Power Rating"])
+    prank = df_expected["Power Rating"].rank(method="min", ascending=False)
+    team_rank = int(prank[df_expected["Team"] == selected_team].iloc[0])
+    num_teams = len(df_expected)
+    power_rank_str = f"({team_rank}/{num_teams})"
 
     # --- CARD STRIP (Responsive, no sidebar overlap) ---
     if is_mobile():
@@ -1086,8 +1092,8 @@ elif tab == "Team Dashboards":
                 <span style="line-height:1.15;">{overall_rank}</span>
             </div>
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span>
-                <span style="line-height:1.15;">{this_conf_rank}</span>
+                <span style="font-size:0.95em; color:#FFF; font-weight:700;">{team_power:.1f}</span>
+                <span style="font-size:0.83em; color:#FFF; font-weight:400;">{power_rank_str}</span>
             </div>
             <div style="{lighter_card_style}">
                 <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
