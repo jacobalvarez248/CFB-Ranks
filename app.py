@@ -1876,6 +1876,22 @@ elif tab == "Team Dashboards":
             st.markdown("#### Similar Teams: Offense vs. Defense Rating")
             st.altair_chart(chart, use_container_width=True)
 
+    chart = alt.Chart(df_neighbors).mark_circle(
+        size=200,
+        color="#004085"
+    ).encode(
+        x=alt.X("Off. Power Rating:Q", scale=alt.Scale(domain=x_domain), axis=alt.Axis(title="Offensive Power Rating")),
+        y=alt.Y("Def. Power Rating:Q", scale=alt.Scale(domain=y_domain), axis=alt.Axis(title="Defensive Power Rating (lower is better)")),
+        tooltip=[
+            "Team", "Off. Power Rating", "Def. Power Rating"
+        ]
+    ).properties(
+        width=420,
+        height=390,
+        title="Closest Teams by Power Rating: Off vs. Def"
+    )
+    
+    st.altair_chart(chart, use_container_width=True)
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
