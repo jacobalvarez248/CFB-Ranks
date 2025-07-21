@@ -1723,65 +1723,53 @@ elif tab == "Team Dashboards":
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
 
-    # --- Ensure columns are stripped of whitespace ---
-    df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
+    # 1. Clean and prepare logo DataFrame
+    def clean_team_name(name):
+        if pd.isnull(name):
+            return ""
+        return str(name).strip().upper()
     
-    # 1. Find selected team's power rating and ranking index
-    sorted_teams = df_expected.sort_values('Power Rating', ascending=False).reset_index(drop=True)
-    selected_idx = sorted_teams[sorted_teams['Team'] == selected_team].index[0]
-    total_teams = len(sorted_teams)
-    N = 5
+    logos_df = logos_df.copy()
+    logos_df["Team_clean"] = logos_df["Team"].apply(clean_team_name)
     
-    # 2. Find window of teams (up to 5 above/below, include selected)
-    if selected_idx < N:
-        # Near the top: shift window down
-        start_idx = 0
-        end_idx = min(total_teams, 11)
-    elif selected_idx > total_teams - N - 1:
-        # Near the bottom: shift window up
-        end_idx = total_teams
-        start_idx = max(0, total_teams - 11)
-    else:
-        # Middle: standard window
-        start_idx = selected_idx - N
-        end_idx = selected_idx + N + 1
+    # 2. Clean and prepare ranking DataFrame
+    df_ranking = df_ranking.copy()
+    df_ranking["Team_clean"] = df_ranking["Team"].apply(clean_team_name)
     
+    # 3. Clean and prepare window DataFrame
     window_df = sorted_teams.iloc[start_idx:end_idx].copy()
+    window_df["Team_clean"] = window_df["Team"].apply(clean_team_name)
     
-    # 3. Merge in Off/Def Power Rating from "Ranking" sheet
-    ranking_offdef = df_ranking[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
-    ranking_offdef["Team"] = ranking_offdef["Team"].str.strip()
-    window_df = window_df.merge(ranking_offdef, on="Team", how="left")
+    # 4. Merge in Off/Def Power Ratings from Ranking
+    window_df = window_df.merge(
+        df_ranking[["Team_clean", "Off. Power Rating", "Def. Power Rating"]],
+        on="Team_clean", how="left"
+    )
     
-    # 4. Merge in logo if needed
-    if "Logo URL" not in window_df:
-        window_df = window_df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+    # 5. Merge in Logo URLs from Logos tab
+    window_df = window_df.merge(
+        logos_df[["Team_clean", "Logo URL"]],
+        on="Team_clean", how="left"
+    )
     
+    # 6. Mark selected team for highlight
     window_df['is_selected'] = window_df['Team'] == selected_team
     
-    # 1. Ensure numerics
-    window_df["Off. Power Rating"] = pd.to_numeric(window_df["Off. Power Rating"], errors="coerce")
-    window_df["Def. Power Rating"] = pd.to_numeric(window_df["Def. Power Rating"], errors="coerce")
-    
-    # 2. Fallback logo if missing
+    # 7. Fallback logo for missing teams
     fallback_logo = "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
     window_df["Logo URL"] = window_df["Logo URL"].fillna(fallback_logo)
     
-    # 3. Drop rows if missing ratings
+    # 8. Ensure ratings are numeric
+    window_df["Off. Power Rating"] = pd.to_numeric(window_df["Off. Power Rating"], errors="coerce")
+    window_df["Def. Power Rating"] = pd.to_numeric(window_df["Def. Power Rating"], errors="coerce")
+    
+    # 9. Drop rows missing required values
     window_df = window_df.dropna(subset=["Off. Power Rating", "Def. Power Rating"], how='any')
     
-    # 4. Debug: See if logo URLs are valid
-    st.write(window_df[["Team", "Off. Power Rating", "Def. Power Rating", "Logo URL"]])
+    # Debug: Show what data is being plotted
+    # st.write(window_df[["Team", "Off. Power Rating", "Def. Power Rating", "Logo URL", "is_selected"]])
     
-    # 5. Test with mark_circle to see if data shows up
-    points = alt.Chart(window_df).mark_circle(size=100, color="red").encode(
-        x="Off. Power Rating:Q",
-        y=alt.Y("Def. Power Rating:Q", scale=alt.Scale(reverse=True)),
-        tooltip=["Team"]
-    )
-    st.altair_chart(points, use_container_width=True)
-
-    # 5. Build the Altair chart
+    # 10. Build the Altair chart
     logo_size = 45 if not is_mobile() else 28
     highlight_size = 65 if not is_mobile() else 38
     
@@ -1790,7 +1778,7 @@ elif tab == "Team Dashboards":
         y=alt.Y("Def. Power Rating:Q", title="Defensive Power Rating", scale=alt.Scale(reverse=True)),
     )
     
-    # Plot non-selected teams
+    # Plot other teams
     logos = base.transform_filter(
         alt.datum.is_selected == False
     ).mark_image(
@@ -1801,7 +1789,7 @@ elif tab == "Team Dashboards":
         tooltip=["Team", "Off. Power Rating", "Def. Power Rating"]
     )
     
-    # Plot selected team (highlighted)
+    # Plot selected team
     selected_logo = base.transform_filter(
         alt.datum.is_selected == True
     ).mark_image(
@@ -1813,12 +1801,12 @@ elif tab == "Team Dashboards":
         tooltip=["Team", "Off. Power Rating", "Def. Power Rating"]
     )
     
-    # Optional: subtle glow/circle behind selected team for extra highlight
+    # Optional: gold highlight for selected team
     highlight_circle = base.transform_filter(
         alt.datum.is_selected == True
     ).mark_circle(
         size=highlight_size**2 * 0.78,
-        color="#FFD700",  # gold glow
+        color="#FFD700",
         opacity=0.25,
     ).encode()
     
@@ -1828,7 +1816,7 @@ elif tab == "Team Dashboards":
         title=f"Closest Teams by Power Rating: Offense vs Defense"
     )
     
-    # 6. Placement
+    # 11. Placement: right column on desktop, below on mobile
     if is_mobile():
         st.markdown("#### Closest Teams: Off/Def Ratings")
         st.altair_chart(chart, use_container_width=True)
@@ -1837,8 +1825,8 @@ elif tab == "Team Dashboards":
         with right:
             st.markdown("#### Closest Teams: Off/Def Ratings")
             st.altair_chart(chart, use_container_width=True)
-     
-        
+
+          
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
