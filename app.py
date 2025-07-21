@@ -1582,7 +1582,7 @@ elif tab == "Team Dashboards":
     if conference:
         # Find the mobile/desktop columns and headers as in Conference Overview tab
         mobile_header_map = {
-            "Projected Finish": "Conf. Standings",
+            "Projected Finish": "Proj. Finish",
             "Team": "Team",
             "Power Rating": "Pwr. Rtg.",
             "Projected Overall Wins": "Proj. Wins",
