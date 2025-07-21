@@ -1039,9 +1039,9 @@ elif tab == "Team Dashboards":
         n_items = 10  # logos + 9 cards
         card_width = 100 / n_items - 0.5
         card_base = (
-            f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; "
+            f"flex: 1 1 {card_width:.2f}vw; min-width:52px; max-width:{card_width:.2f}vw; "
             "margin:0; background: #00B050; color: #fff; border-radius: 4px; border: 1px solid #fff; "
-            "padding: 2px 0; display: flex; flex-direction: column; align-items: center; "
+            "padding: 2px 0; min-height:48px; display: flex; flex-direction: column; align-items: center; "
             "font-size:7px; font-weight:700; text-align:center; box-sizing: border-box;"
         )
         lighter_card = card_base.replace('#00B050', '#00B0F0')
