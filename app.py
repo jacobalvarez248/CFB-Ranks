@@ -1576,11 +1576,12 @@ elif tab == "Team Dashboards":
             title=""
         )
         st.altair_chart(final_chart, use_container_width=True)
-    # ---- Conference Standings Table below Win Distribution ----
-
-    # Only render if a team is selected
+    
+    # ---- Conference Standings Table and Scatter ----
+    
+    # Only build and render if a team is selected (i.e., conference is set)
     if conference:
-        # Find the mobile/desktop columns and headers as in Conference Overview tab
+        # === Build standings_html ===
         mobile_header_map = {
             "Projected Finish": "Proj. Finish",
             "Team": "Team",
@@ -1660,7 +1661,7 @@ elif tab == "Team Dashboards":
             th += header_font
             standings_html.append(f"<th style='{th}'>{disp_col}</th>")
         standings_html.append("</tr></thead><tbody>")
-        
+    
         for _, row in standings.iterrows():
             is_selected_team = (row["Team"] == selected_team)
             standings_html.append("<tr>")
@@ -1669,8 +1670,7 @@ elif tab == "Team Dashboards":
                 td = 'border:1px solid #ddd; padding:8px; text-align:center;'
                 td += cell_font
                 cell = v
-        
-                # --- Your existing coloring/logic here (see previous answers) ---
+    
                 if c == "Team":
                     logo = row.get("Logo URL")
                     if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
@@ -1690,13 +1690,11 @@ elif tab == "Team Dashboards":
                         r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                         td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                         cell = f"{v:.1f}"
-                    # Average Conference Game Quality
                     elif c == "Average Conference Game Quality" and pd.notnull(v):
                         t = (v - acgq_min) / (acgq_max - acgq_min) if acgq_max > acgq_min else 0
                         r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                         td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                         cell = f"{v:.1f}"
-                    # Average Conference Schedule Difficulty (inverse)
                     elif c == "Average Conference Schedule Difficulty" and pd.notnull(v):
                         inv = 1 - ((v - acsd_min) / (acsd_max - acsd_min) if acsd_max > acsd_min else 0)
                         r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
@@ -1704,11 +1702,10 @@ elif tab == "Team Dashboards":
                         cell = f"{v:.1f}"
                     else:
                         cell = v
-        
-                # --- Row highlight (but not if already #E2EFDA) ---
+    
                 if is_selected_team and "background-color" not in td:
                     td += " background-color:#fffac8;"
-        
+    
                 standings_html.append(f"<td style='{td}'>{cell}</td>")
             standings_html.append("</tr>")
         standings_html.append("</tbody></table></div>")
