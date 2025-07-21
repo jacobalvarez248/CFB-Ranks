@@ -1760,9 +1760,6 @@ elif tab == "Team Dashboards":
     else:
         start = selected_idx - N
         end = selected_idx + N + 1
-    
-    df_neighbors = df_sorted.iloc[start:end].copy()
-    df_neighbors = df_neighbors.reset_index(drop=True)
 
     # Define scatter_df right here:
     scatter_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
