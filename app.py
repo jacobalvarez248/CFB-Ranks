@@ -1722,7 +1722,7 @@ elif tab == "Team Dashboards":
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-
+        
     # --- (1) Build df_ranking_clean ---
 
     # Load the Rankings sheet (or use your previous df_ranking)
@@ -1835,7 +1835,10 @@ elif tab == "Team Dashboards":
     else:
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
- 
+
+    # DEBUG: see who has/doesn’t have a Logo URL
+    st.write(scatter_df2[["Team","Logo URL"]])
+
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
