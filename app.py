@@ -1648,15 +1648,9 @@ elif tab == "Team Dashboards":
                 'border:1px solid #ddd; padding:8px; text-align:center; '
                 'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
             )
-            if c == "Projected Finish":
-                # Widen for desktop and mobile
+            if c == "Team":
                 if is_mobile():
                     th += " white-space:normal; min-width:24vw; max-width:36vw; font-size:12px; line-height:1.1;"
-                else:
-                    th += " white-space:normal; min-width:110px; max-width:170px; font-size:15px; line-height:1.1;"
-            elif c == "Team":
-                if is_mobile():
-                    th += " white-space:nowrap; min-width:48px; max-width:48px;"
                 else:
                     th += " white-space:nowrap; min-width:180px; max-width:240px;"
             elif not is_mobile() and c in compact_cols_conf:
