@@ -863,15 +863,28 @@ elif tab == "Team Dashboards":
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
     
     # --- Load Schedule sheet with correct headers ---
-    df_schedule = load_sheet(data_path, "Schedule", header=1)
-    df_schedule.columns = [str(c).strip() for c in df_schedule.columns]
+    df_schedule = load_sheet(data_path, "Schedule", header=1) )
+    df_schedule.columns = [str(col).strip() for col in df_schedule.columns]
     
-    # --- Merge Off/Def Power Ratings into main df_expected by Team ---
-    merge_cols = ["Team", "Off. Power Rating", "Def. Power Rating"]
+    st.write("df_schedule columns:", list(df_schedule.columns))  # Diagnostic
+    
+    # Use the exact column names from your screenshot!
+    team_col = "Team"
+    off_col = "Off. Power Rating"
+    def_col = "Def. Power Rating"
+    logo_col = "Logo URL"
+    
+    # Confirm that all columns exist before merge
+    missing = [col for col in [team_col, off_col, def_col] if col not in df_schedule.columns]
+    if missing:
+        st.error(f"Missing columns in df_schedule: {missing}")
+    
+    # Merge Off/Def Power Ratings into main df_expected by Team
+    # Drop duplicates so that each team appears only once
     df_expected = df_expected.merge(
-        df_schedule[merge_cols].drop_duplicates("Team"), on="Team", how="left"
+        df_schedule[[team_col, off_col, def_col]].drop_duplicates(subset=[team_col]), on=team_col, how="left"
     )
-    
+
     # --- Now, find 5 teams above and 5 below the selected team by Power Rating ---
     df_sorted = df_expected.sort_values("Power Rating", ascending=False).reset_index(drop=True)
     team_idx = df_sorted[df_sorted["Team"] == selected_team].index[0]
