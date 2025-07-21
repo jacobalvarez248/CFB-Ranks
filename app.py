@@ -1836,6 +1836,7 @@ elif tab == "Team Dashboards":
     if not is_mobile():
         left_col, right_col = st.columns([1, 1])
         with left_col:
+            st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
         with right_col:
             st.markdown("#### Offensive vs Defensive Power Rating")
