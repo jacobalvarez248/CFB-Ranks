@@ -1722,43 +1722,56 @@ elif tab == "Team Dashboards":
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-    # 1. Find selected team’s power rating and rank
+
+    # --- Ensure columns are stripped of whitespace ---
+    df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
+    
+    # 1. Find selected team's power rating and ranking index
     sorted_teams = df_expected.sort_values('Power Rating', ascending=False).reset_index(drop=True)
     selected_idx = sorted_teams[sorted_teams['Team'] == selected_team].index[0]
-    
-    # 2. Determine slice
     total_teams = len(sorted_teams)
     N = 5
-    start_idx = max(0, selected_idx - N)
-    end_idx = min(total_teams, selected_idx + N + 1)
+    
+    # 2. Find window of teams (up to 5 above/below, include selected)
+    if selected_idx < N:
+        # Near the top: shift window down
+        start_idx = 0
+        end_idx = min(total_teams, 11)
+    elif selected_idx > total_teams - N - 1:
+        # Near the bottom: shift window up
+        end_idx = total_teams
+        start_idx = max(0, total_teams - 11)
+    else:
+        # Middle: standard window
+        start_idx = selected_idx - N
+        end_idx = selected_idx + N + 1
+    
     window_df = sorted_teams.iloc[start_idx:end_idx].copy()
     
-    # 3. Merge in Off/Def Ratings from Schedule sheet
-    # Make sure "Team" columns match casing/whitespace!
-    st.write("Schedule columns:", df_schedule.columns.tolist())
-
-    schedule_offdef = df_schedule[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
-    schedule_offdef["Team"] = schedule_offdef["Team"].str.strip()
-    window_df = window_df.merge(schedule_offdef, on="Team", how="left")
+    # 3. Merge in Off/Def Power Rating from "Ranking" sheet
+    ranking_offdef = df_ranking[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
+    ranking_offdef["Team"] = ranking_offdef["Team"].str.strip()
+    window_df = window_df.merge(ranking_offdef, on="Team", how="left")
     
-    # Merge in Logo if not present
+    # 4. Merge in logo if needed
     if "Logo URL" not in window_df:
         window_df = window_df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
     
-    # 4. Mark the selected team
     window_df['is_selected'] = window_df['Team'] == selected_team
     
-    # 5. Build the chart
-    logo_size = 45 if not is_mobile() else 24
-    highlight_size = 64 if not is_mobile() else 32
+    # --- Handle missing data gracefully ---
+    window_df = window_df.dropna(subset=["Off. Power Rating", "Def. Power Rating"])
+    
+    # 5. Build the Altair chart
+    logo_size = 45 if not is_mobile() else 28
+    highlight_size = 65 if not is_mobile() else 38
     
     base = alt.Chart(window_df).encode(
         x=alt.X("Off. Power Rating:Q", title="Offensive Power Rating"),
-        y=alt.Y("Def. Power Rating:Q", title="Defensive Power Rating",
-                scale=alt.Scale(reverse=True)),  # Reverse: lower is better
+        y=alt.Y("Def. Power Rating:Q", title="Defensive Power Rating", scale=alt.Scale(reverse=True)),
     )
     
-    # Plot all teams
+    # Plot non-selected teams
     logos = base.transform_filter(
         alt.datum.is_selected == False
     ).mark_image(
@@ -1769,7 +1782,7 @@ elif tab == "Team Dashboards":
         tooltip=["Team", "Off. Power Rating", "Def. Power Rating"]
     )
     
-    # Plot the selected team on top (bigger, possibly with outline)
+    # Plot selected team (highlighted)
     selected_logo = base.transform_filter(
         alt.datum.is_selected == True
     ).mark_image(
@@ -1781,30 +1794,31 @@ elif tab == "Team Dashboards":
         tooltip=["Team", "Off. Power Rating", "Def. Power Rating"]
     )
     
-    # Optional: highlight circle or border
+    # Optional: subtle glow/circle behind selected team for extra highlight
     highlight_circle = base.transform_filter(
         alt.datum.is_selected == True
     ).mark_circle(
-        size=highlight_size**2 * 0.85,
-        color="#FFD700",
-        opacity=0.3,
+        size=highlight_size**2 * 0.78,
+        color="#FFD700",  # gold glow
+        opacity=0.25,
     ).encode()
     
     chart = (logos + selected_logo + highlight_circle).properties(
         width="container",
-        height=320 if is_mobile() else 400,
-        title=f"Offense vs Defense - {selected_team} and Similar Teams"
+        height=330 if is_mobile() else 400,
+        title=f"Closest Teams by Power Rating: Offense vs Defense"
     )
     
-    # 6. Placement: Desktop (right column), Mobile (below)
+    # 6. Placement
     if is_mobile():
         st.markdown("#### Closest Teams: Off/Def Ratings")
         st.altair_chart(chart, use_container_width=True)
     else:
-        left, right = st.columns([2, 1])
+        _, right = st.columns([2, 1])
         with right:
             st.markdown("#### Closest Teams: Off/Def Ratings")
             st.altair_chart(chart, use_container_width=True)
+     
         
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
