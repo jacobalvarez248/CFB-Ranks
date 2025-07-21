@@ -1833,8 +1833,17 @@ elif tab == "Team Dashboards":
     chart = points_with_logo + points_no_logo
     
     # --- Render in two‐column layout on desktop, full‐width on mobile ---
-    st.markdown("#### Offensive vs Defensive Power Rating")
-    st.altair_chart(chart, use_container_width=True)
+    if not is_mobile():
+        # two equal columns; left stays empty (or you can put something else there)
+        left_col, right_col = st.columns([1,1])
+        with right_col:
+            st.markdown("#### Offensive vs Defensive Power Rating")
+            st.altair_chart(chart, use_container_width=True)
+    else:
+        # on mobile, still full-width
+        st.markdown("#### Offensive vs Defensive Power Rating")
+        st.altair_chart(chart, use_container_width=True)
+
 
 
 elif tab == "Charts & Graphs":
