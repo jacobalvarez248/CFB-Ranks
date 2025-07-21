@@ -1777,11 +1777,6 @@ elif tab == "Team Dashboards":
     scatter_df = scatter_df.dropna()
     st.write("scatter_df for plotting:", scatter_df)
 
-    st.scatter_chart(
-        data=df_neighbors,
-        x="Off. Power Rating",
-        y="Def. Power Rating"
-    )
     scatter_df = scatter_df.reset_index(drop=True)
     st.scatter_chart(scatter_df)
 
