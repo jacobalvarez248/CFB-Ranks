@@ -1772,20 +1772,23 @@ elif tab == "Team Dashboards":
         title=""
     )
     
-    # Place chart
+    # --- Responsive layout: standings table + scatter chart ---
     if not is_mobile():
-        standings_col, chart_col = st.columns([1.05, 1.1])
-        with standings_col:
+        # Desktop: standings left, scatter right
+        col1, col2 = st.columns([1, 1])
+        with col1:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-        with chart_col:
+        with col2:
             st.markdown("#### Similar Teams: Offense vs Defense")
             st.altair_chart(scatter_chart, use_container_width=True)
     else:
+        # Mobile: stack
         st.markdown("#### Conference Standings")
         st.markdown("".join(standings_html), unsafe_allow_html=True)
         st.markdown("#### Similar Teams: Offense vs Defense")
         st.altair_chart(scatter_chart, use_container_width=True)
+
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
