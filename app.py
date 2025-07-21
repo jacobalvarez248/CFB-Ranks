@@ -1764,22 +1764,23 @@ elif tab == "Team Dashboards":
     
     window_df = sorted_teams.iloc[start_idx:end_idx].copy()
     
-    # 5. Merge in Off/Def Power Ratings and Logo URL
+    # 5. Merge in Logo URLs from Logos tab
+    if "Logo URL" not in logos_df.columns and "Image URL" in logos_df.columns:
+        logos_df = logos_df.rename(columns={"Image URL": "Logo URL"})
+    
+    cols_to_merge = [col for col in ["Team_clean", "Logo URL"] if col in logos_df.columns]
     window_df = window_df.merge(
-        df_ranking[["Team_clean", "Off. Power Rating", "Def. Power Rating"]],
-        on="Team_clean", how="left"
-    )
-    window_df = window_df.merge(
-        logos_df[["Team_clean", "Logo URL"]],
+        logos_df[cols_to_merge],
         on="Team_clean", how="left"
     )
     
-    # 6. Mark selected team
-    window_df['is_selected'] = window_df['Team_clean'] == selected_team_clean
-    
-    # 7. Fallback logo if missing
+    # 7. Fallback logo for missing teams
     fallback_logo = "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
-    window_df["Logo URL"] = window_df["Logo URL"].fillna(fallback_logo)
+    if "Logo URL" not in window_df.columns:
+        window_df["Logo URL"] = fallback_logo
+    else:
+        window_df["Logo URL"] = window_df["Logo URL"].fillna(fallback_logo)
+
     
     # 8. Ensure ratings are numeric
     window_df["Off. Power Rating"] = pd.to_numeric(window_df["Off. Power Rating"], errors="coerce")
