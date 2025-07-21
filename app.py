@@ -856,6 +856,12 @@ elif tab == "Team Dashboards":
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
+    conference = team_row["Conference"] if "Conference" in team_row else ""
+    conf_logo_url = None
+    if conference in logos_df["Team"].values:
+        conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
+    
     # --- Build df_nearby: 5 above and 5 below selected team, by Power Rating ---
     off_col = "Off. Power Rating"
     def_col = "Def. Power Rating"
@@ -932,12 +938,6 @@ elif tab == "Team Dashboards":
             with right_col:
                 st.markdown("#### Off. vs Def. Power Rating (Nearest Teams)")
                 st.altair_chart(chart, use_container_width=True)
-
-    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
-    conference = team_row["Conference"] if "Conference" in team_row else ""
-    conf_logo_url = None
-    if conference in logos_df["Team"].values:
-        conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
 
     # --- Rank Info ---
     overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
