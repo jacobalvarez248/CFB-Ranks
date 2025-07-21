@@ -1790,17 +1790,38 @@ elif tab == "Team Dashboards":
     off_min, off_max = off_vals.min(), off_vals.max()
     def_min, def_max = def_vals.min(), def_vals.max()
     
-    chart = alt.Chart(scatter_df2).mark_circle(size=100, color='blue').encode(
-        x=alt.X(
-            'Off:Q',
-            scale=alt.Scale(domain=[off_min, off_max]),
-            axis=alt.Axis(title='Offensive Power Rating')
-        ),
-        y=alt.Y(
-            'Def:Q',
-            scale=alt.Scale(domain=[def_min, def_max]),
-            axis=alt.Axis(title='Defensive Power Rating (lower is better)')
-        )
+    # --- show team logos in scatter, fallback to blue circle when missing ---
+    logo_size = 40  # adjust as you like
+    
+    # logos layer
+    points_with_logo = alt.Chart(scatter_df2).transform_filter(
+        alt.datum["Logo URL"] != None
+    ).mark_image(
+        width=logo_size,
+        height=logo_size
+    ).encode(
+        x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max]), axis=alt.Axis(title="Offensive Power Rating")),
+        y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max]), axis=alt.Axis(title="Defensive Power Rating")),
+        url="Logo URL:N",
+        tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
+    )
+    
+    # fallback circle layer
+    points_no_logo = alt.Chart(scatter_df2).transform_filter(
+        alt.datum["Logo URL"] == None
+    ).mark_circle(
+        size=100,
+        color="steelblue"
+    ).encode(
+        x="Off:Q",
+        y="Def:Q",
+        tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
+    )
+    
+    # combine
+    chart = (points_with_logo + points_no_logo).properties(
+        width="container",
+        height=300  # or whatever height you prefer
     )
 
     # --- Replace standalone scatter with a two-column layout ---
