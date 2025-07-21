@@ -1722,7 +1722,9 @@ elif tab == "Team Dashboards":
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-        
+    st.markdown("#### Offensive vs Defensive Power Rating")
+    st.altair_chart(chart, use_container_width=True)
+    
     # --- (1) Build df_ranking_clean ---
 
     # Load the Rankings sheet (or use your previous df_ranking)
