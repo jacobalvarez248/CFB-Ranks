@@ -1059,29 +1059,37 @@ elif tab == "Team Dashboards":
                 <span style="font-size:0.8em;">Pwr. Rtg.</span>
                 <span style="line-height:1.15; font-weight:bold;">{power_rating_str}</span>
             </div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_6_pct_str}</div>
-                <span style="font-size:0.8em;">Label</span>
-                <span style="line-height:1.15; font-weight:bold;">{value_str}</span>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">8+</span>{at_least_8_pct_str}</div>
-                <span style="font-size:0.8em;">Label</span>
-                <span style="line-height:1.15; font-weight:bold;">{value_str}</span>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">10+</span>{at_least_10_pct_str}</div>
-                <span style="font-size:0.8em;">Label</span>
-                <span style="line-height:1.15; font-weight:bold;">{value_str}</span>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">12-0</span>{exact_12_pct_str}</div>
-                <span style="font-size:0.8em;">Label</span>
-                <span style="line-height:1.15; font-weight:bold;">{value_str}</span>
-            <div style="{card_base}"><span style="font-size:0.8em;">Ret. Prod.</span>{ret_prod_str}</div>
-                <span style="font-size:0.8em;">Label</span>
-                <span style="line-height:1.15; font-weight:bold;">{value_str}</span>
-            <div style="{card_base}"><span style="font-size:0.8em;">Off. Ret.</span>{off_ret_str}</div>
-                <span style="font-size:0.8em;">Label</span>
-                <span style="line-height:1.15; font-weight:bold;">{value_str}</span>
-            <div style="{card_base}"><span style="font-size:0.8em;">Def. Ret.</span>{def_ret_str}</div>
-                <span style="font-size:0.8em;">Label</span>
-                <span style="line-height:1.15; font-weight:bold;">{value_str}</span>
+            <div style="{lighter_card}">
+                <span style="font-size:0.8em;">6+</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct_str}</span>
+            </div>
+            <div style="{lighter_card}">
+                <span style="font-size:0.8em;">8+</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct_str}</span>
+            </div>
+            <div style="{lighter_card}">
+                <span style="font-size:0.8em;">10+</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct_str}</span>
+            </div>
+            <div style="{lighter_card}">
+                <span style="font-size:0.8em;">12-0</span>
+                <span style="line-height:1.15; font-weight:bold;">{exact_12_pct_str}</span>
+            </div>
+            <div style="{card_base}">
+                <span style="font-size:0.8em;">Ret. Prod.</span>
+                <span style="line-height:1.15; font-weight:bold;">{ret_prod_str}</span>
+            </div>
+            <div style="{card_base}">
+                <span style="font-size:0.8em;">Off. Ret.</span>
+                <span style="line-height:1.15; font-weight:bold;">{off_ret_str}</span>
+            </div>
+            <div style="{card_base}">
+                <span style="font-size:0.8em;">Def. Ret.</span>
+                <span style="line-height:1.15; font-weight:bold;">{def_ret_str}</span>
+            </div>
         </div>
         '''
+
     else:
         # DESKTOP (no sidebar overlap, no global CSS)
         card_style = (
