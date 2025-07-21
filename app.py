@@ -1576,6 +1576,152 @@ elif tab == "Team Dashboards":
             title=""
         )
         st.altair_chart(final_chart, use_container_width=True)
+    # ---- Conference Standings Table below Win Distribution ----
+
+    # Only render if a team is selected
+    if conference:
+        # Find the mobile/desktop columns and headers as in Conference Overview tab
+        mobile_header_map = {
+            "Projected Finish": "Proj. Finish",
+            "Team": "Team",
+            "Power Rating": "Pwr. Rtg.",
+            "Projected Overall Wins": "Proj. Wins",
+            "Projected Conference Wins": "Proj. Conf. Wins",
+            "Projected Conference Losses": "Proj. Conf. Losses",
+            "Average Conference Game Quality": "Avg. Conf. Game Qty",
+            "Average Conference Schedule Difficulty": "Conf. Sched. Diff.",
+        }
+        mobile_cols = [
+            "Projected Finish", "Team", "Power Rating", "Projected Overall Wins",
+            "Projected Conference Wins", "Projected Conference Losses",
+            "Average Conference Game Quality", "Average Conference Schedule Difficulty"
+        ]
+        desktop_cols = [
+            "Projected Finish", "Team", "Power Rating", "Projected Overall Wins",
+            "Projected Conference Wins", "Projected Conference Losses",
+            "Average Conference Game Quality", "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
+        ]
+    
+        # Get the standings for this conference
+        standings = df_expected[df_expected["Conference"] == conference].copy()
+        standings = standings.sort_values(
+            by="Projected Conference Wins", ascending=False
+        ).reset_index(drop=True)
+        standings.insert(0, "Projected Finish", standings.index + 1)
+    
+        pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
+        acgq_min, acgq_max = standings["Average Conference Game Quality"].min(), standings["Average Conference Game Quality"].max()
+        acsd_min, acsd_max = standings["Average Conference Schedule Difficulty"].min(), standings["Average Conference Schedule Difficulty"].max()
+    
+        if is_mobile():
+            cols = [c for c in mobile_cols if c in standings.columns]
+            display_headers = [mobile_header_map[c] for c in cols]
+            table_style = (
+                "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
+            )
+            wrapper_style = (
+                "max-width:100vw; width:100vw; overflow-x:auto; margin:0 auto;"
+            )
+            header_font = "font-size:13px; white-space:normal;"
+            cell_font = "font-size:13px; white-space:nowrap;"
+        else:
+            cols = [c for c in desktop_cols if c in standings.columns]
+            display_headers = cols.copy()
+            table_style = "width:100%; border-collapse:collapse;"
+            wrapper_style = "max-width:100%; overflow-x:auto;"
+            header_font = ""
+            cell_font = "white-space:nowrap; font-size:15px;"
+    
+        # ---- Table HTML ----
+        standings_html = [
+            f'<div style="{wrapper_style}">',
+            f'<table style="{table_style}">',
+            '<thead><tr>'
+        ]
+        compact_cols_conf = [
+            "Projected Finish", "Power Rating", "Projected Overall Wins", "Projected Conference Wins",
+            "Projected Conference Losses", "Average Conference Game Quality",
+            "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
+        ]
+        for disp_col, c in zip(display_headers, cols):
+            th = (
+                'border:1px solid #ddd; padding:8px; text-align:center; '
+                'background-color:#002060; color:white; position:sticky; top:0; z-index:2;'
+            )
+            if c == "Team":
+                if is_mobile():
+                    th += " white-space:normal; min-width:24vw; max-width:36vw; font-size:12px; line-height:1.1;"
+                else:
+                    th += " white-space:nowrap; min-width:180px; max-width:240px;"
+            elif not is_mobile() and c in compact_cols_conf:
+                th += " min-width:60px; max-width:72px; white-space:normal; font-size:13px; line-height:1.2;"
+            else:
+                th += " white-space:nowrap;"
+            th += header_font
+            standings_html.append(f"<th style='{th}'>{disp_col}</th>")
+        standings_html.append("</tr></thead><tbody>")
+        
+        for _, row in standings.iterrows():
+            is_selected_team = (row["Team"] == selected_team)
+            standings_html.append("<tr>")
+            for c in cols:
+                v = row[c]
+                td = 'border:1px solid #ddd; padding:8px; text-align:center;'
+                td += cell_font
+                cell = v
+        
+                # --- Your existing coloring/logic here (see previous answers) ---
+                if c == "Team":
+                    logo = row.get("Logo URL")
+                    if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
+                        if is_mobile():
+                            cell = f'<img src="{logo}" width="32" style="margin:0 auto; display:block;"/>'
+                        else:
+                            cell = (
+                                f'<div style="display:flex;align-items:center;">'
+                                f'<img src="{logo}" width="24" style="margin-right:8px;"/>{v}</div>'
+                            )
+                    else:
+                        cell = "" if is_mobile() else v
+                else:
+                    # Power Rating conditional coloring
+                    if c == "Power Rating" and pd.notnull(v):
+                        t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
+                        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                        td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                        cell = f"{v:.1f}"
+                    # Average Conference Game Quality
+                    elif c == "Average Conference Game Quality" and pd.notnull(v):
+                        t = (v - acgq_min) / (acgq_max - acgq_min) if acgq_max > acgq_min else 0
+                        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+                        td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
+                        cell = f"{v:.1f}"
+                    # Average Conference Schedule Difficulty (inverse)
+                    elif c == "Average Conference Schedule Difficulty" and pd.notnull(v):
+                        inv = 1 - ((v - acsd_min) / (acsd_max - acsd_min) if acsd_max > acsd_min else 0)
+                        r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
+                        td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
+                        cell = f"{v:.1f}"
+                    else:
+                        cell = v
+        
+                # --- Row highlight (but not if already #E2EFDA) ---
+                if is_selected_team and "background-color" not in td:
+                    td += " background-color:#fffac8;"
+        
+                standings_html.append(f"<td style='{td}'>{cell}</td>")
+            standings_html.append("</tr>")
+        standings_html.append("</tbody></table></div>")
+        
+                # Render
+        if not is_mobile():
+            # On desktop, make width same as win dist table (left side)
+            with left_col:
+                st.markdown("#### Conference Standings")
+                st.markdown("".join(standings_html), unsafe_allow_html=True)
+        else:
+            st.markdown("#### Conference Standings")
+            st.markdown("".join(standings_html), unsafe_allow_html=True)
         
     # --- (1) Build df_ranking_clean ---
 
