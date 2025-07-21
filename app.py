@@ -527,6 +527,7 @@ elif tab == "Conference Overviews":
             st.altair_chart(chart, use_container_width=True)
    
     # --- Conference Standings Table ---
+    st.markdown("#### Conference Standings")
     conference_options = sorted(df_expected["Conference"].dropna().unique())
     selected_conf = st.selectbox("Select Conference", conference_options, index=0)
     standings = df_expected[df_expected["Conference"] == selected_conf].copy()
@@ -1716,10 +1717,12 @@ elif tab == "Team Dashboards":
         if not is_mobile():
             # On desktop, make width same as win dist table (left side)
             with left_col:
+                st.markdown("#### Conference Standings")
                 st.markdown("".join(standings_html), unsafe_allow_html=True)
         else:
+            st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-    
+        
     # --- (1) Build df_ranking_clean ---
 
     # Load the Rankings sheet (or use your previous df_ranking)
@@ -1827,8 +1830,20 @@ elif tab == "Team Dashboards":
     )
     
     # --- Combine layers: logos on top then circles
-    chart = points_with_logo + points_no_logo    
-
+    chart = points_with_logo + points_no_logo
+    
+    # --- Render in two‐column layout on desktop, full‐width on mobile ---
+    if not is_mobile():
+        left_col, right_col = st.columns([1, 1])
+        with left_col:
+            st.markdown("#### Conference Standings")
+            st.markdown("".join(standings_html), unsafe_allow_html=True)
+        with right_col:
+            st.markdown("#### Offensive vs Defensive Power Rating")
+            st.altair_chart(chart, use_container_width=True)
+    else:
+        st.markdown("#### Offensive vs Defensive Power Rating")
+        st.altair_chart(chart, use_container_width=True)
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
