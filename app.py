@@ -1829,11 +1829,12 @@ elif tab == "Team Dashboards":
     # --- Combine layers: logos on top then circles
     chart = points_with_logo + points_no_logo
 
-    # --- Side-by-side Standings & Scatter (desktop) or stacked (mobile) ---
+    # … build standings_html …
+
     if not is_mobile():
-        col1, col2 = st.columns([1, 1])
-    
+        col1, col2 = st.columns([1,1])
         with col1:
+            st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
     
         with col2:
@@ -1841,10 +1842,13 @@ elif tab == "Team Dashboards":
             st.altair_chart(chart, use_container_width=True)
     
     else:
-        # mobile: chart above table (or reverse if you prefer)
+        # mobile: stack chart then table
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
+    
+        st.markdown("#### Conference Standings")
         st.markdown("".join(standings_html), unsafe_allow_html=True)
+    
 
 
 elif tab == "Charts & Graphs":
