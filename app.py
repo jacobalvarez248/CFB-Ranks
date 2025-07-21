@@ -849,25 +849,32 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # Desktop card styles
+    # --- CARD CSS (must exist before any f-string interpolation) ---
+
+    # Desktop
     card_style         = (
-        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
-        "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; "
-        "min-width:48px; height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+        "display:inline-flex; flex-direction:column; align-items:center; "
+        "justify-content:center; background:#002060; border:1px solid #fff; "
+        "border-radius:10px; margin-right:10px; min-width:48px; height:48px; width:48px; "
+        "font-size:15px; font-weight:700; color:#fff; text-align:center;"
     )
-    lighter_card_style = card_style.replace('#002060', '#00B0F0')
-    green_card_style   = card_style.replace('#002060', '#00B050')
+    lighter_card_style = card_style.replace("#002060", "#00B0F0")
+    green_card_style   = card_style.replace("#002060", "#00B050")
     
-    # Mobile card styles
+    # Mobile
     card_base   = (
         "flex:1 1 8.3vw; min-width:8.3vw; max-width:8.3vw; margin:0; "
         "background:#00B050; color:#fff; border-radius:4px; border:1px solid #fff; "
         "padding:2px 0; display:flex; flex-direction:column; align-items:center; "
         "font-size:8px; font-weight:700; text-align:center; box-sizing:border-box;"
     )
-    lighter_card = card_base.replace('#00B050', '#00B0F0')
-    dark_card    = card_base.replace('#00B050', '#002060')
+    lighter_card = card_base.replace("#00B050", "#00B0F0")
+    dark_card    = card_base.replace("#00B050", "#002060")
     logo_style   = "flex:1 1 8.3vw; min-width:8.3vw; max-width:8.3vw; text-align:center; margin:0;"
+
+    mobile_logo_dim  = 20
+    desktop_logo_dim = 48
+    logo_dim         = mobile_logo_dim if is_mobile() else desktop_logo_dim
 
     # In Team Dashboards tab:
     if is_mobile():
@@ -1070,43 +1077,49 @@ elif tab == "Team Dashboards":
     # --- CARD STRIP (Responsive, no sidebar overlap) ---
     if is_mobile():
         inject_mobile_css()
-        # now card_base, lighter_card, dark_card and logo_style are defined
-        card_html = f'''
-        <div style="display:flex;…">
+        card_html = f"""
+        <div style="display:flex; flex-direction:row; gap:0.5vw; overflow-x:auto; width:100%; box-sizing:border-box;">
           <div style="{logo_style}">
-            <img src="{logo_url}" width="{logo_dim}"/>
-            …
+            <img src="{logo_url}" width="{logo_dim}" />
+            {f"<img src='{conf_logo_url}' width='{logo_dim}' />" if conf_logo_url else ""}
           </div>
           <div style="{dark_card}">
-            … Rank …
+            <span style="font-size:0.8em;">Rank</span><br>{overall_rank}
+            <div style="font-size:0.6em; opacity:0.7;">({overall_rank}/136)</div>
+          </div>
+          <div style="{dark_card}">
+            <span style="font-size:0.8em;">Conf Rk</span><br>{this_conf_rank}
+            <div style="font-size:0.6em; opacity:0.7;">({this_conf_rank}/136)</div>
           </div>
           <div style="{lighter_card}">
-            … 6+ wins …
+            <span style="font-size:0.8em;">6+</span><br>{at_least_6_pct}
+            <div style="font-size:0.6em; opacity:0.7;">({rank_6}/136)</div>
           </div>
-          …
+          …  <!-- repeat for 8+, 10+, 12-0, Ret, Off, Def -->
         </div>
-        '''
+        """
         st.markdown(card_html, unsafe_allow_html=True)
     
     else:
-        # desktop branch can now use card_style, lighter_card_style, green_card_style
-        card_html = f'''
+        card_html = f"""
         <div style="display:flex; align-items:center; gap:14px; margin:8px 0;">
-          <img src="{logo_url}" width="{logo_dim}"/>
+          <img src="{logo_url}" width="{logo_dim}" />
           <div style="{card_style}">
-            … Rank …
+            <span style="font-size:0.75em;">Rank</span><br><b>{overall_rank}</b><br>
+            <span style="font-size:0.6em; opacity:0.7;">({overall_rank}/136)</span>
+          </div>
+          <div style="{card_style}">
+            <span style="font-size:0.75em;">Conf Rk</span><br><b>{this_conf_rank}</b><br>
+            <span style="font-size:0.6em; opacity:0.7;">({this_conf_rank}/136)</span>
           </div>
           <div style="{lighter_card_style}">
-            … 6+ wins …
+            <span style="font-size:0.75em;">6-6+</span><br><b>{at_least_6_pct}</b><br>
+            <span style="font-size:0.6em; opacity:0.7;">({rank_6}/136)</span>
           </div>
-          <div style="{green_card_style}">
-            … Ret. Prod …
-          </div>
-          …
+          … <!-- repeat for 8-4+, 10-2+, 12-0, Ret, Off, Def -->
         </div>
-        '''
-        st.markdown(card_html, unsafe_allow_html=True)
-    
+        """
+        st.markdown(card_html, unsafe_allow_html=True)  
 
     # --- Calculate Expected Records ---
     proj_wins = team_row.get("Projected Overall Wins", None)
