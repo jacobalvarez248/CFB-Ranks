@@ -1723,24 +1723,19 @@ elif tab == "Team Dashboards":
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
     
-    # --- Load Rankings tab (all ratings from same source) ---
+    # --- Load Rankings tab ---
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
     
-    # Ensure numeric types for all ratings columns
+    # Ensure numeric columns
     for col in ["Power Rating", "Off. Power Rating", "Def. Power Rating"]:
         df_ranking[col] = pd.to_numeric(df_ranking[col], errors="coerce")
     
-    # Drop teams without Power Rating
     df_ranking = df_ranking.dropna(subset=["Power Rating", "Off. Power Rating", "Def. Power Rating"])
     
-    # Sort by Power Rating
+    # Sort and get neighbors around selected team
     df_sorted = df_ranking.sort_values("Power Rating", ascending=False).reset_index(drop=True)
-    
-    # Find selected team's index
     selected_idx = df_sorted.index[df_sorted["Team"] == selected_team][0]
-    
-    # Slice 5 above and 5 below (handle edges)
     N = 5
     num_teams = len(df_sorted)
     if selected_idx < N:
@@ -1754,29 +1749,19 @@ elif tab == "Team Dashboards":
         end = selected_idx + N + 1
     
     df_neighbors = df_sorted.iloc[start:end].copy()
-    df_neighbors["Selected"] = df_neighbors["Team"] == selected_team
-    
-    # Remove any remaining NaNs in plotting columns
-    df_neighbors = df_neighbors.dropna(subset=["Off. Power Rating", "Def. Power Rating"])
-    
-    # --- Reset index for safe plotting (important for Streamlit's scatter_chart) ---
     df_neighbors = df_neighbors.reset_index(drop=True)
     
-    # --- Altair Scatter Plot (highlight selected team) ---
-    chart = alt.Chart(df_neighbors).mark_circle().encode(
-        x=alt.X("Off. Power Rating", axis=alt.Axis(title="Offensive Power Rating")),
-        y=alt.Y("Def. Power Rating", axis=alt.Axis(title="Defensive Power Rating (lower is better)")),
-        color=alt.condition("datum.Selected", alt.value("#FFB347"), alt.value("#004085")),
-        size=alt.condition("datum.Selected", alt.value(350), alt.value(120)),
-        tooltip=["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
-    ).properties(
-        width=420,
-        height=390,
-        title="Closest Teams by Power Rating: Off vs. Def"
-    )
+    # (Optional) Show for debugging
+    # st.write(df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating"]])
     
+    # --- Scatter plot using Streamlit's built-in chart ---
     st.markdown("#### Similar Teams: Offense vs. Defense Rating")
-    st.altair_chart(chart, use_container_width=True) 
+    st.scatter_chart(
+        data=df_neighbors,
+        x="Off. Power Rating",
+        y="Def. Power Rating"
+    )
+
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
