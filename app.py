@@ -1095,17 +1095,17 @@ elif tab == "Team Dashboards":
         card_style = (
             "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
             "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-            "height:48px; width:48px; font-size:12px; font-weight:700; color:#FFFFFF; text-align:center;"
+            "height:48px; width:48px; font-size:11px; font-weight:700; color:#FFFFFF; text-align:center;"
         )
         lighter_card_style = (
             "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
             "background:#00B0F0; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-            "height:48px; width:48px; font-size:12px; font-weight:700; color:#FFFFFF; text-align:center;"
+            "height:48px; width:48px; font-size:11px; font-weight:700; color:#FFFFFF; text-align:center;"
         )
         green_card_style = (
             "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
             "background:#00B050; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-            "height:48px; width:48px; font-size:12px; font-weight:700; color:#FFFFFF; text-align:center;"
+            "height:48px; width:48px; font-size:11px; font-weight:700; color:#FFFFFF; text-align:center;"
         )
         logo_dim = 48
         card_html = f'''
