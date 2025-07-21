@@ -1036,7 +1036,7 @@ elif tab == "Team Dashboards":
         body, html { overflow-x: hidden !important; }
         </style>
         """, unsafe_allow_html=True)
-        n_items = 10  # logos + 9 cards
+        n_items = 11  # logos + 9 cards
         card_width = 100 / n_items - 0.5
         card_base = (
             f"flex: 1 1 {card_width:.2f}vw; min-width:52px; max-width:{card_width:.2f}vw; "
