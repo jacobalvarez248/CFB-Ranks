@@ -1769,6 +1769,7 @@ elif tab == "Team Dashboards":
             end = selected_idx + N + 1
     
         df_neighbors = df_ranking_clean.iloc[start:end].copy()
+        df_neighbors["Team"] = df_neighbors["Team"].astype(str).str.strip().str.upper()
         scatter_df2 = df_neighbors[["Off. Power Rating", "Def. Power Rating", "Team"]].copy()
         scatter_df2.columns = ["Off", "Def", "Team"]
         
