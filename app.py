@@ -1785,6 +1785,64 @@ elif tab == "Team Dashboards":
         with right_col:
             st.markdown("#### Offensive vs Defensive Rating (Nearest Teams)")
             st.altair_chart(chart, use_container_width=True)
+    # Check columns and fill in the right column names from your data
+    off_col = "Offensive Rating"  # or whatever your actual column is named
+    def_col = "Defensive Rating"
+    
+    # Numeric conversion and missing data handling
+    df_nearby[off_col] = pd.to_numeric(df_nearby[off_col], errors="coerce")
+    df_nearby[def_col] = pd.to_numeric(df_nearby[def_col], errors="coerce")
+    df_nearby = df_nearby.dropna(subset=[off_col, def_col, "Logo URL"])
+    df_nearby = df_nearby[df_nearby["Logo URL"].astype(str).str.startswith("http")]
+    
+    if df_nearby.empty:
+        st.warning("No teams to display. (Check that Offensive/Defensive Ratings and Logos are present for nearby teams.)")
+    else:
+        df_nearby["is_selected"] = df_nearby["Team"] == selected_team
+    
+        y_axis = alt.Y(
+            f"{def_col}:Q",
+            sort="ascending",
+            axis=alt.Axis(title="Defensive Rating (Lower = Better)")
+        )
+        x_axis = alt.X(
+            f"{off_col}:Q",
+            axis=alt.Axis(title="Offensive Rating (Higher = Better)")
+        )
+    
+        points = alt.Chart(df_nearby).mark_image(
+            width=38,
+            height=38
+        ).encode(
+            x=x_axis,
+            y=y_axis,
+            url="Logo URL:N",
+            tooltip=["Team", off_col, def_col, "Power Rating"]
+        )
+    
+        highlight = alt.Chart(df_nearby[df_nearby["is_selected"]]).mark_circle(
+            size=750,
+            color="#FFB347",
+            opacity=0.38,
+            strokeWidth=3
+        ).encode(
+            x=x_axis,
+            y=y_axis
+        )
+    
+        chart = (points + highlight).properties(
+            height=350 if is_mobile() else 430,
+            width="container" if is_mobile() else 380,
+            title="Nearby Teams: Offensive vs Defensive Rating"
+        )
+    
+        if is_mobile():
+            st.markdown("#### Offensive vs Defensive Rating (Nearest Teams)")
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            with right_col:
+                st.markdown("#### Offensive vs Defensive Rating (Nearest Teams)")
+                st.altair_chart(chart, use_container_width=True)
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
