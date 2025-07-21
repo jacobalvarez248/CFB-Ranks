@@ -1723,39 +1723,61 @@ elif tab == "Team Dashboards":
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
 
-    # 1. Clean and prepare logo DataFrame
+    # 1. Parameters
+    N = 5  # Number of teams above and below (total points will be up to 11)
+    
+    # 2. Clean Team Names Everywhere
     def clean_team_name(name):
         if pd.isnull(name):
             return ""
         return str(name).strip().upper()
     
-    logos_df = logos_df.copy()
-    logos_df["Team_clean"] = logos_df["Team"].apply(clean_team_name)
-    
-    # 2. Clean and prepare ranking DataFrame
+    df_expected = df_expected.copy()
+    df_expected["Team_clean"] = df_expected["Team"].apply(clean_team_name)
     df_ranking = df_ranking.copy()
     df_ranking["Team_clean"] = df_ranking["Team"].apply(clean_team_name)
+    logos_df = logos_df.copy()
+    logos_df["Team_clean"] = logos_df["Team"].apply(clean_team_name)
+    selected_team_clean = clean_team_name(selected_team)
     
-    # 3. Clean and prepare window DataFrame
+    # 3. Sort all teams by Power Rating, get selected team index
+    sorted_teams = df_expected.sort_values('Power Rating', ascending=False).reset_index(drop=True)
+    if "Team_clean" not in sorted_teams.columns:
+        sorted_teams["Team_clean"] = sorted_teams["Team"].apply(clean_team_name)
+    selected_idx = sorted_teams[sorted_teams['Team_clean'] == selected_team_clean].index
+    if len(selected_idx) == 0:
+        st.warning(f"Selected team '{selected_team}' not found in df_expected!")
+        selected_idx = [0]
+    selected_idx = selected_idx[0]
+    total_teams = len(sorted_teams)
+    
+    # 4. Determine window (up to 5 above/below)
+    if selected_idx < N:
+        start_idx = 0
+        end_idx = min(total_teams, 11)
+    elif selected_idx > total_teams - N - 1:
+        end_idx = total_teams
+        start_idx = max(0, total_teams - 11)
+    else:
+        start_idx = selected_idx - N
+        end_idx = selected_idx + N + 1
+    
     window_df = sorted_teams.iloc[start_idx:end_idx].copy()
-    window_df["Team_clean"] = window_df["Team"].apply(clean_team_name)
     
-    # 4. Merge in Off/Def Power Ratings from Ranking
+    # 5. Merge in Off/Def Power Ratings and Logo URL
     window_df = window_df.merge(
         df_ranking[["Team_clean", "Off. Power Rating", "Def. Power Rating"]],
         on="Team_clean", how="left"
     )
-    
-    # 5. Merge in Logo URLs from Logos tab
     window_df = window_df.merge(
         logos_df[["Team_clean", "Logo URL"]],
         on="Team_clean", how="left"
     )
     
-    # 6. Mark selected team for highlight
-    window_df['is_selected'] = window_df['Team'] == selected_team
+    # 6. Mark selected team
+    window_df['is_selected'] = window_df['Team_clean'] == selected_team_clean
     
-    # 7. Fallback logo for missing teams
+    # 7. Fallback logo if missing
     fallback_logo = "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
     window_df["Logo URL"] = window_df["Logo URL"].fillna(fallback_logo)
     
@@ -1763,13 +1785,10 @@ elif tab == "Team Dashboards":
     window_df["Off. Power Rating"] = pd.to_numeric(window_df["Off. Power Rating"], errors="coerce")
     window_df["Def. Power Rating"] = pd.to_numeric(window_df["Def. Power Rating"], errors="coerce")
     
-    # 9. Drop rows missing required values
+    # 9. Drop missing rows
     window_df = window_df.dropna(subset=["Off. Power Rating", "Def. Power Rating"], how='any')
     
-    # Debug: Show what data is being plotted
-    # st.write(window_df[["Team", "Off. Power Rating", "Def. Power Rating", "Logo URL", "is_selected"]])
-    
-    # 10. Build the Altair chart
+    # 10. Build chart
     logo_size = 45 if not is_mobile() else 28
     highlight_size = 65 if not is_mobile() else 38
     
@@ -1778,7 +1797,6 @@ elif tab == "Team Dashboards":
         y=alt.Y("Def. Power Rating:Q", title="Defensive Power Rating", scale=alt.Scale(reverse=True)),
     )
     
-    # Plot other teams
     logos = base.transform_filter(
         alt.datum.is_selected == False
     ).mark_image(
@@ -1789,7 +1807,6 @@ elif tab == "Team Dashboards":
         tooltip=["Team", "Off. Power Rating", "Def. Power Rating"]
     )
     
-    # Plot selected team
     selected_logo = base.transform_filter(
         alt.datum.is_selected == True
     ).mark_image(
@@ -1801,7 +1818,6 @@ elif tab == "Team Dashboards":
         tooltip=["Team", "Off. Power Rating", "Def. Power Rating"]
     )
     
-    # Optional: gold highlight for selected team
     highlight_circle = base.transform_filter(
         alt.datum.is_selected == True
     ).mark_circle(
@@ -1816,7 +1832,7 @@ elif tab == "Team Dashboards":
         title=f"Closest Teams by Power Rating: Offense vs Defense"
     )
     
-    # 11. Placement: right column on desktop, below on mobile
+    # 11. Placement
     if is_mobile():
         st.markdown("#### Closest Teams: Off/Def Ratings")
         st.altair_chart(chart, use_container_width=True)
@@ -1825,8 +1841,8 @@ elif tab == "Team Dashboards":
         with right:
             st.markdown("#### Closest Teams: Off/Def Ratings")
             st.altair_chart(chart, use_container_width=True)
-
-          
+    
+              
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
