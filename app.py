@@ -1772,11 +1772,12 @@ elif tab == "Team Dashboards":
     df_neighbors = df_ranking_clean.iloc[start:end].copy()
     
     # --- Add Team names for tooltips ---
-    scatter_df = df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
-    scatter_df.columns = scatter_df.columns.astype(str).str.strip()
-    scatter_df = scatter_df.apply(pd.to_numeric, errors='coerce', except_columns=["Team"])
-    scatter_df["Team"] = df_neighbors["Team"].values  # ensure Team is not numeric
+   scatter_df = df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
+    scatter_df["Off. Power Rating"] = pd.to_numeric(scatter_df["Off. Power Rating"], errors="coerce")
+    scatter_df["Def. Power Rating"] = pd.to_numeric(scatter_df["Def. Power Rating"], errors="coerce")
     scatter_df = scatter_df.dropna().reset_index(drop=True)
+    
+    import altair as alt
     
     chart = alt.Chart(scatter_df).mark_circle(size=110, color='blue').encode(
         x=alt.X('Off. Power Rating', axis=alt.Axis(title='Offensive Power Rating')),
@@ -1788,7 +1789,6 @@ elif tab == "Team Dashboards":
         ]
     )
     
-    # Optionally, add text labels on each dot:
     text = alt.Chart(scatter_df).mark_text(
         align='left', dx=7, dy=0, fontSize=13, color='black'
     ).encode(
@@ -1798,6 +1798,7 @@ elif tab == "Team Dashboards":
     )
     
     st.altair_chart(chart + text, use_container_width=True)
+
 
     
 
