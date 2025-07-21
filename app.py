@@ -1749,6 +1749,7 @@ elif tab == "Team Dashboards":
     df_ranking_clean = df_ranking_clean.sort_values("Power Rating", ascending=False).reset_index(drop=True)
     
     # --- (2) Now, get selected_idx safely ---
+    
     if selected_team in df_ranking_clean["Team"].values:
         selected_idx = df_ranking_clean.index[df_ranking_clean["Team"] == selected_team][0]
     else:
@@ -1770,86 +1771,25 @@ elif tab == "Team Dashboards":
     
     df_neighbors = df_ranking_clean.iloc[start:end].copy()
     
-    # Merge logo URLs
-    df_neighbors = df_neighbors.merge(
-        logos_df[["Team", "Logo URL"]], on="Team", how="left"
+    # Prepare Off/Def/Team/Logo URL for Altair
+    scatter_df2 = df_neighbors[["Off. Power Rating", "Def. Power Rating", "Team"]].copy()
+    scatter_df2.columns = ["Off", "Def", "Team"]
+    # Add Logo URL from logos_df (already cleaned and upper-cased)
+    scatter_df2 = scatter_df2.merge(
+        logos_df[["Team", "Logo URL"]],
+        left_on="Team",
+        right_on="Team",
+        how="left"
     )
-    
-    # --- SCATTERPLOT: Team Offense/Defense Neighborhood with Logos ---
-    scatter_df = df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating", "Logo URL"]].copy()
-    scatter_df = scatter_df.dropna(subset=["Off. Power Rating", "Def. Power Rating"])
-    
-    # Calculate axis min/max (start just below/above data)
-    off_min = scatter_df["Off. Power Rating"].min() - 1
-    off_max = scatter_df["Off. Power Rating"].max() + 1
-    def_min = scatter_df["Def. Power Rating"].min() - 1
-    def_max = scatter_df["Def. Power Rating"].max() + 1
-    
-    # Responsive: left=standings, right=scatter (stacked on mobile)
-    if not is_mobile():
-        left, right = st.columns([1, 1])
-        with left:
-            st.markdown("#### Conference Standings")
-            st.markdown("".join(standings_html), unsafe_allow_html=True)
-        with right:
-            st.markdown("#### Team Power Ratings (Off vs Def)")
-    
-            chart = alt.Chart(scatter_df).mark_image(
-                width=38,
-                height=38
-            ).encode(
-                x=alt.X(
-                    'Off. Power Rating:Q',
-                    scale=alt.Scale(domain=[off_min, off_max]),
-                    axis=alt.Axis(title='Offensive Power Rating')
-                ),
-                y=alt.Y(
-                    'Def. Power Rating:Q',
-                    scale=alt.Scale(domain=[def_min, def_max]),
-                    axis=alt.Axis(title='Defensive Power Rating (lower is better)')
-                ),
-                url='Logo URL:N',
-                tooltip=['Team', 'Off. Power Rating', 'Def. Power Rating']
-            ).properties(
-                height=420,
-                width='container'
-            )
-    
-            st.altair_chart(chart, use_container_width=True)
-    else:
-        st.markdown("#### Conference Standings")
-        st.markdown("".join(standings_html), unsafe_allow_html=True)
-        st.markdown("#### Team Power Ratings (Off vs Def)")
-    
-        chart = alt.Chart(scatter_df).mark_image(
-            width=24,
-            height=24
-        ).encode(
-            x=alt.X(
-                'Off. Power Rating:Q',
-                scale=alt.Scale(domain=[off_min, off_max]),
-                axis=alt.Axis(title='Off. Power Rating')
-            ),
-            y=alt.Y(
-                'Def. Power Rating:Q',
-                scale=alt.Scale(domain=[def_min, def_max]),
-                axis=alt.Axis(title='Def. Power Rating')
-            ),
-            url='Logo URL:N',
-            tooltip=['Team', 'Off. Power Rating', 'Def. Power Rating']
-        ).properties(
-            height=260,
-            width='container'
-        )
-    
-        st.altair_chart(chart, use_container_width=True)
-        chart = alt.Chart(scatter_df).mark_circle(size=100, color='red').encode(
-            x='Off. Power Rating:Q',
-            y='Def. Power Rating:Q',
-            tooltip=['Team']
-        )
-        st.altair_chart(chart, use_container_width=True)
 
+    
+    chart = alt.Chart(scatter_df2).mark_circle(size=100, color='blue').encode(
+        x=alt.X('Off:Q', axis=alt.Axis(title='Offensive Power Rating')),
+        y=alt.Y('Def:Q', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
+    )
+    st.altair_chart(chart, use_container_width=True)
+
+ 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
