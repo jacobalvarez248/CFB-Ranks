@@ -1765,25 +1765,23 @@ elif tab == "Team Dashboards":
     df_neighbors = df_neighbors.reset_index(drop=True)
     
     # --- Plot with Streamlit's built-in chart ---
-    st.markdown("#### Similar Teams: Offense vs. Defense Rating")
-    st.write("df_neighbors shape:", df_neighbors.shape)
-    st.write("df_neighbors columns:", df_neighbors.columns.tolist())
-    st.write("df_neighbors dtypes:", df_neighbors.dtypes)
-    st.write("df_neighbors head:", df_neighbors.head())
-    st.write("NaN count:", df_neighbors.isnull().sum())
-    
-    # Show DataFrame used for plotting
     scatter_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
-    scatter_df = scatter_df.rename(columns=lambda c: c.strip())
+    scatter_df.columns = scatter_df.columns.astype(str).str.strip()
     scatter_df = scatter_df.apply(pd.to_numeric, errors='coerce')
-    scatter_df = scatter_df.dropna().reset_index(drop=True)
+    scatter_df = scatter_df.dropna()
+    st.write("scatter_df for plotting:", scatter_df)
+    st.write("columns:", scatter_df.columns.tolist())
+    # Check if the column names are exactly what you think
+    if "Off. Power Rating" in scatter_df.columns and "Def. Power Rating" in scatter_df.columns:
+        st.scatter_chart(
+            data=scatter_df,
+            x="Off. Power Rating",
+            y="Def. Power Rating"
+        )
+    else:
+        st.write("Column name mismatch! Found columns:", scatter_df.columns.tolist())
     
-    st.scatter_chart(
-        data=scatter_df,
-        x="Off. Power Rating",
-        y="Def. Power Rating"
-    )
-    
+        
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
