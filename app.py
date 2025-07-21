@@ -849,6 +849,26 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
+    # Desktop card styles
+    card_style         = (
+        "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
+        "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; "
+        "min-width:48px; height:48px; width:48px; font-size:15px; font-weight:700; color:#FFFFFF; text-align:center;"
+    )
+    lighter_card_style = card_style.replace('#002060', '#00B0F0')
+    green_card_style   = card_style.replace('#002060', '#00B050')
+    
+    # Mobile card styles
+    card_base   = (
+        "flex:1 1 8.3vw; min-width:8.3vw; max-width:8.3vw; margin:0; "
+        "background:#00B050; color:#fff; border-radius:4px; border:1px solid #fff; "
+        "padding:2px 0; display:flex; flex-direction:column; align-items:center; "
+        "font-size:8px; font-weight:700; text-align:center; box-sizing:border-box;"
+    )
+    lighter_card = card_base.replace('#00B050', '#00B0F0')
+    dark_card    = card_base.replace('#00B050', '#002060')
+    logo_style   = "flex:1 1 8.3vw; min-width:8.3vw; max-width:8.3vw; text-align:center; margin:0;"
+
     # In Team Dashboards tab:
     if is_mobile():
         inject_mobile_css()
@@ -1050,105 +1070,43 @@ elif tab == "Team Dashboards":
     # --- CARD STRIP (Responsive, no sidebar overlap) ---
     if is_mobile():
         inject_mobile_css()
-        # … your CSS and style setup …
-    
+        # now card_base, lighter_card, dark_card and logo_style are defined
         card_html = f'''
         <div style="display:flex;…">
-          <!-- logo, Rank & Conf.Rk omitted for brevity … -->
-    
+          <div style="{logo_style}">
+            <img src="{logo_url}" width="{logo_dim}"/>
+            …
+          </div>
+          <div style="{dark_card}">
+            … Rank …
+          </div>
           <div style="{lighter_card}">
-            <span style="font-size:0.8em;">6+</span>
-            {at_least_6_pct}
-            <div style="font-size:0.6em; opacity:0.7;">({rank_6}/{len(df_expected)})</div>
+            … 6+ wins …
           </div>
-    
-          <div style="{lighter_card}">
-            <span style="font-size:0.8em;">8+</span>
-            {at_least_8_pct}
-            <div style="font-size:0.6em; opacity:0.7;">({rank_8}/{len(df_expected)})</div>
-          </div>
-    
-          <div style="{lighter_card}">
-            <span style="font-size:0.8em;">10+</span>
-            {at_least_10_pct}
-            <div style="font-size:0.6em; opacity:0.7;">({rank_10}/{len(df_expected)})</div>
-          </div>
-    
-          <div style="{lighter_card}">
-            <span style="font-size:0.8em;">12-0</span>
-            {exact_12_pct}
-            <div style="font-size:0.6em; opacity:0.7;">({rank_12}/{len(df_expected)})</div>
-          </div>
-    
-          <div style="{card_base}">
-            <span style="font-size:0.8em;">Ret.</span>
-            {ret_prod}
-            <div style="font-size:0.6em; opacity:0.7;">({rank_ret}/{len(df_expected)})</div>
-          </div>
-    
-          <div style="{card_base}">
-            <span style="font-size:0.8em;">Off.</span>
-            {off_ret}
-            <div style="font-size:0.6em; opacity:0.7;">({rank_off}/{len(df_expected)})</div>
-          </div>
-    
-          <div style="{card_base}">
-            <span style="font-size:0.8em;">Def.</span>
-            {def_ret}
-            <div style="font-size:0.6em; opacity:0.7;">({rank_def}/{len(df_expected)})</div>
-          </div>
+          …
         </div>
         '''
         st.markdown(card_html, unsafe_allow_html=True)
+    
     else:
+        # desktop branch can now use card_style, lighter_card_style, green_card_style
         card_html = f'''
         <div style="display:flex; align-items:center; gap:14px; margin:8px 0;">
           <img src="{logo_url}" width="{logo_dim}"/>
-    
-          <div style="{lighter_card_style}">
-            <span style="font-size:0.75em;">6-6+</span><br>
-            <span style="font-size:1.2em; font-weight:bold;">{at_least_6_pct}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({rank_6}/{len(df_expected)})</span>
+          <div style="{card_style}">
+            … Rank …
           </div>
-    
           <div style="{lighter_card_style}">
-            <span style="font-size:0.75em;">8-4+</span><br>
-            <span style="font-size:1.2em; font-weight:bold;">{at_least_8_pct}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({rank_8}/{len(df_expected)})</span>
+            … 6+ wins …
           </div>
-    
-          <div style="{lighter_card_style}">
-            <span style="font-size:0.75em;">10-2+</span><br>
-            <span style="font-size:1.2em; font-weight:bold;">{at_least_10_pct}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({rank_10}/{len(df_expected)})</span>
-          </div>
-    
-          <div style="{lighter_card_style}">
-            <span style="font-size:0.75em;">12-0</span><br>
-            <span style="font-size:1.2em; font-weight:bold;">{exact_12_pct}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({rank_12}/{len(df_expected)})</span>
-          </div>
-    
           <div style="{green_card_style}">
-            <span style="font-size:0.75em;">Ret. Prod.</span><br>
-            <span style="font-size:1.2em; font-weight:bold;">{ret_prod}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({rank_ret}/{len(df_expected)})</span>
+            … Ret. Prod …
           </div>
-    
-          <div style="{green_card_style}">
-            <span style="font-size:0.75em;">Off. Ret.</span><br>
-            <span style="font-size:1.2em; font-weight:bold;">{off_ret}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({rank_off}/{len(df_expected)})</span>
-          </div>
-    
-          <div style="{green_card_style}">
-            <span style="font-size:0.75em;">Def. Ret.</span><br>
-            <span style="font-size:1.2em; font-weight:bold;">{def_ret}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({rank_def}/{len(df_expected)})</span>
-          </div>
+          …
         </div>
         '''
         st.markdown(card_html, unsafe_allow_html=True)
+    
 
     # --- Calculate Expected Records ---
     proj_wins = team_row.get("Projected Overall Wins", None)
