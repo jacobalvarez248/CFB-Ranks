@@ -1250,7 +1250,7 @@ elif tab == "Team Dashboards":
         # --- MOBILE header/column maps (replace 'Opponent' with 'Opponent_Display') ---
         mobile_headers = {
             "Date": "Date",
-            "Opponent_Display": "Opp.",
+            "Opponent": "Opp.",
             "Opponent Rank": "Opp. Rank",
             "Projected Spread": "Proj. Spread",
             "Win Probability": "Win Prob.",
