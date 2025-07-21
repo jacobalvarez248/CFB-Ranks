@@ -1791,7 +1791,7 @@ elif tab == "Team Dashboards":
     def_min, def_max = def_vals.min(), def_vals.max()
     
     # --- show team logos in scatter, fallback to blue circle when missing ---
-    logo_size = 40  # adjust as you like
+    logo_size = 30  # adjust as you like
     
     # only rows where Logo URL is neither null nor the empty string
     logo_cond = (
@@ -1826,7 +1826,7 @@ elif tab == "Team Dashboards":
     )
     
     # combine them
-    chart = (points_with_logo + points_no_logo).properties(
+    chart = (points_no_logo + points_with_logo).properties(
         width="container", height=300
     )
 
