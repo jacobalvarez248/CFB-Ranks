@@ -1769,7 +1769,9 @@ elif tab == "Team Dashboards":
     
     st.write(scatter_df.dtypes)
     st.write(scatter_df)
-    
+
+    df_neighbors = df_sorted.iloc[start:end].copy()
+
     # Try plotting with renamed columns for safety:
     df_plot = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
     df_plot.columns = ["Off", "Def"]
