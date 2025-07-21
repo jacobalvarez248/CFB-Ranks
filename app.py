@@ -1843,7 +1843,13 @@ elif tab == "Team Dashboards":
         )
     
         st.altair_chart(chart, use_container_width=True)
- 
+     chart = alt.Chart(scatter_df).mark_circle(size=100, color='red').encode(
+            x='Off. Power Rating:Q',
+            y='Def. Power Rating:Q',
+            tooltip=['Team']
+        )
+        st.altair_chart(chart, use_container_width=True)
+
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
