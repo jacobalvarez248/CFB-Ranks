@@ -1064,7 +1064,7 @@ elif tab == "Team Dashboards":
         card_style = (
             "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
             "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
-            "height:48px; width:48px; font-size:12px; font-weight:700; color:#FFFFFF; text-align:center;"
+            "height:48px; width:48px; font-size:10px; font-weight:700; color:#FFFFFF; text-align:center;"
         )
         lighter_card_style = (
             "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
