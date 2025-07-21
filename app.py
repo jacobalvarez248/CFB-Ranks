@@ -1756,32 +1756,17 @@ elif tab == "Team Dashboards":
     df_neighbors = df_sorted.iloc[start:end].copy()
     df_neighbors["Selected"] = df_neighbors["Team"] == selected_team
     
-    # Now, plot Off vs. Def (as before)
-    # Remove rows with missing Off/Def (shouldn't be any, but for safety)
-    df_neighbors = df_neighbors.dropna(subset=["Off. Power Rating", "Def. Power Rating"])
+    # NO explicit axis scaling, NO color/size encoding, NO properties -- pure minimal
     
-    # --- Chart code ---
-    x_min = df_neighbors["Off. Power Rating"].min()
-    x_max = df_neighbors["Off. Power Rating"].max()
-    y_min = df_neighbors["Def. Power Rating"].min()
-    y_max = df_neighbors["Def. Power Rating"].max()
-    x_pad = (x_max - x_min) * 0.10 if x_max > x_min else 1
-    y_pad = (y_max - y_min) * 0.10 if y_max > y_min else 1
-    x_domain = [x_min - x_pad, x_max + x_pad]
-    y_domain = [y_max + y_pad, y_min - y_pad]  # Reverse for 'lower is better'
+    st.write(df_neighbors)  # Keep this for debug
     
-    chart = alt.Chart(df_neighbors).mark_circle().encode(
-        x=alt.X("Off. Power Rating:Q", scale=alt.Scale(domain=x_domain), axis=alt.Axis(title="Offensive Power Rating")),
-        y=alt.Y("Def. Power Rating:Q", scale=alt.Scale(domain=y_domain), axis=alt.Axis(title="Defensive Power Rating (lower is better)")),
-        color=alt.condition("datum.Selected", alt.value("#FFB347"), alt.value("#004085")),
-        size=alt.condition("datum.Selected", alt.value(350), alt.value(90)),
-        tooltip=["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
-    ).properties(
-        width=420,
-        height=390,
-        title="Closest Teams by Power Rating: Off vs. Def"
+    chart = alt.Chart(df_neighbors).mark_circle(size=100, color="red").encode(
+        x="Off. Power Rating",
+        y="Def. Power Rating",
+        tooltip=["Team", "Off. Power Rating", "Def. Power Rating"]
     )
     st.altair_chart(chart, use_container_width=True)
+
 
 
 elif tab == "Charts & Graphs":
