@@ -1496,18 +1496,86 @@ elif tab == "Team Dashboards":
     })
     df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
 
-    # --- Render in two‐column layout on desktop, full‐width on mobile ---
+    # --- Show table & chart: side by side on desktop, stacked on mobile ---
     if not is_mobile():
         left_col, right_col = st.columns([1, 1])
         with left_col:
-            st.markdown("#### Conference Standings")
-            st.markdown("".join(standings_html), unsafe_allow_html=True)
+            st.markdown("#### Probability Distribution of Wins After Each Game")
+            st.markdown("".join(table_html), unsafe_allow_html=True)
         with right_col:
-            st.markdown("#### Offensive vs Defensive Power Rating")
-            st.altair_chart(chart, use_container_width=True)
+            st.markdown("#### Win Probability Distribution")
+            bar = alt.Chart(df_win_dist).mark_bar(
+                color="#002060"
+            ).encode(
+                x=alt.X("Wins:O", axis=alt.Axis(
+                    title="Wins",
+                    labelAngle=0,
+                    labelColor="black",   # <-- Axis tick text
+                    titleColor="black"    # <-- Axis label
+                )),
+                y=alt.Y("Probability:Q", axis=alt.Axis(
+                    title="Probability (%)",
+                    labelColor="black",
+                    titleColor="black"
+                )),
+                tooltip=[
+                    alt.Tooltip("Wins:O", title="Wins"),
+                    alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
+                ]
+            )
+            text = bar.mark_text(
+                align='center',
+                baseline='bottom',
+                dy=-2,
+                color='black',
+                fontSize=10
+            ).encode(
+                text="Label"
+            )
+            final_chart = (bar + text).properties(
+                width=350,
+                height=515,
+                title=""
+            )
+            st.altair_chart(final_chart, use_container_width=True)
     else:
-        st.markdown("#### Offensive vs Defensive Power Rating")
-        st.altair_chart(chart, use_container_width=True)
+        st.markdown("#### Probability Distribution of Wins After Each Game")
+        st.markdown("".join(table_html), unsafe_allow_html=True)
+        st.markdown("#### Win Probability Distribution")
+        bar = alt.Chart(df_win_dist).mark_bar(
+            color="#002060"
+        ).encode(
+            x=alt.X("Wins:O", axis=alt.Axis(
+                title="Wins",
+                labelAngle=0,
+                labelColor="black",
+                titleColor="black"
+            )),
+            y=alt.Y("Probability:Q", axis=alt.Axis(
+                title="Probability (%)",
+                labelColor="black",
+                titleColor="black"
+            )),
+            tooltip=[
+                alt.Tooltip("Wins:O", title="Wins"),
+                alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
+            ]
+        )
+        text = bar.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-2,
+            color='black',
+            fontSize=8
+        ).encode(
+            text="Label"
+        )
+        final_chart = (bar + text).properties(
+            width=340,
+            height=240,
+            title=""
+        )
+        st.altair_chart(final_chart, use_container_width=True)
     # ---- Conference Standings Table below Win Distribution ----
 
     # Only render if a team is selected
@@ -1763,6 +1831,19 @@ elif tab == "Team Dashboards":
     
     # --- Combine layers: logos on top then circles
     chart = points_with_logo + points_no_logo
+    
+    # --- Render in two‐column layout on desktop, full‐width on mobile ---
+    if not is_mobile():
+        left_col, right_col = st.columns([1, 1])
+        with left_col:
+            st.markdown("#### Conference Standings")
+            st.markdown("".join(standings_html), unsafe_allow_html=True)
+        with right_col:
+            st.markdown("#### Offensive vs Defensive Power Rating")
+            st.altair_chart(chart, use_container_width=True)
+    else:
+        st.markdown("#### Offensive vs Defensive Power Rating")
+        st.altair_chart(chart, use_container_width=True)
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
