@@ -1763,12 +1763,23 @@ elif tab == "Team Dashboards":
     
     df_neighbors = df_sorted.iloc[start:end].copy()
     df_neighbors = df_neighbors.reset_index(drop=True)
-  
+
+    # Define scatter_df right here:
+    scatter_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
+    scatter_df.columns = scatter_df.columns.astype(str).str.strip()
+    scatter_df = scatter_df.apply(pd.to_numeric, errors='coerce')
+    scatter_df = scatter_df.dropna().reset_index(drop=True)
+    
+    st.write("scatter_df columns:", scatter_df.columns.tolist())
+    st.write(scatter_df)
+    
+    # Now plot:
     chart = alt.Chart(scatter_df).mark_circle(size=100, color='blue').encode(
         x=alt.X('Off. Power Rating', axis=alt.Axis(title='Offensive Power Rating')),
-        y=alt.Y('Def. Power Rating', axis=alt.Axis(title='Defensive Power Rating'))
+        y=alt.Y('Def. Power Rating', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
     )
     st.altair_chart(chart, use_container_width=True)
+    
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
