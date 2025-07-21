@@ -1764,7 +1764,13 @@ elif tab == "Team Dashboards":
     
     window_df = sorted_teams.iloc[start_idx:end_idx].copy()
     
-    # 5. Merge in Logo URLs from Logos tab
+    # 5. Merge in Off/Def Power Ratings from Ranking
+    window_df = window_df.merge(
+        df_ranking[["Team_clean", "Off. Power Rating", "Def. Power Rating"]],
+        on="Team_clean", how="left"
+    )
+    
+    # Then merge in Logo URLs from Logos tab
     if "Logo URL" not in logos_df.columns and "Image URL" in logos_df.columns:
         logos_df = logos_df.rename(columns={"Image URL": "Logo URL"})
     
@@ -1773,6 +1779,7 @@ elif tab == "Team Dashboards":
         logos_df[cols_to_merge],
         on="Team_clean", how="left"
     )
+
     
     # 7. Fallback logo for missing teams
     fallback_logo = "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
