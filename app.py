@@ -845,13 +845,9 @@ elif tab == "Industry Composite Ranking":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
-
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # In Team Dashboards tab:
-    if is_mobile():
-        inject_mobile_css()
     # --- Select Team ---
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
@@ -874,14 +870,12 @@ elif tab == "Team Dashboards":
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
     opponents = sched["Opponent"].tolist()
     num_games = len(opponents)
-
-    # --- Win Probabilities ---
     if "Win Probability" in sched.columns:
         win_prob_list = sched["Win Probability"].astype(float).values
     elif "Win Prob" in sched.columns:
         win_prob_list = sched["Win Prob"].astype(float).values
     else:
-        win_prob_list = np.full(num_games, 0.5)  # fallback
+        win_prob_list = np.full(num_games, 0.5)
     dp = np.zeros((num_games + 1, num_games + 1))
     dp[0, 0] = 1.0
     for g in range(1, num_games + 1):
@@ -900,22 +894,7 @@ elif tab == "Team Dashboards":
         exact_12 = win_probs[-1]
     else:
         exact_12 = 0.0
-    at_least_6_pct = f"{at_least_6*100:.1f}%"
-    at_least_8_pct = f"{at_least_8*100:.1f}%"
-    at_least_10_pct = f"{at_least_10*100:.1f}%"
-    exact_12_pct = f"{exact_12*100:.1f}%"
-    # ================
-    rows = []
-    for g in range(1, num_games + 1):
-        opp = opponents[g-1] if (g-1) < len(opponents) else ""
-        row = {
-            "Game": g,
-            "Opponent": opp
-        }
-        for w in range(num_games + 1):
-            row[w] = dp[g, w]
-        rows.append(row)
-# =====================
+
     # --- Returning Production ---
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
@@ -934,22 +913,8 @@ elif tab == "Team Dashboards":
         def_ret = fmt_pct(rank_row.iloc[0].get("Def. Returning Production", ""))
     else:
         ret_prod = off_ret = def_ret = ""
-    # --- Universe Size ---
-    num_teams = df_expected["Team"].nunique()
-    
+
     # --- Helper for Ranking (higher is better) ---
-    def get_rank(series, val, ascending=False):
-        arr = pd.to_numeric(series, errors='coerce').dropna()
-        if pd.isnull(val) or len(arr) == 0:
-            return ""
-        # For percent: convert 80% to 0.8 if needed
-        arr = arr.apply(lambda x: x/100 if x > 1.01 else x)
-        if val > 1.01:
-            val = val / 100
-        rank = (arr >= val).sum() if not ascending else (arr <= val).sum()
-        return f"({rank}/{len(arr)})"
-    
-    # --- Returning Production Cards ---
     def percent_to_float(x):
         try:
             if isinstance(x, str) and '%' in x:
@@ -958,26 +923,30 @@ elif tab == "Team Dashboards":
             return val/100 if val > 1.01 else val
         except:
             return float('nan')
-    
     if not rank_row.empty:
         team_ret_prod = percent_to_float(rank_row.iloc[0].get("Returning Production", ""))
         team_off_ret = percent_to_float(rank_row.iloc[0].get("Off. Returning Production", ""))
         team_def_ret = percent_to_float(rank_row.iloc[0].get("Def. Returning Production", ""))
     else:
         team_ret_prod = team_off_ret = team_def_ret = float('nan')
-    
+    def get_rank(series, val, ascending=False):
+        arr = pd.to_numeric(series, errors='coerce').dropna()
+        if pd.isnull(val) or len(arr) == 0:
+            return ""
+        arr = arr.apply(lambda x: x/100 if x > 1.01 else x)
+        if val > 1.01:
+            val = val / 100
+        rank = (arr >= val).sum() if not ascending else (arr <= val).sum()
+        return f"({rank}/{len(arr)})"
     ret_rank = get_rank(df_ranking["Returning Production"], team_ret_prod)
     off_ret_rank = get_rank(df_ranking["Off. Returning Production"], team_off_ret)
     def_ret_rank = get_rank(df_ranking["Def. Returning Production"], team_def_ret)
-    
     ret_prod_str = f"{ret_prod} {ret_rank}"
     off_ret_str = f"{off_ret} {off_ret_rank}"
     def_ret_str = f"{def_ret} {def_ret_rank}"
-    
+
     # --- WIN PROB RANKS ---
-    # Calculate for ALL TEAMS
     win_prob_metrics = { "at_least_6": [], "at_least_8": [], "at_least_10": [], "exact_12": [] }
-    
     for team in df_expected["Team"]:
         sched_team = df_schedule[df_schedule[team_col] == team].copy()
         n_games = len(sched_team)
@@ -995,23 +964,20 @@ elif tab == "Team Dashboards":
                 win_part = dp[g-1, w-1] * p if w > 0 else 0
                 lose_part = dp[g-1, w] * (1 - p)
                 dp[g, w] = win_part + lose_part
-        win_probs = dp[n_games, :]
-        win_prob_metrics["at_least_6"].append(win_probs[6:].sum() if len(win_probs) > 6 else 0.0)
-        win_prob_metrics["at_least_8"].append(win_probs[8:].sum() if len(win_probs) > 8 else 0.0)
-        win_prob_metrics["at_least_10"].append(win_probs[10:].sum() if len(win_probs) > 10 else 0.0)
-        if len(win_probs) > 12:
-            win_prob_metrics["exact_12"].append(win_probs[12])
-        elif len(win_probs) == 12:
-            win_prob_metrics["exact_12"].append(win_probs[-1])
+        win_probs_team = dp[n_games, :]
+        win_prob_metrics["at_least_6"].append(win_probs_team[6:].sum() if len(win_probs_team) > 6 else 0.0)
+        win_prob_metrics["at_least_8"].append(win_probs_team[8:].sum() if len(win_probs_team) > 8 else 0.0)
+        win_prob_metrics["at_least_10"].append(win_probs_team[10:].sum() if len(win_probs_team) > 10 else 0.0)
+        if len(win_probs_team) > 12:
+            win_prob_metrics["exact_12"].append(win_probs_team[12])
+        elif len(win_probs_team) == 12:
+            win_prob_metrics["exact_12"].append(win_probs_team[-1])
         else:
             win_prob_metrics["exact_12"].append(0.0)
-    
-    # --- Get this team's value and rank ---
     at_least_6_rank = get_rank(pd.Series(win_prob_metrics["at_least_6"]), at_least_6)
     at_least_8_rank = get_rank(pd.Series(win_prob_metrics["at_least_8"]), at_least_8)
     at_least_10_rank = get_rank(pd.Series(win_prob_metrics["at_least_10"]), at_least_10)
     exact_12_rank = get_rank(pd.Series(win_prob_metrics["exact_12"]), exact_12)
-    
     at_least_6_pct_str = f"{at_least_6*100:.1f}% {at_least_6_rank}"
     at_least_8_pct_str = f"{at_least_8*100:.1f}% {at_least_8_rank}"
     at_least_10_pct_str = f"{at_least_10*100:.1f}% {at_least_10_rank}"
@@ -1025,17 +991,8 @@ elif tab == "Team Dashboards":
     power_rank_str = f"({team_rank}/{num_teams})"
     power_rating_str = f"{team_power:.1f} {power_rank_str}"
 
-    # --- CARD STRIP (Responsive, no sidebar overlap) ---
+    # --- CARD STRIP (Responsive) ---
     if is_mobile():
-        # MOBILE CSS ONLY injected here
-        st.markdown("""
-        <style>
-        /* Only on mobile: force content full width and no scroll */
-        [data-testid="stHorizontalBlock"] { max-width:100vw !important; }
-        .block-container, .main { padding-left:0 !important; padding-right:0 !important; }
-        body, html { overflow-x: hidden !important; }
-        </style>
-        """, unsafe_allow_html=True)
         n_items = 10  # logos + 9 cards
         card_width = 100 / n_items - 0.5
         card_base = (
@@ -1089,9 +1046,7 @@ elif tab == "Team Dashboards":
             </div>
         </div>
         '''
-
     else:
-        # DESKTOP (no sidebar overlap, no global CSS)
         card_style = (
             "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
             "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
@@ -1146,22 +1101,15 @@ elif tab == "Team Dashboards":
             </div>
         </div>
         '''
-
     st.markdown(card_html, unsafe_allow_html=True)
 
-    # --- Calculate Expected Records ---
+    # --- RECORD CARDS ---
     proj_wins = team_row.get("Projected Overall Wins", None)
     proj_losses = team_row.get("Projected Overall Losses", None)
     proj_conf_wins = team_row.get("Projected Conference Wins", None)
     proj_conf_losses = team_row.get("Projected Conference Losses", None)
-    
     record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
     conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
-    
-    # Color choices
-    record_bg = "#FFB347"    # Amber/Orange
-    conf_bg = "#9067B8"      # Purple
-    
     if is_mobile():
         card_width = "44vw"
         card_height = "34px"
@@ -1176,32 +1124,66 @@ elif tab == "Team Dashboards":
         record_font = "27px"
         margin = "8px 24px 20px 0"
         wrap = "flex-start"
-    
     record_card = f'''
-    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{record_bg};
+    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:#FFB347;
     border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#222; border:2px solid #fff; margin:{margin};
     width:{card_width}; height:{card_height}; font-size:{label_font}; font-weight:600; text-align:center; padding:0 8px; box-sizing:border-box;">
         <span style="font-size:0.97em; font-weight:400; color:#444; white-space:nowrap;">Expected Record</span>
         <span style="font-size:{record_font}; font-weight:800; color:#002060; letter-spacing:-1px; line-height:1.1;">{record_str}</span>
     </div>
     '''
-    
     conf_card = f'''
-    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{conf_bg};
+    <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:#9067B8;
     border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#fff; border:2px solid #fff; margin:{margin};
     width:{card_width}; height:{card_height}; font-size:{label_font}; font-weight:600; text-align:center; padding:0 8px; box-sizing:border-box;">
         <span style="font-size:0.97em; font-weight:400; color:#eee; white-space:nowrap;">Expected Conf. Record</span>
         <span style="font-size:{record_font}; font-weight:800; color:#fff; letter-spacing:-1px; line-height:1.1;">{conf_record_str}</span>
     </div>
     '''
-    
-    # Align left on desktop, center on mobile
     st.markdown(f'''
     <div style="display:flex;flex-direction:row;justify-content:{wrap};align-items:center;gap:2vw;width:100%;flex-wrap:wrap;">
         {record_card}
         {conf_card}
     </div>
     ''', unsafe_allow_html=True)
+
+    # --- Schedule Table, Table_html, Bar Chart, Standings, Scatterplot, etc. ---
+    # All your table and chart HTML/Altair code for:
+    # - table_html
+    # - final_chart
+    # - standings_html
+    # - chart (scatterplot)
+
+    # ... [PASTE all your table and chart HTML/Altair code here, unchanged] ...
+    # (This will be a large section: you can use what you already have from your original code for schedule table, win bar chart, conference standings, and scatter.)
+
+    # ---- FINAL LAYOUT (NO DUPLICATE TABLES) ----
+    if not is_mobile():
+        top_left, top_right = st.columns([1, 1])
+        with top_left:
+            st.markdown("#### Probability Distribution of Wins After Each Game")
+            st.markdown("".join(table_html), unsafe_allow_html=True)
+        with top_right:
+            st.markdown("#### Win Probability Distribution")
+            st.altair_chart(final_chart, use_container_width=True)
+
+        bottom_left, bottom_right = st.columns([1, 1])
+        with bottom_left:
+            st.markdown("#### Conference Standings")
+            st.markdown("".join(standings_html), unsafe_allow_html=True)
+        with bottom_right:
+            st.markdown("#### Offensive vs Defensive Power Rating")
+            st.altair_chart(chart, use_container_width=True)
+    else:
+        st.markdown("#### Probability Distribution of Wins After Each Game")
+        st.markdown("".join(table_html), unsafe_allow_html=True)
+        st.markdown("#### Win Probability Distribution")
+        st.altair_chart(final_chart, use_container_width=True)
+        st.markdown("#### Conference Standings")
+        st.markdown("".join(standings_html), unsafe_allow_html=True)
+        st.markdown("#### Offensive vs Defensive Power Rating")
+        st.altair_chart(chart, use_container_width=True)
+    
 
     # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
