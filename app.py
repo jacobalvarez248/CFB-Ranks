@@ -1771,14 +1771,14 @@ elif tab == "Team Dashboards":
         df_neighbors = df_ranking_clean.iloc[start:end].copy()
     
         # Before merging logo URLs
-    scatter_df2["Team"] = scatter_df2["Team"].astype(str).str.strip().str.upper()
-    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
-    scatter_df2 = scatter_df2.merge(
-        logos_df[["Team", "Logo URL"]],
-        left_on="Team",
-        right_on="Team",
-        how="left"
-    )
+        scatter_df2["Team"] = scatter_df2["Team"].astype(str).str.strip().str.upper()
+        logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+        scatter_df2 = scatter_df2.merge(
+            logos_df[["Team", "Logo URL"]],
+            left_on="Team",
+            right_on="Team",
+            how="left"
+        )
 
         # Mark selected team for highlight
         scatter_df2["Selected"] = scatter_df2["Team"].eq(selected_team)
