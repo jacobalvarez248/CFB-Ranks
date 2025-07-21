@@ -1771,18 +1771,34 @@ elif tab == "Team Dashboards":
     
     df_neighbors = df_ranking_clean.iloc[start:end].copy()
     
-    scatter_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
+    # --- Add Team names for tooltips ---
+    scatter_df = df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
     scatter_df.columns = scatter_df.columns.astype(str).str.strip()
-    scatter_df = scatter_df.apply(pd.to_numeric, errors='coerce')
+    scatter_df = scatter_df.apply(pd.to_numeric, errors='coerce', except_columns=["Team"])
+    scatter_df["Team"] = df_neighbors["Team"].values  # ensure Team is not numeric
     scatter_df = scatter_df.dropna().reset_index(drop=True)
     
-    # --- (3) Plot! ---
-    
-    chart = alt.Chart(scatter_df).mark_circle(size=100, color='blue').encode(
+    chart = alt.Chart(scatter_df).mark_circle(size=110, color='blue').encode(
         x=alt.X('Off. Power Rating', axis=alt.Axis(title='Offensive Power Rating')),
-        y=alt.Y('Def. Power Rating', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
+        y=alt.Y('Def. Power Rating', axis=alt.Axis(title='Defensive Power Rating (lower is better)')),
+        tooltip=[
+            alt.Tooltip('Team', title="Team"),
+            alt.Tooltip('Off. Power Rating', title="Offense", format=".1f"),
+            alt.Tooltip('Def. Power Rating', title="Defense", format=".1f")
+        ]
     )
-    st.altair_chart(chart, use_container_width=True)
+    
+    # Optionally, add text labels on each dot:
+    text = alt.Chart(scatter_df).mark_text(
+        align='left', dx=7, dy=0, fontSize=13, color='black'
+    ).encode(
+        x='Off. Power Rating',
+        y='Def. Power Rating',
+        text='Team'
+    )
+    
+    st.altair_chart(chart + text, use_container_width=True)
+
     
 
 
