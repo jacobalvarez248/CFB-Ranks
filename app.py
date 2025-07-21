@@ -1723,21 +1723,26 @@ elif tab == "Team Dashboards":
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
     
-    # 1. Load and clean ratings
-    df_ranking = load_sheet(data_path, "Ranking", header=1)
-    df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
-    df_ranking = df_ranking[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
+    # 1. Load full ranking data (with Power Rating, Off, Def)
+    df_ranking_full = load_sheet(data_path, "Ranking", header=1)
+    df_ranking_full["Team"] = df_ranking_full["Team"].astype(str).str.strip()
     
-    # Merge for power sort
-    df_all = df_expected[["Team", "Power Rating"]].merge(
-        df_ranking, on="Team", how="left"
-    )
-    df_all = df_all.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    # Make sure all columns are float (force conversion)
+    for col in ["Power Rating", "Off. Power Rating", "Def. Power Rating"]:
+        df_ranking_full[col] = pd.to_numeric(df_ranking_full[col], errors="coerce")
     
-    # Find neighbors
-    selected_idx = df_all.index[df_all["Team"] == selected_team][0]
+    # 2. Get selected team’s Power Rating
+    selected_power = df_ranking_full.loc[
+        df_ranking_full["Team"] == selected_team, "Power Rating"
+    ].values[0]
+    
+    # 3. Sort by Power Rating, get index of selected team
+    df_sorted = df_ranking_full.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    selected_idx = df_sorted.index[df_sorted["Team"] == selected_team][0]
+    
+    # 4. Slice for closest 10 teams (5 above, 5 below)
     N = 5
-    num_teams = len(df_all)
+    num_teams = len(df_sorted)
     if selected_idx < N:
         start = 0
         end = min(11, num_teams)
@@ -1748,152 +1753,36 @@ elif tab == "Team Dashboards":
         start = selected_idx - N
         end = selected_idx + N + 1
     
-    df_neighbors = df_all.iloc[start:end].copy()
+    df_neighbors = df_sorted.iloc[start:end].copy()
     df_neighbors["Selected"] = df_neighbors["Team"] == selected_team
     
-    # -- CLEAN COLUMN NAMES (just in case) --
-    df_neighbors.columns = [c.strip() for c in df_neighbors.columns]
-    
-    # --- FORCE NUMERIC ---
-    df_neighbors["Off. Power Rating"] = pd.to_numeric(df_neighbors["Off. Power Rating"], errors="coerce")
-    df_neighbors["Def. Power Rating"] = pd.to_numeric(df_neighbors["Def. Power Rating"], errors="coerce")
-    
-    # --- DROP ROWS WITH NANs ---
+    # Now, plot Off vs. Def (as before)
+    # Remove rows with missing Off/Def (shouldn't be any, but for safety)
     df_neighbors = df_neighbors.dropna(subset=["Off. Power Rating", "Def. Power Rating"])
     
-    # --- DIAGNOSTICS (optional, remove when happy) ---
-    st.write("Teams in scatter:", len(df_neighbors))
-    st.write(df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating", "Selected"]])
-    
-    # --- Altair Plot ---
-    size_normal = 90 if not is_mobile() else 50
-    size_selected = 350 if not is_mobile() else 160
-    
-    base = alt.Chart(df_neighbors).encode(
-        x=alt.X("Off. Power Rating:Q", axis=alt.Axis(title="Offensive Power Rating")),
-        y=alt.Y("Def. Power Rating:Q", sort="descending", axis=alt.Axis(title="Defensive Power Rating (lower is better)")),
-        tooltip=[
-            alt.Tooltip("Team:N", title="Team"),
-            alt.Tooltip("Off. Power Rating:Q", title="Off. Power Rating"),
-            alt.Tooltip("Def. Power Rating:Q", title="Def. Power Rating")
-        ]
-    )
-    
-    points = base.transform_filter(
-        alt.datum.Selected == False
-    ).mark_circle(
-        size=size_normal,
-        color="#004085"
-    )
-    
-    highlight = base.transform_filter(
-        alt.datum.Selected == True
-    ).mark_circle(
-        size=size_selected,
-        color="#FFB347",
-        stroke="black",
-        strokeWidth=2
-    )
-    
-    chart = (points + highlight).properties(
-        width=350 if is_mobile() else 420,
-        height=300 if is_mobile() else 390,
-        title="Closest Teams by Power Rating: Off vs. Def"
-    )
-    
-    if is_mobile():
-        st.markdown("#### Similar Teams: Offense vs. Defense Rating")
-        st.altair_chart(chart, use_container_width=True)
-    else:
-        left, right = st.columns([1, 1])
-        with right:
-            st.markdown("#### Similar Teams: Offense vs. Defense Rating")
-            st.altair_chart(chart, use_container_width=True)
-    # ... previous code for df_neighbors, etc.
-
-    # Calculate padded domains for axis scaling
+    # --- Chart code ---
     x_min = df_neighbors["Off. Power Rating"].min()
     x_max = df_neighbors["Off. Power Rating"].max()
     y_min = df_neighbors["Def. Power Rating"].min()
     y_max = df_neighbors["Def. Power Rating"].max()
-    
-    # Add padding so points aren't at the border
     x_pad = (x_max - x_min) * 0.10 if x_max > x_min else 1
     y_pad = (y_max - y_min) * 0.10 if y_max > y_min else 1
-    
     x_domain = [x_min - x_pad, x_max + x_pad]
-    y_domain = [y_max + y_pad, y_min - y_pad]  # Y reversed for 'lower is better'
+    y_domain = [y_max + y_pad, y_min - y_pad]  # Reverse for 'lower is better'
     
-    size_normal = 90 if not is_mobile() else 50
-    size_selected = 350 if not is_mobile() else 160
-    
-    base = alt.Chart(df_neighbors).encode(
-        x=alt.X(
-            "Off. Power Rating:Q",
-            axis=alt.Axis(title="Offensive Power Rating"),
-            scale=alt.Scale(domain=x_domain)
-        ),
-        y=alt.Y(
-            "Def. Power Rating:Q",
-            axis=alt.Axis(title="Defensive Power Rating (lower is better)"),
-            scale=alt.Scale(domain=y_domain)
-        ),
-        tooltip=[
-            alt.Tooltip("Team:N", title="Team"),
-            alt.Tooltip("Off. Power Rating:Q", title="Off. Power Rating"),
-            alt.Tooltip("Def. Power Rating:Q", title="Def. Power Rating")
-        ]
-    )
-    
-    points = base.transform_filter(
-        alt.datum.Selected == False
-    ).mark_circle(
-        size=size_normal,
-        color="#004085"
-    )
-    
-    highlight = base.transform_filter(
-        alt.datum.Selected == True
-    ).mark_circle(
-        size=size_selected,
-        color="#FFB347",
-        stroke="black",
-        strokeWidth=2
-    )
-    
-    chart = (points + highlight).properties(
-        width=350 if is_mobile() else 420,
-        height=300 if is_mobile() else 390,
-        title="Closest Teams by Power Rating: Off vs. Def"
-    )
-    
-    if is_mobile():
-        st.markdown("#### Similar Teams: Offense vs. Defense Rating")
-        st.altair_chart(chart, use_container_width=True)
-    else:
-        left, right = st.columns([1, 1])
-        with right:
-            st.markdown("#### Similar Teams: Offense vs. Defense Rating")
-            st.altair_chart(chart, use_container_width=True)
-
-    chart = alt.Chart(df_neighbors).mark_circle(
-        size=200,
-        color="#004085"
-    ).encode(
+    chart = alt.Chart(df_neighbors).mark_circle().encode(
         x=alt.X("Off. Power Rating:Q", scale=alt.Scale(domain=x_domain), axis=alt.Axis(title="Offensive Power Rating")),
         y=alt.Y("Def. Power Rating:Q", scale=alt.Scale(domain=y_domain), axis=alt.Axis(title="Defensive Power Rating (lower is better)")),
-        tooltip=[
-            "Team", "Off. Power Rating", "Def. Power Rating"
-        ]
+        color=alt.condition("datum.Selected", alt.value("#FFB347"), alt.value("#004085")),
+        size=alt.condition("datum.Selected", alt.value(350), alt.value(90)),
+        tooltip=["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
     ).properties(
         width=420,
         height=390,
         title="Closest Teams by Power Rating: Off vs. Def"
     )
-    
     st.altair_chart(chart, use_container_width=True)
-    st.write("Shape:", df_neighbors.shape)
-    st.write(df_neighbors)
+
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
