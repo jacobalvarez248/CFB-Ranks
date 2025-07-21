@@ -1722,6 +1722,92 @@ elif tab == "Team Dashboards":
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
+    
+    # --- Similar Teams Offense vs. Defense Scatter Plot ---
+    
+    # 1. Load Off/Def Power Ratings from "Ranking" tab
+    df_ranking = load_sheet(data_path, "Ranking", header=1)
+    df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
+    df_ranking = df_ranking[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
+    
+    # 2. Merge with Power Rating and Logo for sorting
+    df_all = df_expected[["Team", "Power Rating", "Logo URL"]].merge(
+        df_ranking, on="Team", how="left"
+    )
+    df_all = df_all.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    
+    # 3. Find selected team index and neighbor slice
+    selected_idx = df_all.index[df_all["Team"] == selected_team][0]
+    N = 5  # Teams above/below
+    num_teams = len(df_all)
+    if selected_idx < N:
+        start = 0
+        end = min(11, num_teams)
+    elif selected_idx > num_teams - N - 1:
+        start = max(0, num_teams - 11)
+        end = num_teams
+    else:
+        start = selected_idx - N
+        end = selected_idx + N + 1
+    
+    df_neighbors = df_all.iloc[start:end].copy()
+    df_neighbors["is_selected"] = df_neighbors["Team"] == selected_team
+    
+    # --- Fill any missing logos with a fallback ---
+    fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
+    df_neighbors["Logo URL"] = df_neighbors["Logo URL"].fillna(fallback_logo_url)
+    df_neighbors["Logo URL"] = df_neighbors["Logo URL"].apply(
+        lambda x: x if isinstance(x, str) and x.startswith("http") else fallback_logo_url
+    )
+    
+    # --- Altair Scatter Plot ---
+    logo_size = 36 if not is_mobile() else 26
+    
+    base = alt.Chart(df_neighbors).encode(
+        x=alt.X("Off. Power Rating:Q", axis=alt.Axis(title="Offensive Power Rating")),
+        y=alt.Y("Def. Power Rating:Q", sort="descending", axis=alt.Axis(title="Defensive Power Rating (lower is better)")),
+        tooltip=[
+            alt.Tooltip("Team:N", title="Team"),
+            alt.Tooltip("Off. Power Rating:Q", title="Off. Power Rating"),
+            alt.Tooltip("Def. Power Rating:Q", title="Def. Power Rating")
+        ]
+    )
+    
+    # All team logos
+    logo_pts = base.mark_image(
+        width=logo_size,
+        height=logo_size
+    ).encode(
+        url="Logo URL:N"
+    )
+    
+    # Highlight selected team: semi-transparent colored circle
+    highlight = base.transform_filter(
+        alt.datum.is_selected == True
+    ).mark_circle(
+        size=logo_size*logo_size*1.8, 
+        color="#FFB347", 
+        opacity=0.35, 
+        stroke="red", 
+        strokeWidth=3
+    )
+    
+    chart = (logo_pts + highlight).properties(
+        width=350 if is_mobile() else 420,
+        height=300 if is_mobile() else 390,
+        title="Closest Teams by Power Rating: Off vs. Def"
+    )
+    
+    # --- Responsive Placement ---
+    if is_mobile():
+        st.markdown("#### Similar Teams: Offense vs. Defense Rating")
+        st.altair_chart(chart, use_container_width=True)
+    else:
+        # Place next to conference standings (adjust columns as needed)
+        left, right = st.columns([1, 1])
+        with right:
+            st.markdown("#### Similar Teams: Offense vs. Defense Rating")
+            st.altair_chart(chart, use_container_width=True)
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
