@@ -890,6 +890,24 @@ elif tab == "Team Dashboards":
     df_nearby = df_sorted.iloc[start_idx:end_idx].copy()
     # After making df_nearby:
     df_nearby.columns = [str(col).strip() for col in df_nearby.columns]
+    def fuzzy_find(target, columns):
+        # Remove punctuation and lowercase for best effort
+        import re
+        tgt = re.sub(r"[^a-zA-Z0-9]", "", target).lower()
+        for c in columns:
+            c_norm = re.sub(r"[^a-zA-Z0-9]", "", c).lower()
+            if tgt in c_norm:
+                return c
+        return None
+    
+    off_col = fuzzy_find("Off. Power Rating", df_nearby.columns)
+    def_col = fuzzy_find("Def. Power Rating", df_nearby.columns)
+    logo_col = fuzzy_find("Logo URL", df_nearby.columns)
+    
+    st.write("Using off_col:", off_col)
+    st.write("Using def_col:", def_col)
+    st.write("Using logo_col:", logo_col)
+
     # --- Off vs Def Power Rating Scatter Plot for Nearby Teams ---
     df_nearby[off_col] = pd.to_numeric(df_nearby[off_col], errors="coerce")
     df_nearby[def_col] = pd.to_numeric(df_nearby[def_col], errors="coerce")
