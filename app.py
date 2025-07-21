@@ -1723,24 +1723,24 @@ elif tab == "Team Dashboards":
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
     
-    # 1. Load full ranking data (with Power Rating, Off, Def)
-    df_ranking_full = load_sheet(data_path, "Ranking", header=1)
-    df_ranking_full["Team"] = df_ranking_full["Team"].astype(str).str.strip()
+    # --- Load Rankings tab (all ratings from same source) ---
+    df_ranking = load_sheet(data_path, "Ranking", header=1)
+    df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
     
-    # Make sure all columns are float (force conversion)
+    # Ensure numeric types for all ratings columns
     for col in ["Power Rating", "Off. Power Rating", "Def. Power Rating"]:
-        df_ranking_full[col] = pd.to_numeric(df_ranking_full[col], errors="coerce")
+        df_ranking[col] = pd.to_numeric(df_ranking[col], errors="coerce")
     
-    # 2. Get selected team’s Power Rating
-    selected_power = df_ranking_full.loc[
-        df_ranking_full["Team"] == selected_team, "Power Rating"
-    ].values[0]
+    # Drop teams without Power Rating
+    df_ranking = df_ranking.dropna(subset=["Power Rating", "Off. Power Rating", "Def. Power Rating"])
     
-    # 3. Sort by Power Rating, get index of selected team
-    df_sorted = df_ranking_full.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    # Sort by Power Rating
+    df_sorted = df_ranking.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    
+    # Find selected team's index
     selected_idx = df_sorted.index[df_sorted["Team"] == selected_team][0]
     
-    # 4. Slice for closest 10 teams (5 above, 5 below)
+    # Slice 5 above and 5 below (handle edges)
     N = 5
     num_teams = len(df_sorted)
     if selected_idx < N:
@@ -1756,33 +1756,27 @@ elif tab == "Team Dashboards":
     df_neighbors = df_sorted.iloc[start:end].copy()
     df_neighbors["Selected"] = df_neighbors["Team"] == selected_team
     
-    # NO explicit axis scaling, NO color/size encoding, NO properties -- pure minimal
+    # Remove any remaining NaNs in plotting columns
+    df_neighbors = df_neighbors.dropna(subset=["Off. Power Rating", "Def. Power Rating"])
     
-    st.write(df_neighbors)  # Keep this for debug
-    
-    chart = alt.Chart(df_neighbors).mark_circle(size=100, color="red").encode(
-        x="Off. Power Rating",
-        y="Def. Power Rating",
-        tooltip=["Team", "Off. Power Rating", "Def. Power Rating"]
-    )
-    st.altair_chart(chart, use_container_width=True)
-
-    st.write(df_neighbors)
-    st.scatter_chart(df_neighbors[["Off. Power Rating", "Def. Power Rating"]])
-    chart_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
-    chart_df = chart_df.reset_index(drop=True)  # Remove index for correct x/y
-    st.scatter_chart(chart_df)
-
-    # Just in case, reset index
+    # --- Reset index for safe plotting (important for Streamlit's scatter_chart) ---
     df_neighbors = df_neighbors.reset_index(drop=True)
     
-    chart = alt.Chart(df_neighbors).mark_circle(size=120, color="blue").encode(
+    # --- Altair Scatter Plot (highlight selected team) ---
+    chart = alt.Chart(df_neighbors).mark_circle().encode(
         x=alt.X("Off. Power Rating", axis=alt.Axis(title="Offensive Power Rating")),
         y=alt.Y("Def. Power Rating", axis=alt.Axis(title="Defensive Power Rating (lower is better)")),
-        tooltip=["Team", "Off. Power Rating", "Def. Power Rating"]
+        color=alt.condition("datum.Selected", alt.value("#FFB347"), alt.value("#004085")),
+        size=alt.condition("datum.Selected", alt.value(350), alt.value(120)),
+        tooltip=["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
+    ).properties(
+        width=420,
+        height=390,
+        title="Closest Teams by Power Rating: Off vs. Def"
     )
-    st.altair_chart(chart, use_container_width=True)
     
+    st.markdown("#### Similar Teams: Offense vs. Defense Rating")
+    st.altair_chart(chart, use_container_width=True) 
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
