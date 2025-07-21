@@ -1008,7 +1008,7 @@ elif tab == "Team Dashboards":
     
     # --- Get this team's value and rank ---
     at_least_6_rank = get_rank(pd.Series(win_prob_metrics["at_least_6"]), at_least_6)
-    at_least_8_rank = get_rank(pd.Series(win_prob_metrics["at_least_8"]), at_least_8
+    at_least_8_rank = get_rank(pd.Series(win_prob_metrics["at_least_8"]), at_least_8)
     at_least_10_rank = get_rank(pd.Series(win_prob_metrics["at_least_10"]), at_least_10)
     exact_12_rank = get_rank(wpd.Series(win_prop_metrics["exact_12"], exact_12)
     
