@@ -866,9 +866,6 @@ elif tab == "Team Dashboards":
     off_col = "Off. Power Rating"
     def_col = "Def. Power Rating"
     logo_col = "Logo URL"
-
-    # After making df_nearby:
-    df_nearby.columns = [str(col).strip() for col in df_nearby.columns]
     
     # Now use the clean column names
     off_col = "Off. Power Rating"
