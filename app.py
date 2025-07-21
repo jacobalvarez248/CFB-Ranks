@@ -1774,13 +1774,22 @@ elif tab == "Team Dashboards":
     # Prepare Off/Def/Team/Logo URL for Altair
     scatter_df2 = df_neighbors[["Off. Power Rating", "Def. Power Rating", "Team"]].copy()
     scatter_df2.columns = ["Off", "Def", "Team"]
-    # Add Logo URL from logos_df (already cleaned and upper-cased)
-    scatter_df2 = scatter_df2.merge(
-        logos_df[["Team", "Logo URL"]],
-        left_on="Team",
-        right_on="Team",
-        how="left"
+    # --- normalize to uppercase keys for the join ---
+    scatter_df2["Team_key"] = (
+        scatter_df2["Team"]
+          .astype(str)
+          .str.strip()
+          .str.upper()
     )
+    
+    # make sure your logos_df["Team"] is also uppercase (you did this once already)
+    # logos_df["Team"] = logos_df["Team"].str.strip().str.upper()
+    
+    # build a lookup dict for speed / clarity
+    logo_lookup = logos_df.set_index("Team")["Logo URL"].to_dict()
+    
+    # map it onto scatter_df2
+    scatter_df2["Logo URL"] = scatter_df2["Team_key"].map(logo_lookup)
 
     # --- Compute true min/max for both axes ---
     off_vals = scatter_df2["Off"]
