@@ -1042,7 +1042,7 @@ elif tab == "Team Dashboards":
             f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; "
             "margin:0; background: #00B050; color: #fff; border-radius: 4px; border: 1px solid #fff; "
             "padding: 2px 0; display: flex; flex-direction: column; align-items: center; "
-            "font-size:10px; font-weight:700; text-align:center; box-sizing: border-box;"
+            "font-size:8px; font-weight:700; text-align:center; box-sizing: border-box;"
         )
         lighter_card = card_base.replace('#00B050', '#00B0F0')
         dark_card = card_base.replace('#00B050', '#002060')
