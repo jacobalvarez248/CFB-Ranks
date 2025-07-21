@@ -1787,7 +1787,25 @@ elif tab == "Team Dashboards":
         x=alt.X('Off:Q', axis=alt.Axis(title='Offensive Power Rating')),
         y=alt.Y('Def:Q', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
     )
-    st.altair_chart(chart, use_container_width=True)
+    -    # standalone scatter
+    -    st.altair_chart(chart, use_container_width=True)
+    +    # on desktop, render standings on the left and scatter on the right
+    +    if not is_mobile():
+    +        left_col, right_col = st.columns([1,1])
+    +        # --- Left: Conference Standings (reuse your existing standings_html) ---
+    +        with left_col:
+    +            st.markdown("#### Conference Standings")
+    +            st.markdown("".join(standings_html), unsafe_allow_html=True)
+    +
+    +        # --- Right: Offense vs. Defense Power scatter ---
+    +        with right_col:
+    +            st.markdown("#### Offensive vs Defensive Power Rating")
+    +            st.altair_chart(chart, use_container_width=True)
+    +    else:
+    +        # on mobile just show the scatter full-width
+    +        st.markdown("#### Offensive vs Defensive Power Rating")
+    +        st.altair_chart(chart, use_container_width=True)
+    
 
  
 elif tab == "Charts & Graphs":
