@@ -1722,6 +1722,8 @@ elif tab == "Team Dashboards":
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
+    st.write("window_df shape:", window_df.shape)
+    st.write(window_df[["Team", "Off. Power Rating", "Def. Power Rating", "Logo URL"]])
 
     # 1. Parameters
     N = 5  # Number of teams above and below (total points will be up to 11)
