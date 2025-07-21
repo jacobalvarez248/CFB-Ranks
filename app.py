@@ -1751,8 +1751,22 @@ elif tab == "Team Dashboards":
     df_neighbors = df_sorted.iloc[start:end].copy()
     df_neighbors = df_neighbors.reset_index(drop=True)
     
-    # (Optional) Show for debugging
-    # st.write(df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating"]])
+    # DEBUG PRINT
+    st.write("Shape:", df_neighbors.shape)
+    st.write("Column names:", df_neighbors.columns.tolist())
+    st.write(df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating"]])
+    st.write(df_neighbors.dtypes)
+    st.write(df_neighbors.isnull().sum())
+    
+    # Try making a DataFrame with just two columns and print it
+    scatter_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
+    scatter_df = scatter_df.dropna()
+    st.write(scatter_df)
+    
+    # Try plotting that (reset index for Streamlit)
+    scatter_df = scatter_df.reset_index(drop=True)
+    st.scatter_chart(scatter_df)
+
     
     # --- Scatter plot using Streamlit's built-in chart ---
     st.markdown("#### Similar Teams: Offense vs. Defense Rating")
