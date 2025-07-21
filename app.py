@@ -1766,11 +1766,24 @@ elif tab == "Team Dashboards":
     
     # --- Plot with Streamlit's built-in chart ---
     st.markdown("#### Similar Teams: Offense vs. Defense Rating")
+    st.write("df_neighbors shape:", df_neighbors.shape)
+    st.write("df_neighbors columns:", df_neighbors.columns.tolist())
+    st.write("df_neighbors dtypes:", df_neighbors.dtypes)
+    st.write("df_neighbors head:", df_neighbors.head())
+    st.write("NaN count:", df_neighbors.isnull().sum())
+    
+    # Show DataFrame used for plotting
+    scatter_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
+    scatter_df = scatter_df.dropna()
+    st.write("scatter_df for plotting:", scatter_df)
+
     st.scatter_chart(
         data=df_neighbors,
         x="Off. Power Rating",
         y="Def. Power Rating"
     )
+    scatter_df = scatter_df.reset_index(drop=True)
+    st.scatter_chart(scatter_df)
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
