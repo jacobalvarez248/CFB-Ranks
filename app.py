@@ -1782,71 +1782,59 @@ elif tab == "Team Dashboards":
         how="left"
     )
 
-    
-    # --- tighten axes to actual data range ---
+    # --- Compute true min/max for both axes ---
     off_vals = scatter_df2["Off"]
     def_vals = scatter_df2["Def"]
-    
     off_min, off_max = off_vals.min(), off_vals.max()
     def_min, def_max = def_vals.min(), def_vals.max()
     
-    # --- show team logos in scatter, fallback to blue circle when missing ---
-    logo_size = 30  # adjust as you like
-    
-    # only rows where Logo URL is neither null nor the empty string
+    # --- Define logo condition: non-null and non-empty URL ---
     logo_cond = (
-        (alt.datum["Logo URL"] != None) & 
+        (alt.datum["Logo URL"] != None) &
         (alt.datum["Logo URL"] != "")
     )
     
-    points_with_logo = (
-        alt.Chart(scatter_df2)
-           .transform_filter(logo_cond)
-           .mark_image(width=logo_size, height=logo_size)
-           .encode(
-               x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max]),
-                       axis=alt.Axis(title="Offensive Power Rating")),
-               y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max]),
-                       axis=alt.Axis(title="Defensive Power Rating")),
-               url="Logo URL:N",
-               tooltip=["Team:N", "Off:Q", "Def:Q"]
-           )
-    )
-    
-    # fallback circles for anything missing Logo URL
+    # --- Fallback circles for points without a logo ---
     points_no_logo = (
         alt.Chart(scatter_df2)
            .transform_filter(~logo_cond)
            .mark_circle(size=100, color="steelblue")
            .encode(
-               x="Off:Q",
-               y="Def:Q",
-               tooltip=["Team:N", "Off:Q", "Def:Q"]
+               x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max]), axis=alt.Axis(title="Offensive Power Rating")),
+               y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max]), axis=alt.Axis(title="Defensive Power Rating")),
+               tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
            )
     )
     
-    # combine them
-    chart = (points_no_logo + points_with_logo).properties(
-        width="container", height=300
+    # --- Logo images for points with a valid URL ---
+    logo_size = 40  # adjust as needed
+    points_with_logo = (
+        alt.Chart(scatter_df2)
+           .transform_filter(logo_cond)
+           .mark_image(width=logo_size, height=logo_size)
+           .encode(
+               x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max])),
+               y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max])),
+               url="Logo URL:N",
+               tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
+           )
     )
-
-
-    # --- Replace standalone scatter with a two-column layout ---
+    
+    # --- Combine layers: circles first, then logos on top ---
+    chart = points_no_logo + points_with_logo
+    
+    # --- Render in two‐column layout on desktop, full‐width on mobile ---
     if not is_mobile():
-        # On desktop: standings on the left, scatter on the right
         left_col, right_col = st.columns([1, 1])
         with left_col:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-    
         with right_col:
             st.markdown("#### Offensive vs Defensive Power Rating")
             st.altair_chart(chart, use_container_width=True)
     else:
-        # On mobile, just show the scatter full-width
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
-
  
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
