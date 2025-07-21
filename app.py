@@ -1735,6 +1735,8 @@ elif tab == "Team Dashboards":
     
     # 3. Merge in Off/Def Ratings from Schedule sheet
     # Make sure "Team" columns match casing/whitespace!
+    st.write("Schedule columns:", df_schedule.columns.tolist())
+
     schedule_offdef = df_schedule[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
     schedule_offdef["Team"] = schedule_offdef["Team"].str.strip()
     window_df = window_df.merge(schedule_offdef, on="Team", how="left")
