@@ -1712,16 +1712,7 @@ elif tab == "Team Dashboards":
                 standings_html.append(f"<td style='{td}'>{cell}</td>")
             standings_html.append("</tr>")
         standings_html.append("</tbody></table></div>")
-        
-                # Render
-        if not is_mobile():
-            # On desktop, make width same as win dist table (left side)
-            with left_col:
-                st.markdown("#### Conference Standings")
-                st.markdown("".join(standings_html), unsafe_allow_html=True)
-        else:
-            st.markdown("#### Conference Standings")
-            st.markdown("".join(standings_html), unsafe_allow_html=True)
+    
     # --- Scatterplot of Similar Teams (Off Rating vs Def Rating) ---
 
     # Use the correct columns for offense/defense and logo URL
@@ -1749,29 +1740,37 @@ elif tab == "Team Dashboards":
         y=y_axis,
     )
     
-    logo_points = base.transform_filter('datum.Is_Selected == false').mark_image(
+    logo_points = alt.Chart(nearby_teams_df).transform_filter(
+        alt.datum.Is_Selected == False
+    ).mark_image(
         width=40 if is_mobile() else 46,
         height=40 if is_mobile() else 46
     ).encode(
+        x=alt.X('Offensive Rating:Q', title='Offensive Rating', axis=alt.Axis(labelFontSize=12, titleFontSize=14)),
+        y=alt.Y('Defensive Rating:Q', title='Defensive Rating (Lower is better)', scale=alt.Scale(reverse=True), axis=alt.Axis(labelFontSize=12, titleFontSize=14)),
         url='Logo URL:N',
         tooltip=['Team', 'Offensive Rating', 'Defensive Rating', 'Power Rating']
     )
     
-    highlight_point = base.transform_filter('datum.Is_Selected == true').mark_image(
+    highlight_point = alt.Chart(nearby_teams_df).transform_filter(
+        alt.datum.Is_Selected == True
+    ).mark_image(
         width=60 if is_mobile() else 68,
         height=60 if is_mobile() else 68,
         opacity=1
     ).encode(
+        x=alt.X('Offensive Rating:Q'),
+        y=alt.Y('Defensive Rating:Q'),
         url='Logo URL:N',
         tooltip=['Team', 'Offensive Rating', 'Defensive Rating', 'Power Rating']
     )
-    
     scatter_chart = (logo_points + highlight_point).properties(
         width='container',
         height=350 if is_mobile() else 420,
         title=""
     )
     
+        
     # --- Responsive layout: standings table + scatter chart ---
     if not is_mobile():
         # Desktop: standings left, scatter right
