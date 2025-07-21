@@ -863,7 +863,7 @@ elif tab == "Team Dashboards":
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
     
     # --- Load Schedule sheet with correct headers ---
-    df_schedule = load_sheet(data_path, "Schedule", header=1) )
+    df_schedule = load_sheet(data_path, "Schedule", header=1)
     df_schedule.columns = [str(col).strip() for col in df_schedule.columns]
     
     st.write("df_schedule columns:", list(df_schedule.columns))  # Diagnostic
