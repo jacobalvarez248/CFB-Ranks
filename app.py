@@ -1091,31 +1091,31 @@ elif tab == "Team Dashboards":
             </div>
             <div style="{lighter_card_style}">
                 <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
-                <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct}</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_6_pct_str}</span>
             </div>
             <div style="{lighter_card_style}">
                 <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span>
-                <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct}</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_8_pct_str}</span>
             </div>
             <div style="{lighter_card_style}">
                 <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span>
-                <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct}</span>
+                <span style="line-height:1.15; font-weight:bold;">{at_least_10_pct_str}</span>
             </div>
             <div style="{lighter_card_style}">
                 <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span>
-                <span style="line-height:1.15; font-weight:bold;">{exact_12_pct}</span>
+                <span style="line-height:1.15; font-weight:bold;">{exact_12_pct_str}</span>
             </div>
             <div style="{green_card_style}">
                 <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span>
-                <span style="line-height:1.15; font-weight:bold;">{ret_prod}</span>
+                <span style="line-height:1.15; font-weight:bold;">{ret_prod_str}</span>
             </div>
             <div style="{green_card_style}">
                 <span style="font-size:0.75em; color:#FFF; font-weight:400;">Off. Ret.</span>
-                <span style="line-height:1.15; font-weight:bold;">{off_ret}</span>
+                <span style="line-height:1.15; font-weight:bold;">{off_ret_str}</span>
             </div>
             <div style="{green_card_style}">
                 <span style="font-size:0.75em; color:#FFF; font-weight:400;">Def. Ret.</span>
-                <span style="line-height:1.15; font-weight:bold;">{def_ret}</span>
+                <span style="line-height:1.15; font-weight:bold;">{def_ret_str}</span>
             </div>
         </div>
         '''
