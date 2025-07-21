@@ -1311,11 +1311,12 @@ elif tab == "Team Dashboards":
         for i, h in enumerate(headers):
             # Wider "Opp." column on mobile
             if is_mobile() and h == "Opp.":
-                html.append(f'<th style="{header_style}{header_font} min-width:30vw; max-width:38vw; word-break:break-word;">{h}</th>')
+                html.append(f'<th style="{header_style}{header_font} text-align:center; min-width:30vw; max-width:38vw; word-break:break-word;">{h}</th>')
             elif is_mobile():
-                html.append(f'<th style="{header_style}{header_font} min-width:11vw; max-width:19vw;">{h}</th>')
+                html.append(f'<th style="{header_style}{header_font} text-align:center; min-width:11vw; max-width:19vw;">{h}</th>')
             else:
                 html.append(f'<th style="{header_style}{header_font}">{h}</th>')
+
         html.append('</tr></thead><tbody>')
     
         for _, row in sched.iterrows():
@@ -1402,7 +1403,7 @@ elif tab == "Team Dashboards":
         opp_col_style = cell_base_style
         win_col_style = cell_base_style
     else:
-        font_size = 12
+        font_size = 11
         pad = 2
         logo_size = 26
         n_win_cols = num_games + 1
