@@ -1236,9 +1236,9 @@ elif tab == "Team Dashboards":
             opp = row["Opponent"]
             if not opp or pd.isnull(opp):
                 return ""
-            if location == "home":
+            if location == "vs":
                 return f"vs {opp}"
-            elif location == "away":
+            elif location == "at":
                 return f"at {opp}"
             elif location == "neutral":
                 return f"vs {opp} (Neutral)"
