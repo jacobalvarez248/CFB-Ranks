@@ -1166,7 +1166,7 @@ elif tab == "Team Dashboards":
         card_width = "44vw"
         card_height = "34px"
         label_font = "12px"
-        record_font = "20px"
+        record_font = "18px"
         margin = "6px auto 10px auto"
         wrap = "center"
     else:
