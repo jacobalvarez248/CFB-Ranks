@@ -1774,11 +1774,16 @@ elif tab == "Team Dashboards":
     
     # Show DataFrame used for plotting
     scatter_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
-    scatter_df = scatter_df.dropna()
-    st.write("scatter_df for plotting:", scatter_df)
-
-    scatter_df = scatter_df.reset_index(drop=True)
-    st.scatter_chart(scatter_df)
+    scatter_df = scatter_df.rename(columns=lambda c: c.strip())
+    scatter_df = scatter_df.apply(pd.to_numeric, errors='coerce')
+    scatter_df = scatter_df.dropna().reset_index(drop=True)
+    
+    st.scatter_chart(
+        data=scatter_df,
+        x="Off. Power Rating",
+        y="Def. Power Rating"
+    )
+    
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
