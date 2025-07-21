@@ -915,7 +915,7 @@ elif tab == "Team Dashboards":
         for w in range(num_games + 1):
             row[w] = dp[g, w]
         rows.append(row)
-# =====================
+    # =====================
     # --- Returning Production ---
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
@@ -1497,11 +1497,6 @@ elif tab == "Team Dashboards":
     df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
 
     # --- Show table & chart: side by side on desktop, stacked on mobile ---
-    if not is_mobile():
-        left_col, right_col = st.columns([1, 1])
-        with left_col:
-            st.markdown("#### Probability Distribution of Wins After Each Game")
-            st.markdown("".join(table_html), unsafe_allow_html=True)
         with right_col:
             st.markdown("#### Win Probability Distribution")
             bar = alt.Chart(df_win_dist).mark_bar(
