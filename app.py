@@ -1844,8 +1844,6 @@ elif tab == "Team Dashboards":
         # mobile: chart above table (or reverse if you prefer)
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
-    
-        st.markdown("#### Conference Standings")
         st.markdown("".join(standings_html), unsafe_allow_html=True)
 
 
