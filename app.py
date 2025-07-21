@@ -1761,7 +1761,9 @@ elif tab == "Team Dashboards":
     
     # --- Handle missing data gracefully ---
     window_df = window_df.dropna(subset=["Off. Power Rating", "Def. Power Rating"])
-    
+    st.write("window_df shape:", window_df.shape)
+    st.write(window_df[["Team", "Off. Power Rating", "Def. Power Rating"]])
+
     # 5. Build the Altair chart
     logo_size = 45 if not is_mobile() else 28
     highlight_size = 65 if not is_mobile() else 38
