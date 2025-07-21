@@ -1722,19 +1722,32 @@ elif tab == "Team Dashboards":
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-    
+
     # --- Load Rankings tab ---
     df_ranking = load_sheet(data_path, "Ranking", header=1)
     df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
     
-    # Ensure numeric columns
+    # --- Automatically get first 'Power Rating', 'Off. Power Rating', 'Def. Power Rating' ---
+    def first_col_index(cols, name):
+        return [i for i, c in enumerate(cols) if c == name][0]
+    
+    cols = df_ranking.columns.tolist()
+    team_idx = first_col_index(cols, "Team")
+    power_idx = first_col_index(cols, "Power Rating")
+    off_idx = first_col_index(cols, "Off. Power Rating")
+    def_idx = first_col_index(cols, "Def. Power Rating")
+    
+    # --- Select only those columns, in a new DataFrame ---
+    df_ranking_clean = df_ranking.iloc[:, [team_idx, power_idx, off_idx, def_idx]].copy()
+    df_ranking_clean.columns = ["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
+    
+    # --- Convert to numeric ---
     for col in ["Power Rating", "Off. Power Rating", "Def. Power Rating"]:
-        df_ranking[col] = pd.to_numeric(df_ranking[col], errors="coerce")
+        df_ranking_clean[col] = pd.to_numeric(df_ranking_clean[col], errors="coerce")
+    df_ranking_clean = df_ranking_clean.dropna(subset=["Power Rating", "Off. Power Rating", "Def. Power Rating"])
     
-    df_ranking = df_ranking.dropna(subset=["Power Rating", "Off. Power Rating", "Def. Power Rating"])
-    
-    # Sort and get neighbors around selected team
-    df_sorted = df_ranking.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    # --- Sort and find neighbors ---
+    df_sorted = df_ranking_clean.sort_values("Power Rating", ascending=False).reset_index(drop=True)
     selected_idx = df_sorted.index[df_sorted["Team"] == selected_team][0]
     N = 5
     num_teams = len(df_sorted)
@@ -1751,31 +1764,13 @@ elif tab == "Team Dashboards":
     df_neighbors = df_sorted.iloc[start:end].copy()
     df_neighbors = df_neighbors.reset_index(drop=True)
     
-    # DEBUG PRINT
-    st.write("Shape:", df_neighbors.shape)
-    st.write("Column names:", df_neighbors.columns.tolist())
-    st.write(df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating"]])
-    st.write(df_neighbors.dtypes)
-    st.write(df_neighbors.isnull().sum())
-    
-    # Try making a DataFrame with just two columns and print it
-    scatter_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
-    scatter_df = scatter_df.dropna()
-    st.write(scatter_df)
-    
-    # Try plotting that (reset index for Streamlit)
-    scatter_df = scatter_df.reset_index(drop=True)
-    st.scatter_chart(scatter_df)
-
-    
-    # --- Scatter plot using Streamlit's built-in chart ---
+    # --- Plot with Streamlit's built-in chart ---
     st.markdown("#### Similar Teams: Offense vs. Defense Rating")
     st.scatter_chart(
         data=df_neighbors,
         x="Off. Power Rating",
         y="Def. Power Rating"
     )
-
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
