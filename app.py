@@ -1035,7 +1035,7 @@ elif tab == "Team Dashboards":
             f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; "
             "margin:0; background: #00B050; color: #fff; border-radius: 4px; border: 1px solid #fff; "
             "padding: 2px 0; display: flex; flex-direction: column; align-items: center; "
-            "font-size:8px; font-weight:700; text-align:center; box-sizing: border-box;"
+            "font-size:7px; font-weight:700; text-align:center; box-sizing: border-box;"
         )
         lighter_card = card_base.replace('#00B050', '#00B0F0')
         dark_card = card_base.replace('#00B050', '#002060')
@@ -1053,7 +1053,7 @@ elif tab == "Team Dashboards":
             <div style="{lighter_card}"><span style="font-size:0.8em;">6+</span>{at_least_6_pct_str}</div>
             <div style="{lighter_card}"><span style="font-size:0.8em;">8+</span>{at_least_8_pct_str}</div>
             <div style="{lighter_card}"><span style="font-size:0.8em;">10+</span>{at_least_10_pct_str}</div>
-            <div style="{lighter_card}"><span style="font-size:0.8em;">12-0</span>{exact_12_pct}</div>
+            <div style="{lighter_card}"><span style="font-size:0.8em;">12-0</span>{exact_12_pct_str}</div>
             <div style="{card_base}"><span style="font-size:0.8em;">Ret.</span>{ret_prod_str}</div>
             <div style="{card_base}"><span style="font-size:0.8em;">Off.</span>{off_ret_str}</div>
             <div style="{card_base}"><span style="font-size:0.8em;">Def.</span>{def_ret_str}</div>
