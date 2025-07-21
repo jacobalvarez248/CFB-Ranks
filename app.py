@@ -1088,12 +1088,9 @@ elif tab == "Team Dashboards":
             <img src="{logo_url}" width="{logo_dim}" style="display:inline-block;"/>
             {f"<img src='{conf_logo_url}' width='{logo_dim}' style='display:inline-block;'/>" if conf_logo_url else ""}
             <div style="{card_style}">
-                <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span>
-                <span style="line-height:1.15;">{overall_rank}</span>
-            </div>
-            <div style="{card_style}">
                 <span style="font-size:0.95em; color:#FFF; font-weight:700;">{team_power:.1f}</span>
                 <span style="font-size:0.83em; color:#FFF; font-weight:400;">{power_rank_str}</span>
+                <span style="line-height:1.15;">{overall_rank}</span>
             </div>
             <div style="{lighter_card_style}">
                 <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span>
