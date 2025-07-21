@@ -1023,6 +1023,7 @@ elif tab == "Team Dashboards":
     team_rank = int(prank[df_expected["Team"] == selected_team].iloc[0])
     num_teams = len(df_expected)
     power_rank_str = f"({team_rank}/{num_teams})"
+    power_rating_str = f"{team_power:.1f} {power_rank_str}"
 
     # --- CARD STRIP (Responsive, no sidebar overlap) ---
     if is_mobile():
