@@ -1774,7 +1774,7 @@ elif tab == "Team Dashboards":
     st.write(scatter_df)
     
     # Try plotting with renamed columns for safety:
-    df_plot = df_original[["Off. Power Rating", "Def. Power Rating"]].copy()
+    df_plot = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
     df_plot.columns = ["Off", "Def"]
     
     chart = alt.Chart(df_plot).mark_circle(size=100, color='blue').encode(
@@ -1782,7 +1782,6 @@ elif tab == "Team Dashboards":
         y=alt.Y('Def:Q', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
     )
     st.altair_chart(chart, use_container_width=True)
-
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
