@@ -866,6 +866,14 @@ elif tab == "Team Dashboards":
     off_col = "Off. Power Rating"
     def_col = "Def. Power Rating"
     logo_col = "Logo URL"
+
+    # After making df_nearby:
+    df_nearby.columns = [str(col).strip() for col in df_nearby.columns]  # Remove whitespace
+    
+    # Now use the clean column names
+    off_col = "Off. Power Rating"
+    def_col = "Def. Power Rating"
+    logo_col = "Logo URL"
     
     # Sort all teams by Power Rating descending (higher = better)
     df_sorted = df_expected.sort_values("Power Rating", ascending=False).reset_index(drop=True)
