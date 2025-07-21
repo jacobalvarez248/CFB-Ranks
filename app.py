@@ -1577,7 +1577,6 @@ elif tab == "Team Dashboards":
         )
         st.altair_chart(final_chart, use_container_width=True)
     # ---- Conference Standings Table below Win Distribution ----
-        
     # --- (1) Build df_ranking_clean ---
 
     # Load the Rankings sheet (or use your previous df_ranking)
