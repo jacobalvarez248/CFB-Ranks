@@ -1316,7 +1316,6 @@ elif tab == "Team Dashboards":
                 html.append(f'<th style="{header_style}{header_font} text-align:center; min-width:11vw; max-width:19vw;">{h}</th>')
             else:
                 html.append(f'<th style="{header_style}{header_font}">{h}</th>')
-
         html.append('</tr></thead><tbody>')
     
         for _, row in sched.iterrows():
@@ -1411,7 +1410,7 @@ elif tab == "Team Dashboards":
         game_col_pct = 7
         win_col_pct = (100 - opp_col_pct - game_col_pct) / n_win_cols
         table_style = (
-            "font-size:12px; width:100%; border-collapse:collapse; table-layout:fixed;"
+            "font-size:11px; width:100%; border-collapse:collapse; table-layout:fixed;"
         )
         wrapper_style = "width:100%; max-width:100vw; overflow-x:auto;"
         visible_wins = list(range(num_games + 1))
