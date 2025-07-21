@@ -1245,12 +1245,12 @@ elif tab == "Team Dashboards":
             else:
                 return opp  # fallback
     
-        sched["Opponent"] = sched.apply(format_opp_cell, axis=1)
+        sched["Opponent_Display"] = sched.apply(format_opp_cell, axis=1)
     
         # --- MOBILE header/column maps (replace 'Opponent' with 'Opponent_Display') ---
         mobile_headers = {
             "Date": "Date",
-            "Opponent": "Opp.",
+            "Opponent_Display": "Opp.",
             "Opponent Rank": "Opp. Rank",
             "Projected Spread": "Proj. Spread",
             "Win Probability": "Win Prob.",
