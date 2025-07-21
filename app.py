@@ -1722,92 +1722,32 @@ elif tab == "Team Dashboards":
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-    # --- Nearby Teams by Power Rating: Off vs Def Scatterplot ---
-    # Ensure you have columns: 'Offensive Rating', 'Defensive Rating', 'Logo URL', 'Team', 'Power Rating'
+    # --- Off vs Def Power Rating Scatter Plot for Nearby Teams ---
+    off_col = "Off. Power Rating"
+    def_col = "Def. Power Rating"
+    logo_col = "Logo URL"
     
-    team_power = float(team_row["Power Rating"])
-    df_sorted = df_expected.sort_values("Power Rating", ascending=False).reset_index(drop=True)
-    team_idx = df_sorted[df_sorted["Team"] == selected_team].index[0]
-    
-    N = 5
-    total_teams = len(df_sorted)
-    start_idx = max(team_idx - N, 0)
-    end_idx = min(team_idx + N + 1, total_teams)
-    if team_idx - N < 0:
-        end_idx = min(end_idx + (N - team_idx), total_teams)
-    if team_idx + N + 1 > total_teams:
-        start_idx = max(start_idx - ((team_idx + N + 1) - total_teams), 0)
-    
-    df_nearby = df_sorted.iloc[start_idx:end_idx].copy()
-    df_nearby["is_selected"] = df_nearby["Team"] == selected_team
-    
-    # Build chart
-    y_axis = alt.Y(
-        "Defensive Rating:Q",
-        sort="ascending",
-        axis=alt.Axis(title="Defensive Rating (Lower = Better)")
-    )
-    x_axis = alt.X(
-        "Offensive Rating:Q",
-        axis=alt.Axis(title="Offensive Rating (Higher = Better)")
-    )
-    
-    points = alt.Chart(df_nearby).mark_image(
-        width=38,
-        height=38
-    ).encode(
-        x=x_axis,
-        y=y_axis,
-        url="Logo URL:N",
-        tooltip=["Team", "Offensive Rating", "Defensive Rating", "Power Rating"]
-    )
-    
-    highlight = alt.Chart(df_nearby[df_nearby["is_selected"]]).mark_circle(
-        size=750,
-        color="#FFB347",
-        opacity=0.38,
-        strokeWidth=3
-    ).encode(
-        x=x_axis,
-        y=y_axis
-    )
-    
-    chart = (points + highlight).properties(
-        height=350 if is_mobile() else 430,
-        width="container" if is_mobile() else 380,
-        title="Nearby Teams: Offensive vs Defensive Rating"
-    )
-    
-    if is_mobile():
-        st.markdown("#### Offensive vs Defensive Rating (Nearest Teams)")
-        st.altair_chart(chart, use_container_width=True)
-    else:
-        with right_col:
-            st.markdown("#### Offensive vs Defensive Rating (Nearest Teams)")
-            st.altair_chart(chart, use_container_width=True)
-    # Check columns and fill in the right column names from your data
-    off_col = "Offensive Rating"  # or whatever your actual column is named
-    def_col = "Defensive Rating"
-    
-    # Numeric conversion and missing data handling
+    # Make sure these columns exist and are numeric for plotting
     df_nearby[off_col] = pd.to_numeric(df_nearby[off_col], errors="coerce")
     df_nearby[def_col] = pd.to_numeric(df_nearby[def_col], errors="coerce")
-    df_nearby = df_nearby.dropna(subset=[off_col, def_col, "Logo URL"])
-    df_nearby = df_nearby[df_nearby["Logo URL"].astype(str).str.startswith("http")]
+    
+    # Only keep rows with valid ratings and logo URLs
+    df_nearby = df_nearby.dropna(subset=[off_col, def_col, logo_col])
+    df_nearby = df_nearby[df_nearby[logo_col].astype(str).str.startswith("http")]
     
     if df_nearby.empty:
-        st.warning("No teams to display. (Check that Offensive/Defensive Ratings and Logos are present for nearby teams.)")
+        st.warning("No teams to display for Off/Def Power Rating scatterplot (missing ratings or logos).")
     else:
         df_nearby["is_selected"] = df_nearby["Team"] == selected_team
     
         y_axis = alt.Y(
             f"{def_col}:Q",
-            sort="ascending",
-            axis=alt.Axis(title="Defensive Rating (Lower = Better)")
+            sort="ascending",  # Lower is better
+            axis=alt.Axis(title="Def. Power Rating (Lower = Better)")
         )
         x_axis = alt.X(
             f"{off_col}:Q",
-            axis=alt.Axis(title="Offensive Rating (Higher = Better)")
+            axis=alt.Axis(title="Off. Power Rating (Higher = Better)")
         )
     
         points = alt.Chart(df_nearby).mark_image(
@@ -1816,7 +1756,7 @@ elif tab == "Team Dashboards":
         ).encode(
             x=x_axis,
             y=y_axis,
-            url="Logo URL:N",
+            url=f"{logo_col}:N",
             tooltip=["Team", off_col, def_col, "Power Rating"]
         )
     
@@ -1833,15 +1773,15 @@ elif tab == "Team Dashboards":
         chart = (points + highlight).properties(
             height=350 if is_mobile() else 430,
             width="container" if is_mobile() else 380,
-            title="Nearby Teams: Offensive vs Defensive Rating"
+            title="Nearby Teams: Off. vs Def. Power Rating"
         )
     
         if is_mobile():
-            st.markdown("#### Offensive vs Defensive Rating (Nearest Teams)")
+            st.markdown("#### Off. vs Def. Power Rating (Nearest Teams)")
             st.altair_chart(chart, use_container_width=True)
         else:
             with right_col:
-                st.markdown("#### Offensive vs Defensive Rating (Nearest Teams)")
+                st.markdown("#### Off. vs Def. Power Rating (Nearest Teams)")
                 st.altair_chart(chart, use_container_width=True)
 
 elif tab == "Charts & Graphs":
