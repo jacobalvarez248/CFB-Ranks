@@ -856,6 +856,83 @@ elif tab == "Team Dashboards":
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+    # --- Build df_nearby: 5 above and 5 below selected team, by Power Rating ---
+    off_col = "Off. Power Rating"
+    def_col = "Def. Power Rating"
+    logo_col = "Logo URL"
+    
+    # Sort all teams by Power Rating descending (higher = better)
+    df_sorted = df_expected.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    team_idx = df_sorted[df_sorted["Team"] == selected_team].index[0]
+    
+    N = 5  # Teams above and below
+    total_teams = len(df_sorted)
+    start_idx = max(team_idx - N, 0)
+    end_idx = min(team_idx + N + 1, total_teams)
+    
+    # Adjust if near top or bottom
+    if team_idx - N < 0:
+        end_idx = min(end_idx + (N - team_idx), total_teams)
+    if team_idx + N + 1 > total_teams:
+        start_idx = max(start_idx - ((team_idx + N + 1) - total_teams), 0)
+    
+    df_nearby = df_sorted.iloc[start_idx:end_idx].copy()
+    
+    # --- Off vs Def Power Rating Scatter Plot for Nearby Teams ---
+    df_nearby[off_col] = pd.to_numeric(df_nearby[off_col], errors="coerce")
+    df_nearby[def_col] = pd.to_numeric(df_nearby[def_col], errors="coerce")
+    df_nearby = df_nearby.dropna(subset=[off_col, def_col, logo_col])
+    df_nearby = df_nearby[df_nearby[logo_col].astype(str).str.startswith("http")]
+    
+    if df_nearby.empty:
+        st.warning("No teams to display for Off/Def Power Rating scatterplot (missing ratings or logos).")
+    else:
+        df_nearby["is_selected"] = df_nearby["Team"] == selected_team
+    
+        y_axis = alt.Y(
+            f"{def_col}:Q",
+            sort="ascending",  # Lower is better
+            axis=alt.Axis(title="Def. Power Rating (Lower = Better)")
+        )
+        x_axis = alt.X(
+            f"{off_col}:Q",
+            axis=alt.Axis(title="Off. Power Rating (Higher = Better)")
+        )
+    
+        points = alt.Chart(df_nearby).mark_image(
+            width=38,
+            height=38
+        ).encode(
+            x=x_axis,
+            y=y_axis,
+            url=f"{logo_col}:N",
+            tooltip=["Team", off_col, def_col, "Power Rating"]
+        )
+    
+        highlight = alt.Chart(df_nearby[df_nearby["is_selected"]]).mark_circle(
+            size=750,
+            color="#FFB347",
+            opacity=0.38,
+            strokeWidth=3
+        ).encode(
+            x=x_axis,
+            y=y_axis
+        )
+    
+        chart = (points + highlight).properties(
+            height=350 if is_mobile() else 430,
+            width="container" if is_mobile() else 380,
+            title="Nearby Teams: Off. vs Def. Power Rating"
+        )
+    
+        if is_mobile():
+            st.markdown("#### Off. vs Def. Power Rating (Nearest Teams)")
+            st.altair_chart(chart, use_container_width=True)
+        else:
+            with right_col:
+                st.markdown("#### Off. vs Def. Power Rating (Nearest Teams)")
+                st.altair_chart(chart, use_container_width=True)
+
     logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
     conference = team_row["Conference"] if "Conference" in team_row else ""
     conf_logo_url = None
