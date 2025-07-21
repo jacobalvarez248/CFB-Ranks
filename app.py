@@ -1769,7 +1769,20 @@ elif tab == "Team Dashboards":
 
     st.write(df_neighbors)
     st.scatter_chart(df_neighbors[["Off. Power Rating", "Def. Power Rating"]])
+    chart_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
+    chart_df = chart_df.reset_index(drop=True)  # Remove index for correct x/y
+    st.scatter_chart(chart_df)
 
+    # Just in case, reset index
+    df_neighbors = df_neighbors.reset_index(drop=True)
+    
+    chart = alt.Chart(df_neighbors).mark_circle(size=120, color="blue").encode(
+        x=alt.X("Off. Power Rating", axis=alt.Axis(title="Offensive Power Rating")),
+        y=alt.Y("Def. Power Rating", axis=alt.Axis(title="Defensive Power Rating (lower is better)")),
+        tooltip=["Team", "Off. Power Rating", "Def. Power Rating"]
+    )
+    st.altair_chart(chart, use_container_width=True)
+    
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
