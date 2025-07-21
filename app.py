@@ -1759,10 +1759,27 @@ elif tab == "Team Dashboards":
     
     window_df['is_selected'] = window_df['Team'] == selected_team
     
-    # --- Handle missing data gracefully ---
-    window_df = window_df.dropna(subset=["Off. Power Rating", "Def. Power Rating"])
-    st.write("window_df shape:", window_df.shape)
-    st.write(window_df[["Team", "Off. Power Rating", "Def. Power Rating"]])
+    # 1. Ensure numerics
+    window_df["Off. Power Rating"] = pd.to_numeric(window_df["Off. Power Rating"], errors="coerce")
+    window_df["Def. Power Rating"] = pd.to_numeric(window_df["Def. Power Rating"], errors="coerce")
+    
+    # 2. Fallback logo if missing
+    fallback_logo = "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
+    window_df["Logo URL"] = window_df["Logo URL"].fillna(fallback_logo)
+    
+    # 3. Drop rows if missing ratings
+    window_df = window_df.dropna(subset=["Off. Power Rating", "Def. Power Rating"], how='any')
+    
+    # 4. Debug: See if logo URLs are valid
+    st.write(window_df[["Team", "Off. Power Rating", "Def. Power Rating", "Logo URL"]])
+    
+    # 5. Test with mark_circle to see if data shows up
+    points = alt.Chart(window_df).mark_circle(size=100, color="red").encode(
+        x="Off. Power Rating:Q",
+        y=alt.Y("Def. Power Rating:Q", scale=alt.Scale(reverse=True)),
+        tooltip=["Team"]
+    )
+    st.altair_chart(points, use_container_width=True)
 
     # 5. Build the Altair chart
     logo_size = 45 if not is_mobile() else 28
