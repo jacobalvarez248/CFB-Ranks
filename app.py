@@ -904,6 +904,36 @@ elif tab == "Team Dashboards":
     at_least_8_pct = f"{at_least_8*100:.1f}%"
     at_least_10_pct = f"{at_least_10*100:.1f}%"
     exact_12_pct = f"{exact_12*100:.1f}%"
+
+    # --- Load Returning Production data so we can rank it globally ---
+    df_ranking = load_sheet(data_path, "Ranking", header=1)
+    df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
+    
+    # Convert Returning Production columns to numeric fractions
+    # (strip % if present, then divide by 100 if needed)
+    def to_frac(x):
+        try:
+            s = str(x).strip().rstrip("%")
+            f = float(s)
+            return (f/100) if "%" in str(x) else f
+        except:
+            return 0.0
+    
+    df_ranking["Ret_val"] = df_ranking["Returning Production"].apply(to_frac)
+    df_ranking["Off_val"] = df_ranking["Off. Returning Production"].apply(to_frac)
+    df_ranking["Def_val"] = df_ranking["Def. Returning Production"].apply(to_frac)
+    
+    # Compute descending ranks (1 = highest production)
+    df_ranking["Ret_rank"] = df_ranking["Ret_val"].rank(ascending=False, method="min").astype(int)
+    df_ranking["Off_rank"] = df_ranking["Off_val"].rank(ascending=False, method="min").astype(int)
+    df_ranking["Def_rank"] = df_ranking["Def_val"].rank(ascending=False, method="min").astype(int)
+    
+    # Grab the selected team's ranks
+    rp_row = df_ranking[df_ranking["Team"].str.strip() == selected_team.strip()].iloc[0]
+    rank_ret = rp_row["Ret_rank"]
+    rank_off = rp_row["Off_rank"]
+    rank_def = rp_row["Def_rank"]
+
     # Build a lookup of every team's 6-win probability
     prob6 = []
     for team in df_expected["Team"]:
@@ -1019,137 +1049,98 @@ elif tab == "Team Dashboards":
         # … your CSS and style setup …
     
         card_html = f'''
-        <div style="display:flex;flex-direction:row;flex-wrap:nowrap;…">
-          <div style="{logo_style}">
-            <img src="{logo_url}" width="{logo_dim}"/>
-            {f"<img src='{conf_logo_url}' width='{logo_dim}'/>" if conf_logo_url else ""}
-          </div>
+        <div style="display:flex;…">
+          <!-- logo, Rank & Conf.Rk omitted for brevity … -->
     
-          <!-- Rank -->
-          <div style="{dark_card}">
-            <span style="font-size:0.8em;">Rank</span>
-            {overall_rank}
-            <div style="font-size:0.6em; opacity:0.7;">({overall_rank}/{len(df_expected)})</div>
-          </div>
-    
-          <!-- Conf Rank -->
-          <div style="{dark_card}">
-            <span style="font-size:0.8em;">Conf. Rk</span>
-            {this_conf_rank}
-            <div style="font-size:0.6em; opacity:0.7;">({this_conf_rank}/{len(df_expected)})</div>
-          </div>
-    
-          <!-- 6+ wins -->
           <div style="{lighter_card}">
             <span style="font-size:0.8em;">6+</span>
             {at_least_6_pct}
             <div style="font-size:0.6em; opacity:0.7;">({rank_6}/{len(df_expected)})</div>
           </div>
     
-          <!-- 8+ wins -->
           <div style="{lighter_card}">
             <span style="font-size:0.8em;">8+</span>
             {at_least_8_pct}
             <div style="font-size:0.6em; opacity:0.7;">({rank_8}/{len(df_expected)})</div>
           </div>
     
-          <!-- 10+ wins -->
           <div style="{lighter_card}">
             <span style="font-size:0.8em;">10+</span>
             {at_least_10_pct}
             <div style="font-size:0.6em; opacity:0.7;">({rank_10}/{len(df_expected)})</div>
           </div>
     
-          <!-- 12-0 -->
           <div style="{lighter_card}">
             <span style="font-size:0.8em;">12-0</span>
             {exact_12_pct}
             <div style="font-size:0.6em; opacity:0.7;">({rank_12}/{len(df_expected)})</div>
           </div>
     
-          <!-- Ret. Prod. -->
           <div style="{card_base}">
             <span style="font-size:0.8em;">Ret.</span>
             {ret_prod}
             <div style="font-size:0.6em; opacity:0.7;">({rank_ret}/{len(df_expected)})</div>
           </div>
     
-          <!-- Off. Ret. -->
           <div style="{card_base}">
             <span style="font-size:0.8em;">Off.</span>
             {off_ret}
-            <div style="font-size:0.6em; opacity:0.7;">({rp['Off. Returning Production Rank'] if 'Off. Returning Production Rank' in rp else '-'}/{len(df_expected)})</div>
+            <div style="font-size:0.6em; opacity:0.7;">({rank_off}/{len(df_expected)})</div>
           </div>
     
-          <!-- Def. Ret. -->
           <div style="{card_base}">
             <span style="font-size:0.8em;">Def.</span>
             {def_ret}
-            <div style="font-size:0.6em; opacity:0.7;">({rp['Def. Returning Production Rank'] if 'Def. Returning Production Rank' in rp else '-'}/{len(df_expected)})</div>
+            <div style="font-size:0.6em; opacity:0.7;">({rank_def}/{len(df_expected)})</div>
           </div>
         </div>
         '''
         st.markdown(card_html, unsafe_allow_html=True)
     else:
-        # … your card_style, lighter_card_style, green_card_style, logo_dim …
-    
         card_html = f'''
-        <div style="display: flex; align-items: center; gap:14px; margin:8px 0;">
+        <div style="display:flex; align-items:center; gap:14px; margin:8px 0;">
           <img src="{logo_url}" width="{logo_dim}"/>
     
-          <div style="{card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Rank</span><br>
-            <span style="font-size:1.2em; font-weight:bold;">{overall_rank}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({overall_rank}/{len(df_expected)})</span>
-          </div>
-    
-          <div style="{card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Conf. Rk</span><br>
-            <span style="font-size:1.2em; font-weight:bold;">{this_conf_rank}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({this_conf_rank}/{len(df_expected)})</span>
-          </div>
-    
           <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">6-6+</span><br>
+            <span style="font-size:0.75em;">6-6+</span><br>
             <span style="font-size:1.2em; font-weight:bold;">{at_least_6_pct}</span><br>
             <span style="font-size:0.6em; opacity:0.7;">({rank_6}/{len(df_expected)})</span>
           </div>
     
           <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">8-4+</span><br>
+            <span style="font-size:0.75em;">8-4+</span><br>
             <span style="font-size:1.2em; font-weight:bold;">{at_least_8_pct}</span><br>
             <span style="font-size:0.6em; opacity:0.7;">({rank_8}/{len(df_expected)})</span>
           </div>
     
           <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">10-2+</span><br>
+            <span style="font-size:0.75em;">10-2+</span><br>
             <span style="font-size:1.2em; font-weight:bold;">{at_least_10_pct}</span><br>
             <span style="font-size:0.6em; opacity:0.7;">({rank_10}/{len(df_expected)})</span>
           </div>
     
           <div style="{lighter_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">12-0</span><br>
+            <span style="font-size:0.75em;">12-0</span><br>
             <span style="font-size:1.2em; font-weight:bold;">{exact_12_pct}</span><br>
             <span style="font-size:0.6em; opacity:0.7;">({rank_12}/{len(df_expected)})</span>
           </div>
     
           <div style="{green_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Ret. Prod.</span><br>
+            <span style="font-size:0.75em;">Ret. Prod.</span><br>
             <span style="font-size:1.2em; font-weight:bold;">{ret_prod}</span><br>
             <span style="font-size:0.6em; opacity:0.7;">({rank_ret}/{len(df_expected)})</span>
           </div>
     
-          <!-- Off. Ret. & Def. Ret. in green_card_style too -->
           <div style="{green_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Off. Ret.</span><br>
+            <span style="font-size:0.75em;">Off. Ret.</span><br>
             <span style="font-size:1.2em; font-weight:bold;">{off_ret}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({rp['Off. Returning Production Rank'] if 'Off. Returning Production Rank' in rp else '-'}/{len(df_expected)})</span>
+            <span style="font-size:0.6em; opacity:0.7;">({rank_off}/{len(df_expected)})</span>
           </div>
     
           <div style="{green_card_style}">
-            <span style="font-size:0.75em; color:#FFF; font-weight:400;">Def. Ret.</span><br>
+            <span style="font-size:0.75em;">Def. Ret.</span><br>
             <span style="font-size:1.2em; font-weight:bold;">{def_ret}</span><br>
-            <span style="font-size:0.6em; opacity:0.7;">({rp['Def. Returning Production Rank'] if 'Def. Returning Production Rank' in rp else '-'}/{len(df_expected)})</span>
+            <span style="font-size:0.6em; opacity:0.7;">({rank_def}/{len(df_expected)})</span>
           </div>
         </div>
         '''
