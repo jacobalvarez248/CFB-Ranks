@@ -1892,6 +1892,8 @@ elif tab == "Team Dashboards":
     )
     
     st.altair_chart(chart, use_container_width=True)
+    st.write("Shape:", df_neighbors.shape)
+    st.write(df_neighbors)
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
