@@ -1717,10 +1717,8 @@ elif tab == "Team Dashboards":
         if not is_mobile():
             # On desktop, make width same as win dist table (left side)
             with left_col:
-                st.markdown("#### Conference Standings")
                 st.markdown("".join(standings_html), unsafe_allow_html=True)
         else:
-            st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
         
     # --- (1) Build df_ranking_clean ---
