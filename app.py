@@ -1722,6 +1722,70 @@ elif tab == "Team Dashboards":
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
+    # --- Scatterplot of Similar Teams (Off Rating vs Def Rating) ---
+
+    # Use the correct columns for offense/defense and logo URL
+    sorted_df = df_expected.sort_values(by="Power Rating", ascending=False).reset_index(drop=True)
+    selected_idx_sorted = sorted_df.index[sorted_df["Team"] == selected_team][0]
+    
+    n_neighbors = 5
+    n_total = 2 * n_neighbors + 1
+    
+    start_idx = max(selected_idx_sorted - n_neighbors, 0)
+    end_idx = start_idx + n_total
+    if end_idx > len(sorted_df):
+        end_idx = len(sorted_df)
+        start_idx = max(end_idx - n_total, 0)
+    
+    nearby_teams_df = sorted_df.iloc[start_idx:end_idx].copy()
+    nearby_teams_df["Is_Selected"] = nearby_teams_df["Team"] == selected_team
+    
+    # Defensive Rating: invert y-axis so "better" is higher
+    y_axis = alt.Y('Defensive Rating:Q', title='Defensive Rating (Lower is better)', scale=alt.Scale(reverse=True),
+                   axis=alt.Axis(labelFontSize=12, titleFontSize=14))
+    
+    base = alt.Chart(nearby_teams_df).encode(
+        x=alt.X('Offensive Rating:Q', title='Offensive Rating', axis=alt.Axis(labelFontSize=12, titleFontSize=14)),
+        y=y_axis,
+    )
+    
+    logo_points = base.transform_filter('datum.Is_Selected == false').mark_image(
+        width=40 if is_mobile() else 46,
+        height=40 if is_mobile() else 46
+    ).encode(
+        url='Logo URL:N',
+        tooltip=['Team', 'Offensive Rating', 'Defensive Rating', 'Power Rating']
+    )
+    
+    highlight_point = base.transform_filter('datum.Is_Selected == true').mark_image(
+        width=60 if is_mobile() else 68,
+        height=60 if is_mobile() else 68,
+        opacity=1
+    ).encode(
+        url='Logo URL:N',
+        tooltip=['Team', 'Offensive Rating', 'Defensive Rating', 'Power Rating']
+    )
+    
+    scatter_chart = (logo_points + highlight_point).properties(
+        width='container',
+        height=350 if is_mobile() else 420,
+        title=""
+    )
+    
+    # Place chart
+    if not is_mobile():
+        standings_col, chart_col = st.columns([1.05, 1.1])
+        with standings_col:
+            st.markdown("#### Conference Standings")
+            st.markdown("".join(standings_html), unsafe_allow_html=True)
+        with chart_col:
+            st.markdown("#### Similar Teams: Offense vs Defense")
+            st.altair_chart(scatter_chart, use_container_width=True)
+    else:
+        st.markdown("#### Conference Standings")
+        st.markdown("".join(standings_html), unsafe_allow_html=True)
+        st.markdown("#### Similar Teams: Offense vs Defense")
+        st.altair_chart(scatter_chart, use_container_width=True)
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
