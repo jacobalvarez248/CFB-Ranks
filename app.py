@@ -1772,7 +1772,7 @@ elif tab == "Team Dashboards":
     df_neighbors = df_ranking_clean.iloc[start:end].copy()
     
     # --- Add Team names for tooltips ---
-   scatter_df = df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
+    scatter_df = df_neighbors[["Team", "Off. Power Rating", "Def. Power Rating"]].copy()
     scatter_df["Off. Power Rating"] = pd.to_numeric(scatter_df["Off. Power Rating"], errors="coerce")
     scatter_df["Def. Power Rating"] = pd.to_numeric(scatter_df["Def. Power Rating"], errors="coerce")
     scatter_df = scatter_df.dropna().reset_index(drop=True)
