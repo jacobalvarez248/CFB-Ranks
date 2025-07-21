@@ -1763,25 +1763,12 @@ elif tab == "Team Dashboards":
     
     df_neighbors = df_sorted.iloc[start:end].copy()
     df_neighbors = df_neighbors.reset_index(drop=True)
-    
-    # --- Plot with Streamlit's built-in chart ---
-    scatter_df = df_neighbors[["Off. Power Rating", "Def. Power Rating"]].copy()
-    scatter_df.columns = scatter_df.columns.astype(str).str.strip()
-    scatter_df = scatter_df.apply(pd.to_numeric, errors='coerce')
-    scatter_df = scatter_df.dropna()
-    st.write("scatter_df for plotting:", scatter_df)
-    st.write("columns:", scatter_df.columns.tolist())
-    # Check if the column names are exactly what you think
-    if "Off. Power Rating" in scatter_df.columns and "Def. Power Rating" in scatter_df.columns:
-        st.scatter_chart(
-            data=scatter_df,
-            x="Off. Power Rating",
-            y="Def. Power Rating"
-        )
-    else:
-        st.write("Column name mismatch! Found columns:", scatter_df.columns.tolist())
-    
-        
+  
+    chart = alt.Chart(scatter_df).mark_circle(size=100, color='blue').encode(
+        x=alt.X('Off. Power Rating', axis=alt.Axis(title='Offensive Power Rating')),
+        y=alt.Y('Def. Power Rating', axis=alt.Axis(title='Defensive Power Rating'))
+    )
+    st.altair_chart(chart, use_container_width=True)
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
