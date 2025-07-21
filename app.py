@@ -1811,21 +1811,33 @@ elif tab == "Team Dashboards":
             st.altair_chart(chart, use_container_width=True)
     # ... previous code for df_neighbors, etc.
 
-    # Calculate padded domains
+    # Calculate padded domains for axis scaling
     x_min = df_neighbors["Off. Power Rating"].min()
     x_max = df_neighbors["Off. Power Rating"].max()
     y_min = df_neighbors["Def. Power Rating"].min()
     y_max = df_neighbors["Def. Power Rating"].max()
+    
+    # Add padding so points aren't at the border
     x_pad = (x_max - x_min) * 0.10 if x_max > x_min else 1
     y_pad = (y_max - y_min) * 0.10 if y_max > y_min else 1
+    
     x_domain = [x_min - x_pad, x_max + x_pad]
-    y_domain = [y_max + y_pad, y_min - y_pad]  # reverse for 'lower is better'
+    y_domain = [y_max + y_pad, y_min - y_pad]  # Y reversed for 'lower is better'
+    
+    size_normal = 90 if not is_mobile() else 50
+    size_selected = 350 if not is_mobile() else 160
     
     base = alt.Chart(df_neighbors).encode(
-        x=alt.X("Off. Power Rating:Q", axis=alt.Axis(title="Offensive Power Rating"),
-                scale=alt.Scale(domain=x_domain)),
-        y=alt.Y("Def. Power Rating:Q", axis=alt.Axis(title="Defensive Power Rating (lower is better)"),
-                scale=alt.Scale(domain=y_domain)),
+        x=alt.X(
+            "Off. Power Rating:Q",
+            axis=alt.Axis(title="Offensive Power Rating"),
+            scale=alt.Scale(domain=x_domain)
+        ),
+        y=alt.Y(
+            "Def. Power Rating:Q",
+            axis=alt.Axis(title="Defensive Power Rating (lower is better)"),
+            scale=alt.Scale(domain=y_domain)
+        ),
         tooltip=[
             alt.Tooltip("Team:N", title="Team"),
             alt.Tooltip("Off. Power Rating:Q", title="Off. Power Rating"),
@@ -1855,7 +1867,15 @@ elif tab == "Team Dashboards":
         title="Closest Teams by Power Rating: Off vs. Def"
     )
     
-             
+    if is_mobile():
+        st.markdown("#### Similar Teams: Offense vs. Defense Rating")
+        st.altair_chart(chart, use_container_width=True)
+    else:
+        left, right = st.columns([1, 1])
+        with right:
+            st.markdown("#### Similar Teams: Offense vs. Defense Rating")
+            st.altair_chart(chart, use_container_width=True)
+
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
