@@ -1783,10 +1783,26 @@ elif tab == "Team Dashboards":
     )
 
     
+    # --- tighten axes to actual data range ---
+    off_vals = scatter_df2["Off"]
+    def_vals = scatter_df2["Def"]
+    
+    off_min, off_max = off_vals.min(), off_vals.max()
+    def_min, def_max = def_vals.min(), def_vals.max()
+    
     chart = alt.Chart(scatter_df2).mark_circle(size=100, color='blue').encode(
-        x=alt.X('Off:Q', axis=alt.Axis(title='Offensive Power Rating')),
-        y=alt.Y('Def:Q', axis=alt.Axis(title='Defensive Power Rating (lower is better)'))
+        x=alt.X(
+            'Off:Q',
+            scale=alt.Scale(domain=[off_min, off_max]),
+            axis=alt.Axis(title='Offensive Power Rating')
+        ),
+        y=alt.Y(
+            'Def:Q',
+            scale=alt.Scale(domain=[def_min, def_max]),
+            axis=alt.Axis(title='Defensive Power Rating (lower is better)')
+        )
     )
+
     # --- Replace standalone scatter with a two-column layout ---
     if not is_mobile():
         # On desktop: standings on the left, scatter on the right
