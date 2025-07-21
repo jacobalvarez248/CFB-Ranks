@@ -1809,7 +1809,53 @@ elif tab == "Team Dashboards":
         with right:
             st.markdown("#### Similar Teams: Offense vs. Defense Rating")
             st.altair_chart(chart, use_container_width=True)
-         
+    # ... previous code for df_neighbors, etc.
+
+    # Calculate padded domains
+    x_min = df_neighbors["Off. Power Rating"].min()
+    x_max = df_neighbors["Off. Power Rating"].max()
+    y_min = df_neighbors["Def. Power Rating"].min()
+    y_max = df_neighbors["Def. Power Rating"].max()
+    x_pad = (x_max - x_min) * 0.10 if x_max > x_min else 1
+    y_pad = (y_max - y_min) * 0.10 if y_max > y_min else 1
+    x_domain = [x_min - x_pad, x_max + x_pad]
+    y_domain = [y_max + y_pad, y_min - y_pad]  # reverse for 'lower is better'
+    
+    base = alt.Chart(df_neighbors).encode(
+        x=alt.X("Off. Power Rating:Q", axis=alt.Axis(title="Offensive Power Rating"),
+                scale=alt.Scale(domain=x_domain)),
+        y=alt.Y("Def. Power Rating:Q", axis=alt.Axis(title="Defensive Power Rating (lower is better)"),
+                scale=alt.Scale(domain=y_domain)),
+        tooltip=[
+            alt.Tooltip("Team:N", title="Team"),
+            alt.Tooltip("Off. Power Rating:Q", title="Off. Power Rating"),
+            alt.Tooltip("Def. Power Rating:Q", title="Def. Power Rating")
+        ]
+    )
+    
+    points = base.transform_filter(
+        alt.datum.Selected == False
+    ).mark_circle(
+        size=size_normal,
+        color="#004085"
+    )
+    
+    highlight = base.transform_filter(
+        alt.datum.Selected == True
+    ).mark_circle(
+        size=size_selected,
+        color="#FFB347",
+        stroke="black",
+        strokeWidth=2
+    )
+    
+    chart = (points + highlight).properties(
+        width=350 if is_mobile() else 420,
+        height=300 if is_mobile() else 390,
+        title="Closest Teams by Power Rating: Off vs. Def"
+    )
+    
+             
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
