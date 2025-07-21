@@ -868,7 +868,7 @@ elif tab == "Team Dashboards":
     logo_col = "Logo URL"
 
     # After making df_nearby:
-    df_nearby.columns = [str(col).strip() for col in df_nearby.columns]  # Remove whitespace
+    df_nearby.columns = [str(col).strip() for col in df_nearby.columns]
     
     # Now use the clean column names
     off_col = "Off. Power Rating"
@@ -891,7 +891,8 @@ elif tab == "Team Dashboards":
         start_idx = max(start_idx - ((team_idx + N + 1) - total_teams), 0)
     
     df_nearby = df_sorted.iloc[start_idx:end_idx].copy()
-    
+    # After making df_nearby:
+    df_nearby.columns = [str(col).strip() for col in df_nearby.columns]
     # --- Off vs Def Power Rating Scatter Plot for Nearby Teams ---
     df_nearby[off_col] = pd.to_numeric(df_nearby[off_col], errors="coerce")
     df_nearby[def_col] = pd.to_numeric(df_nearby[def_col], errors="coerce")
