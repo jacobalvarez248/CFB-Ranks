@@ -1836,9 +1836,6 @@ elif tab == "Team Dashboards":
         with right_col:
             st.markdown("#### Offensive vs Defensive Power Rating")
             st.altair_chart(chart, use_container_width=True)
-    else:
-        st.markdown("#### Offensive vs Defensive Power Rating")
-        st.altair_chart(chart, use_container_width=True)
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
