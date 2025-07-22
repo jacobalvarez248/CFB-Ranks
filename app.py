@@ -863,11 +863,34 @@ elif tab == "Team Dashboards":
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
-    logo_url = team_row["Logo URL"] if "Logo URL" in team_row and pd.notnull(team_row["Logo URL"]) else None
-    conference = team_row["Conference"] if "Conference" in team_row else ""
+    # --- LOGO LOOKUP: Team and Conference ---
+    logo_url = team_row.get("Logo URL", None)
+    if not (isinstance(logo_url, str) and logo_url.startswith("http")):
+        logo_match = logos_df[logos_df["Team"] == selected_team]
+        logo_url = logo_match["Logo URL"].iloc[0] if not logo_match.empty else None
+    
+    conference = team_row.get("Conference", "")
     conf_logo_url = None
-    if conference in logos_df["Team"].values:
-        conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
+    if conference:
+        conf_match = logos_df[logos_df["Team"] == conference]
+        if not conf_match.empty:
+            conf_logo_url = conf_match["Logo URL"].iloc[0]
+    
+    # --- Record Cards ---
+    def fmt_rec(win, loss):
+        if win is not None and loss is not None and pd.notnull(win) and pd.notnull(loss):
+            return f"{win:.1f} - {loss:.1f}"
+        else:
+            return "-"
+    
+    proj_wins = team_row.get("Projected Overall Wins", None)
+    proj_losses = team_row.get("Projected Overall Losses", None)
+    proj_conf_wins = team_row.get("Projected Conference Wins", None)
+    proj_conf_losses = team_row.get("Projected Conference Losses", None)
+    
+    record_str = fmt_rec(proj_wins, proj_losses)
+    conf_record_str = fmt_rec(proj_conf_wins, proj_conf_losses)
+
 
     # --- Rank Info ---
     overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
@@ -1851,6 +1874,7 @@ elif tab == "Team Dashboards":
     else:
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
+        
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
