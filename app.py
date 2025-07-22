@@ -149,29 +149,29 @@ tab = st.sidebar.radio(
 
 # ------ Rankings ------
 if tab == "Rankings":
-    # Place the radio at the top, so rank_source exists for the rest of the logic!
-    rank_source = st.sidebar.radio(
+    # Put radio in the main area, not sidebar
+    rank_source = st.radio(
         "Ranking Source",
         ["JPR", "Composite"],
         index=0,
         horizontal=True
     )
-
     if rank_source == "JPR":
-        st.header("📋 Rankings – JPR")
         df = df_expected.copy()
     else:
-        st.header("📋 Rankings – Composite")
         df = df_composite.copy()
 
-    team_search = st.sidebar.text_input("Search team...", "")
-    conf_search = st.sidebar.text_input("Filter by conference...", "")
-    sort_col = st.sidebar.selectbox(
+    # The rest of your filters (team_search, conf_search, etc) and all table/chart rendering
+    # should use this single `df`, not df_expected
+
+    team_search = st.text_input("Search team...", "")
+    conf_search = st.text_input("Filter by conference...", "")
+    sort_col = st.selectbox(
         "Sort by column", df.columns, df.columns.get_loc("Preseason Rank")
     )
-    asc = st.sidebar.checkbox("Ascending order", True)
+    asc = st.checkbox("Ascending order", True)
 
-    # Filtering and sorting (use df, not df_expected)
+    # Filtering and sorting (use df)
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
     if conf_search and "Conference" in df.columns:
@@ -180,6 +180,9 @@ if tab == "Rankings":
         df = df.sort_values(by=sort_col, ascending=asc)
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
+
+    # ... table rendering here, using df ...
+
 
     df = df_expected.copy()
 
