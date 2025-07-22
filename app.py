@@ -1751,13 +1751,12 @@ elif tab == "Team Dashboards":
                     else:
                         cell = v
         
-                # --- Row highlight ONLY if not already colored
+                # Row highlight as border (will always show!)
                 if is_selected_team and not has_bg_color:
-                    td += " background-color:#fffac8;"
-        
+                    td += " box-shadow: 0 0 0 3px #fffac8 inset;"
                 standings_html.append(f"<td style='{td}'>{cell}</td>")
             standings_html.append("</tr>")
-
+                
         standings_html.append("</tbody></table></div>")
         
                 # Render
