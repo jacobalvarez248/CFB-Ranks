@@ -28,23 +28,28 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
 # --- Load Data ---
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
-logos_df = load_sheet(data_path, "Logos", header=1)
-df_schedule = load_sheet(data_path, "Schedule", header=0)
-df_schedule.columns = df_schedule.columns.str.strip()
 df_composite = load_sheet(data_path, "Industry Expected Wins", header=1)
+logos_df = load_sheet(data_path, "Logos", header=1)
 
-def clean_ranking_df(df, logos_df):
-    df["Team"] = df["Team"].str.strip()
-    df["Conference"] = df["Conference"].astype(str).str.strip().str.replace("-", "", regex=False).str.upper()
-    empty_cols = [c for c in df.columns if str(c).strip() == ""]
-    df.drop(columns=empty_cols, inplace=True, errors='ignore')
-    # (repeat your column renaming, drop, round, logo merge, etc. as in your code)
-    # Make sure you don't double-insert columns like "Preseason Rank"
-    # Return cleaned df
+# Normalize logo column and team/conference text
+def clean_teams_and_logos(df, logos_df):
+    df["Team"] = df["Team"].astype(str).str.strip()
+    df["Conference"] = df["Conference"].astype(str).str.strip().str.upper()
+    if "Image URL" in logos_df.columns:
+        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+    # Merge logo URL
+    df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
     return df
+# Rename power rating column in both sheets to "Power Rating" (if needed)
+if "Column18" in df_expected.columns:
+    df_expected.rename(columns={"Column18": "Power Rating"}, inplace=True)
+if "Column18" in df_composite.columns:
+    df_composite.rename(columns={"Column18": "Power Rating"}, inplace=True)
 
-df_expected = clean_ranking_df(df_expected, logos_df)
-df_composite = clean_ranking_df(df_composite, logos_df)
+# Clean both dataframes and merge in logo
+df_expected = clean_teams_and_logos(df_expected, logos_df)
+df_composite = clean_teams_and_logos(df_composite, logos_df)
 
 # ... elsewhere, near top
 def inject_mobile_css():
@@ -149,37 +154,35 @@ tab = st.sidebar.radio(
 
 # ------ Rankings ------
 if tab == "Rankings":
-    # Put radio in the main area, not sidebar
+    st.header("🏆 Team Rankings")
+
+    # 1. Place the filter ABOVE the table, not in sidebar
     rank_source = st.radio(
         "Ranking Source",
-        ["JPR", "Composite"],
-        index=0,
+        ["JPR (Expected Wins)", "Composite (Industry)"],
         horizontal=True
     )
-    if rank_source == "JPR":
+    # 2. Pick the source df
+    if rank_source.startswith("JPR"):
         df = df_expected.copy()
+        rating_source_label = "JPR"
     else:
         df = df_composite.copy()
+        rating_source_label = "Composite"
 
-    # The rest of your filters (team_search, conf_search, etc) and all table/chart rendering
-    # should use this single `df`, not df_expected
+    # 3. Filters
+    team_search = st.text_input("Search team...")
+    conf_search = st.text_input("Filter by conference...")
+    sort_col = st.selectbox("Sort by column", [c for c in df.columns if df[c].dtype != 'O' or c in ["Team", "Conference"]], index=0)
+    asc = st.checkbox("Ascending order", sort_col == "Preseason Rank")
 
-    team_search = st.text_input("Search team...", "")
-    conf_search = st.text_input("Filter by conference...", "")
-    sort_col = st.selectbox(
-        "Sort by column", df.columns, df.columns.get_loc("Preseason Rank")
-    )
-    asc = st.checkbox("Ascending order", True)
-
-    # Filtering and sorting (use df)
+    # 4. Filtering and sorting
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
-    if conf_search and "Conference" in df.columns:
+    if conf_search:
         df = df[df["Conference"].str.contains(conf_search, case=False, na=False)]
-    try:
+    if sort_col in df.columns:
         df = df.sort_values(by=sort_col, ascending=asc)
-    except TypeError:
-        df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
     # ... table rendering here, using df ...
 
