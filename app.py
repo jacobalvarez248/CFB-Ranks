@@ -846,31 +846,6 @@ elif tab == "Industry Composite Ranking":
 # --- TEAM DASHBOARDS TAB ---
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
-    # --- JPR/Composite Toggle (unique key for this tab) ---
-    team_toggle = st.radio(
-        "Select Data Source",
-        options=["JPR", "Composite"],
-        index=0,
-        horizontal=True,
-        key="team_toggle"
-    )
-    
-    # --- Load Data Based on Toggle ---
-    if team_toggle == "JPR":
-        df_expected = load_sheet(data_path, "Expected Wins", header=1)
-        df_schedule = load_sheet(data_path, "Schedule", header=0)
-        df_ranking = load_sheet(data_path, "Ranking", header=1)
-    else:
-        df_expected = load_sheet(data_path, "Industry Expected Wins", header=1)
-        df_schedule = load_sheet(data_path, "Industry Schedule", header=0)
-        df_ranking = load_sheet(data_path, "Industry Ranking", header=1)
-    
-    logos_df = load_sheet(data_path, "Logos", header=1)
-    if "Image URL" in logos_df.columns:
-        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
-    df_expected["Team"] = df_expected["Team"].astype(str).str.strip().str.upper()
-    df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
 
     # In Team Dashboards tab:
     if is_mobile():
