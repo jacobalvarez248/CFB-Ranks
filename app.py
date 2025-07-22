@@ -100,9 +100,19 @@ def clean_rankings_dataframe(df, logos_df):
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
     # --- Format percentages
     if "Undefeated Probability" in df.columns:
-        df["Undefeated Probability"] = (
-            df["Undefeated Probability"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
-        )
+        def format_percent(val):
+            try:
+                if isinstance(val, str) and "%" in val:
+                    return val  # Already formatted
+                val_f = float(val)
+                if val_f > 1.01:
+                    return f"{val_f:.1f}%"
+                return f"{val_f*100:.1f}%"
+            except Exception:
+                return ""
+        if "Undefeated Probability" in df.columns:
+            df["Undefeated Probability"] = df["Undefeated Probability"].apply(format_percent)
+
     return df
 
 # ... elsewhere, near top
