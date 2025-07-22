@@ -483,7 +483,8 @@ elif tab == "Conference Overviews":
             st.markdown("#### Power Rating vs Game Quality")
             st.altair_chart(chart, use_container_width=True)
     
-    st.write(logos_df.head(10))
+    st.write("Unique team names in standings:", sorted(standings["Team"].unique()))
+    st.write("Unique team names in logos_df:", sorted(logos_df["Team"].unique()))
 
     # --- Conference Standings Table ---
     st.markdown("#### Conference Standings")
