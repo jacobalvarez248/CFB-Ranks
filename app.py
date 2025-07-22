@@ -10,6 +10,15 @@ def normalize_team_name(s):
         return ""
     return " ".join(str(s).strip().upper().split())
 
+if "Image URL" in logos_df.columns:
+    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+logos_df["Team_norm"] = logos_df["Team"].apply(normalize_team_name)
+
+# Apply for all team-based dataframes
+for df in [df_expected, df_expected_ind, df_ranking, df_ranking_ind]:
+    df["Team_norm"] = df["Team"].apply(normalize_team_name)
+    df.drop("Logo URL", axis=1, errors="ignore", inplace=True)
+    df = df.merge(logos_df[["Team_norm", "Logo URL"]], on="Team_norm", how="left")
 # Helper to load Excel sheets via xlwings or pandas/openpyxl
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
     try:
