@@ -54,6 +54,8 @@ df_composite = clean_teams_and_logos(df_composite, logos_df)
 # After loading df_composite, add this:
 if "Winless Probability" in df_composite.columns:
     df_composite.rename(columns={"Winless Probability": "Average Game Quality"}, inplace=True)
+if "xWins for Playoff Team" in df_composite.columns:
+    df_composite.rename(columns={"xWins for Playoff Team": "Schedule Difficulty Rating"}, inplace=True)
 
 # ... elsewhere, near top
 def inject_mobile_css():
