@@ -32,14 +32,19 @@ df_composite = load_sheet(data_path, "Industry Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 
 # Normalize logo column and team/conference text
-def clean_teams_and_logos(df, logos_df):
-    df["Team"] = df["Team"].astype(str).str.strip()
-    df["Conference"] = df["Conference"].astype(str).str.strip().str.upper()
-    if "Image URL" in logos_df.columns:
-        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+def clean_team_name(name):
+    if pd.isnull(name):
+        return ""
+    return " ".join(str(name).strip().upper().split())
+
+# For all three DataFrames:
+df_expected["Team"] = df_expected["Team"].apply(clean_team_name)
+df_composite["Team"] = df_composite["Team"].apply(clean_team_name)
+logos_df["Team"] = logos_df["Team"].apply(clean_team_name)
+
     # Merge logo URL
-    df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+    df_expected = df_expected.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+    df_composite = df_composite.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
     return df
 # Rename power rating column in both sheets to "Power Rating" (if needed)
 if "Column18" in df_expected.columns:
