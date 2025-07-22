@@ -634,15 +634,20 @@ elif tab == "Conference Overviews":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
      
-
+# --- INDUSTRY COMPOSITE TAB ---
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
 
-    # Load and clean data
+    # --- Load and prepare logos ---
+    logos_df = load_sheet(data_path, "Logos", header=1)
+    if "Image URL" in logos_df.columns:
+        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+
+    # --- Load and clean data ---
     df_comp = load_sheet(data_path, "Industry Composite", header=0)
     df_comp.columns = [str(c).strip() for c in df_comp.columns]
-    logos_df["Team"] = logos_df["Team"].astype(str)
-    df_comp["Team"] = df_comp["Team"].astype(str)
+    df_comp["Team"] = df_comp["Team"].astype(str).str.strip().str.upper()
 
     # --- Clean team names: remove leading/trailing/multiple spaces, uppercase ---
     def clean_team_name(name):
