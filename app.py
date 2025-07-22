@@ -857,9 +857,9 @@ elif tab == "Team Dashboards":
     else:
         df_expected = load_sheet(data_path, "Industry Expected Wins", header=1)
         df_schedule = load_sheet(data_path, "Industry Schedule", header=0)
-        df_ranking = None  # not used for Composite
+        df_ranking = None
 
-    # --- Clean/rename columns ---
+    # --- Clean/standardize columns ---
     rename_map = {
         "Column18": "Power Rating",
         "Projected Overall Record": "Projected Overall Wins",
@@ -910,7 +910,7 @@ elif tab == "Team Dashboards":
     opponents = sched["Opponent"].tolist()
     num_games = len(opponents)
 
-    # --- Win Probabilities ---
+    # --- Win Probabilities (card metrics) ---
     if "Win Probability" in sched.columns:
         win_prob_list = sched["Win Probability"].astype(float).values
     elif "Win Prob" in sched.columns:
@@ -944,6 +944,7 @@ elif tab == "Team Dashboards":
             return f"{val_flt*100:.1f}%" if val_flt <= 1.01 else f"{val_flt:.1f}%"
         except Exception:
             return str(val)
+    ret_prod = off_ret = def_ret = ""
     if team_toggle == "JPR" and df_ranking is not None:
         df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
         rank_row = df_ranking[df_ranking["Team"].str.strip().str.upper() == selected_team.strip()]
@@ -951,38 +952,37 @@ elif tab == "Team Dashboards":
             ret_prod = fmt_pct(rank_row.iloc[0].get("Returning Production", ""))
             off_ret = fmt_pct(rank_row.iloc[0].get("Off. Returning Production", ""))
             def_ret = fmt_pct(rank_row.iloc[0].get("Def. Returning Production", ""))
-        else:
-            ret_prod = off_ret = def_ret = ""
-    else:
-        ret_prod = off_ret = def_ret = ""
 
-    # --- CARD STRIP ---
+    # --- Card Strip (responsive, matches your original style) ---
     st.markdown(f"""
-    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:15px 0;">
-      <div>
-        <img src="{logo_url}" width="48" style="border-radius:8px;box-shadow:0 1px 3px #00000022;">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0.8vw;margin-top:8px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;">
+        {"<img src='"+logo_url+"' width='48' style='border-radius:8px;box-shadow:0 1px 3px #0002;'/>" if logo_url else ""}
+        {"<img src='"+conf_logo_url+"' width='38' style='margin-left:5px;vertical-align:middle;'/>" if conf_logo_url else ""}
       </div>
-      <div style="min-width:110px;">
-        <b>Power Rating:</b> {team_row.get('Power Rating', 'N/A')}
+      <div style="background:#fff;border-radius:10px;box-shadow:0 1px 6px #0001;padding:9px 18px;font-size:15px;font-weight:700;min-width:135px;">
+        <span style='color:#002060;'>Power Rating:</span>
+        <span style='color:#002060;font-weight:800;'> {team_row.get('Power Rating', 'N/A')}</span>
       </div>
-      <div style="min-width:110px;">
-        <b>Expected Wins:</b> {team_row.get('Projected Overall Wins', 'N/A')}
+      <div style="background:#fff;border-radius:10px;box-shadow:0 1px 6px #0001;padding:9px 18px;font-size:15px;font-weight:700;min-width:135px;">
+        <span style='color:#444;'>Expected Wins:</span>
+        <span style='color:#002060;font-weight:800;'> {team_row.get('Projected Overall Wins', 'N/A')}</span>
       </div>
-      <div style="min-width:110px;">
-        <b>6+ Wins:</b> {at_least_6_pct_str}
+      <div style="background:#fff;border-radius:10px;box-shadow:0 1px 6px #0001;padding:9px 18px;font-size:15px;font-weight:700;min-width:110px;">
+        6+ Wins: <span style="color:#007bff;">{at_least_6_pct_str}</span>
       </div>
-      <div style="min-width:110px;">
-        <b>8+ Wins:</b> {at_least_8_pct_str}
+      <div style="background:#fff;border-radius:10px;box-shadow:0 1px 6px #0001;padding:9px 18px;font-size:15px;font-weight:700;min-width:110px;">
+        8+ Wins: <span style="color:#007bff;">{at_least_8_pct_str}</span>
       </div>
-      <div style="min-width:110px;">
-        <b>10+ Wins:</b> {at_least_10_pct_str}
+      <div style="background:#fff;border-radius:10px;box-shadow:0 1px 6px #0001;padding:9px 18px;font-size:15px;font-weight:700;min-width:110px;">
+        10+ Wins: <span style="color:#007bff;">{at_least_10_pct_str}</span>
       </div>
-      <div style="min-width:110px;">
-        <b>12-0:</b> {exact_12_pct_str}
+      <div style="background:#fff;border-radius:10px;box-shadow:0 1px 6px #0001;padding:9px 18px;font-size:15px;font-weight:700;min-width:110px;">
+        12-0: <span style="color:#007bff;">{exact_12_pct_str}</span>
       </div>
-      {"<div style='min-width:110px;'><b>Ret. Prod.:</b> "+ret_prod+"</div>" if team_toggle=='JPR' else ""}
-      {"<div style='min-width:110px;'><b>Off. Ret.:</b> "+off_ret+"</div>" if team_toggle=='JPR' else ""}
-      {"<div style='min-width:110px;'><b>Def. Ret.:</b> "+def_ret+"</div>" if team_toggle=='JPR' else ""}
+      {f"<div style='background:#fff;border-radius:10px;box-shadow:0 1px 6px #0001;padding:9px 18px;font-size:15px;font-weight:700;min-width:110px;'>Ret. Prod.: <span style='color:#00B050;font-weight:800;'>{ret_prod}</span></div>" if team_toggle=='JPR' else ""}
+      {f"<div style='background:#fff;border-radius:10px;box-shadow:0 1px 6px #0001;padding:9px 18px;font-size:15px;font-weight:700;min-width:110px;'>Off. Ret.: <span style='color:#00B050;font-weight:800;'>{off_ret}</span></div>" if team_toggle=='JPR' else ""}
+      {f"<div style='background:#fff;border-radius:10px;box-shadow:0 1px 6px #0001;padding:9px 18px;font-size:15px;font-weight:700;min-width:110px;'>Def. Ret.: <span style='color:#00B050;font-weight:800;'>{def_ret}</span></div>" if team_toggle=='JPR' else ""}
     </div>
     """, unsafe_allow_html=True)
 
@@ -994,41 +994,17 @@ elif tab == "Team Dashboards":
     record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
     conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
     st.markdown(f"""
-    <div style="display:flex;gap:25px;align-items:center;margin-bottom:18px;">
-      <div style="background:#FFB347;border-radius:12px;padding:12px 26px;color:#222;font-weight:bold;box-shadow:0 1px 6px #0002;">
-        <span style="font-size:15px; color:#333;">Expected Record<br>
-        <span style="font-size:23px;color:#002060">{record_str}</span></span>
+    <div style="display:flex;gap:2vw;align-items:center;margin-bottom:18px;">
+      <div style="background:#FFB347;border-radius:12px;padding:14px 36px 10px 36px;color:#222;font-weight:bold;box-shadow:0 1px 6px #0002;">
+        <span style="font-size:1.12em; color:#333;">Expected Record</span><br>
+        <span style="font-size:2.2em;color:#002060">{record_str}</span>
       </div>
-      <div style="background:#9067B8;border-radius:12px;padding:12px 26px;color:#fff;font-weight:bold;box-shadow:0 1px 6px #0002;">
-        <span style="font-size:15px;">Expected Conf. Record<br>
-        <span style="font-size:23px;color:#fff">{conf_record_str}</span></span>
+      <div style="background:#9067B8;border-radius:12px;padding:14px 36px 10px 36px;color:#fff;font-weight:bold;box-shadow:0 1px 6px #0002;">
+        <span style="font-size:1.12em;">Expected Conf. Record</span><br>
+        <span style="font-size:2.2em;color:#fff">{conf_record_str}</span>
       </div>
     </div>
     """, unsafe_allow_html=True)
-
-    # --- Schedule Table and Win Distribution ---
-    if not sched.empty:
-        sched = sched.copy()
-        if "Date" in sched.columns:
-            try:
-                sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
-            except Exception:
-                pass
-
-        # Display nice table
-        table_cols = []
-        headers = []
-        for c in ["Game", "Date", "Opponent", "Spread", "Win Prob", "Game Score"]:
-            for real_c in sched.columns:
-                if c.lower().replace(" ", "") in real_c.lower().replace(" ", ""):
-                    table_cols.append(real_c)
-                    headers.append(c)
-                    break
-        display_sched = sched[table_cols].copy() if table_cols else sched
-        display_sched.columns = headers if headers else display_sched.columns
-
-        st.markdown("#### Schedule")
-        st.dataframe(display_sched, hide_index=True)
 
     # --- Win Probability Distribution Chart ---
     win_counts = list(range(num_games + 1))
@@ -1076,7 +1052,7 @@ elif tab == "Team Dashboards":
     )
     st.altair_chart(final_chart, use_container_width=True)
 
-    # --- Conference Standings Table ---
+    # --- Conference Standings and Scatterplot (side-by-side if desktop) ---
     st.markdown("#### Conference Standings")
     standings = conf_teams.copy()
     standings = standings.sort_values(by=sort_col, ascending=False).reset_index(drop=True)
@@ -1085,26 +1061,36 @@ elif tab == "Team Dashboards":
         "Projected Finish", "Team", "Power Rating", "Projected Overall Wins", "Projected Conference Wins"
     ]
     available_cols = [col for col in standings_display_cols if col in standings.columns]
-    st.dataframe(standings[available_cols], hide_index=True)
 
-    # --- Scatterplot: Only for JPR ---
     if team_toggle == "JPR":
-        # Build clean ranking df for scatterplot
-        df_ranking2 = load_sheet(data_path, "Ranking", header=1)
-        df_ranking2["Team"] = df_ranking2["Team"].astype(str).str.strip().str.upper()
-        req_cols = ["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
-        if all(col in df_ranking2.columns for col in req_cols):
-            scatter_df2 = df_ranking2[req_cols].copy()
-            for col in ["Power Rating", "Off. Power Rating", "Def. Power Rating"]:
-                scatter_df2[col] = pd.to_numeric(scatter_df2[col], errors="coerce")
-            scatter_df2 = scatter_df2.dropna(subset=["Power Rating", "Off. Power Rating", "Def. Power Rating"])
-            scatter_df2 = scatter_df2.sort_values("Power Rating", ascending=False).reset_index(drop=True)
-            if selected_team in scatter_df2["Team"].values:
-                selected_idx = scatter_df2.index[scatter_df2["Team"] == selected_team][0]
+        # Scatterplot only for JPR, and only if Off/Def Power Ratings exist
+        has_off_def = False
+        off_col, def_col = None, None
+        if df_ranking is not None:
+            cols = [str(c).strip().lower() for c in df_ranking.columns]
+            for c in df_ranking.columns:
+                cl = str(c).strip().lower()
+                if "off" in cl and "power" in cl:
+                    off_col = c
+                if "def" in cl and "power" in cl:
+                    def_col = c
+            has_off_def = off_col is not None and def_col is not None
+
+        if has_off_def:
+            # Build neighbor scatter with logos
+            df_ranking_clean = df_ranking.copy()
+            df_ranking_clean["Team"] = df_ranking_clean["Team"].astype(str).str.strip().str.upper()
+            df_ranking_clean = df_ranking_clean.dropna(subset=["Team", off_col, def_col])
+            for col in [off_col, def_col]:
+                df_ranking_clean[col] = pd.to_numeric(df_ranking_clean[col], errors="coerce")
+            df_ranking_clean = df_ranking_clean.dropna(subset=[off_col, def_col])
+            # neighborhood
+            if selected_team in df_ranking_clean["Team"].values:
+                selected_idx = df_ranking_clean.index[df_ranking_clean["Team"] == selected_team][0]
             else:
                 selected_idx = 0
             N = 5
-            num_teams = len(scatter_df2)
+            num_teams = len(df_ranking_clean)
             if selected_idx < N:
                 start = 0
                 end = min(2 * N + 1, num_teams)
@@ -1114,42 +1100,59 @@ elif tab == "Team Dashboards":
             else:
                 start = selected_idx - N
                 end = selected_idx + N + 1
-            df_neighbors = scatter_df2.iloc[start:end].copy()
-            # Map logos
-            df_neighbors["Logo URL"] = df_neighbors["Team"].map(logos_df.set_index("Team")["Logo URL"])
-            off_vals = df_neighbors["Off. Power Rating"]
-            def_vals = df_neighbors["Def. Power Rating"]
-            off_min, off_max = off_vals.min(), off_vals.max()
-            def_min, def_max = def_vals.min(), def_vals.max()
+            df_neighbors = df_ranking_clean.iloc[start:end].copy()
+            # Map logo
+            logo_lookup = logos_df.set_index("Team")["Logo URL"].to_dict()
+            df_neighbors["Logo URL"] = df_neighbors["Team"].map(logo_lookup)
+            # Build scatter data
+            scatter_df2 = df_neighbors[[off_col, def_col, "Team", "Logo URL"]].copy()
+            scatter_df2.columns = ["Off", "Def", "Team", "Logo URL"]
+            off_min, off_max = scatter_df2["Off"].min(), scatter_df2["Off"].max()
+            def_min, def_max = scatter_df2["Def"].min(), scatter_df2["Def"].max()
             logo_cond = (
                 (alt.datum["Logo URL"] != None) &
                 (alt.datum["Logo URL"] != "")
             )
             points_no_logo = (
-                alt.Chart(df_neighbors)
+                alt.Chart(scatter_df2)
                    .transform_filter(~logo_cond)
                    .mark_circle(size=100, color="steelblue")
                    .encode(
-                       x=alt.X("Off. Power Rating:Q", scale=alt.Scale(domain=[off_min, off_max]), axis=alt.Axis(title="Offensive Power Rating")),
-                       y=alt.Y("Def. Power Rating:Q", scale=alt.Scale(domain=[def_min, def_max]), axis=alt.Axis(title="Defensive Power Rating")),
-                       tooltip=["Team:N", alt.Tooltip("Off. Power Rating:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def. Power Rating:Q", format=".1f", title="Def Rtg")]
+                       x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max]), axis=alt.Axis(title="Offensive Power Rating")),
+                       y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max]), axis=alt.Axis(title="Defensive Power Rating")),
+                       tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
                    )
             )
-            logo_size = 32
+            logo_size = 34
             points_with_logo = (
-                alt.Chart(df_neighbors)
+                alt.Chart(scatter_df2)
                    .transform_filter(logo_cond)
                    .mark_image(width=logo_size, height=logo_size)
                    .encode(
-                       x=alt.X("Off. Power Rating:Q", scale=alt.Scale(domain=[off_min, off_max])),
-                       y=alt.Y("Def. Power Rating:Q", scale=alt.Scale(domain=[def_min, def_max])),
+                       x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max])),
+                       y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max])),
                        url="Logo URL:N",
-                       tooltip=["Team:N", alt.Tooltip("Off. Power Rating:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def. Power Rating:Q", format=".1f", title="Def Rtg")]
+                       tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
                    )
             )
             chart = points_with_logo + points_no_logo
-            st.markdown("#### Offensive vs Defensive Power Rating")
-            st.altair_chart(chart, use_container_width=True)
+            # --- Desktop: side-by-side; Mobile: stacked
+            if not is_mobile():
+                left, right = st.columns([2, 2])
+                with left:
+                    st.dataframe(standings[available_cols], hide_index=True)
+                with right:
+                    st.markdown("#### Off vs Def Power Rating (Neighborhood)")
+                    st.altair_chart(chart, use_container_width=True)
+            else:
+                st.dataframe(standings[available_cols], hide_index=True)
+                st.markdown("#### Off vs Def Power Rating (Neighborhood)")
+                st.altair_chart(chart, use_container_width=True)
+        else:
+            st.dataframe(standings[available_cols], hide_index=True)
+    else:
+        # Composite: table only
+        st.dataframe(standings[available_cols], hide_index=True)
 
 
 elif tab == "Charts & Graphs":
