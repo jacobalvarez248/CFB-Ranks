@@ -42,6 +42,10 @@ df_expected_ind = load_sheet(data_path, "Industry Expected Wins", header=1)
 df_schedule_ind = load_sheet(data_path, "Industry Schedule", header=0)
 df_ranking_ind = load_sheet(data_path, "Industry Ranking", header=1)
 
+# --- Rename logo column immediately after loading logos_df! ---
+if "Image URL" in logos_df.columns:
+    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+
 # --- Normalize for Logo Merges ---
 logos_df["Team_norm"] = logos_df["Team"].apply(normalize_team_name)
 df_expected["Team_norm"] = df_expected["Team"].apply(normalize_team_name)
