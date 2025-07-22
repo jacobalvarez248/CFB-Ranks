@@ -492,6 +492,8 @@ elif tab == "Conference Overviews":
         by="Projected Conference Wins", ascending=False
     ).reset_index(drop=True)
     standings.insert(0, "Projected Finish", standings.index + 1)
+    standings["Team"] = standings["Team"].astype(str).str.strip().str.upper()
+    team_logos = logos_df[["Team", "Logo URL"]].drop_duplicates("Team")
     standings = standings.merge(team_logos, on="Team", how="left")
 
     mobile_header_map = {
