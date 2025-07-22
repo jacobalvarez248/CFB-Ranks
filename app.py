@@ -26,7 +26,7 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
     return df
 
 # --- Load Data ---
-if toggle == "JPR":
+if rankings_toggle == "JPR":
     df_expected = load_sheet(data_path, "Expected Wins", header=1)
     df_schedule = load_sheet(data_path, "Schedule", header=0)
     df_ranking = load_sheet(data_path, "Ranking", header=1)
