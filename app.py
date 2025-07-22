@@ -42,10 +42,10 @@ df_expected["Team"] = df_expected["Team"].apply(clean_team_name)
 df_composite["Team"] = df_composite["Team"].apply(clean_team_name)
 logos_df["Team"] = logos_df["Team"].apply(clean_team_name)
 
-    # Merge logo URL
-    df_expected = df_expected.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-    df_composite = df_composite.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-    return df
+# Merge logo URL
+df_expected = df_expected.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+df_composite = df_composite.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+return df
 # Rename power rating column in both sheets to "Power Rating" (if needed)
 if "Column18" in df_expected.columns:
     df_expected.rename(columns={"Column18": "Power Rating"}, inplace=True)
