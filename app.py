@@ -859,23 +859,22 @@ elif tab == "Team Dashboards":
         df_schedule = load_sheet(data_path, "Industry Schedule", header=0)
         df_ranking = load_sheet(data_path, "Industry Ranking", header=1)
 
-    # --- Load and prep logos ---
     logos_df = load_sheet(data_path, "Logos", header=1)
     if "Image URL" in logos_df.columns:
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
     logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
     df_expected["Team"] = df_expected["Team"].astype(str).str.strip().str.upper()
-    df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
     df_expected = df_expected.merge(
         logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
         on="Team", how="left"
     )
+    df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
 
-    # --- Responsive CSS on mobile ---
+    # --- Mobile CSS ---
     if is_mobile():
         inject_mobile_css()
 
-    # --- Team Select ---
+    # --- Team Selector ---
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
@@ -885,68 +884,54 @@ elif tab == "Team Dashboards":
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
 
-    # --- Rank Info ---
-    overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
-    conf_teams = df_expected[df_expected["Conference"] == conference].copy()
-    # Only sort by "Power Rating" if present, else by "Preseason Rank"
-    if "Power Rating" in conf_teams.columns:
-        conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
-    else:
-        conf_teams = conf_teams.sort_values("Preseason Rank", ascending=True)
-    conf_teams["Conf Rank"] = range(1, len(conf_teams) + 1)
-    this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
-
-    # --- Schedule ---
+    # --- Schedule & Simulation ---
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
-    opponents = sched["Opponent"].tolist()
+    opponents = sched["Opponent"].tolist() if not sched.empty and "Opponent" in sched.columns else []
     num_games = len(opponents)
-
-    # --- Win Probabilities ---
-    if "Win Probability" in sched.columns:
-        win_prob_list = sched["Win Probability"].astype(float).values
-    elif "Win Prob" in sched.columns:
-        win_prob_list = sched["Win Prob"].astype(float).values
-    else:
-        win_prob_list = np.full(num_games, 0.5)  # fallback
-
-    dp = np.zeros((num_games + 1, num_games + 1))
-    dp[0, 0] = 1.0
-    for g in range(1, num_games + 1):
-        p = win_prob_list[g-1]
-        for w in range(g+1):
-            win_part = dp[g-1, w-1] * p if w > 0 else 0
-            lose_part = dp[g-1, w] * (1 - p)
-            dp[g, w] = win_part + lose_part
-    win_probs = dp[num_games, :]
-    at_least_6 = win_probs[6:].sum() if len(win_probs) > 6 else 0.0
-    at_least_8 = win_probs[8:].sum() if len(win_probs) > 8 else 0.0
-    at_least_10 = win_probs[10:].sum() if len(win_probs) > 10 else 0.0
-    if len(win_probs) > 12:
-        exact_12 = win_probs[12]
-    elif len(win_probs) == 12:
-        exact_12 = win_probs[-1]
-    else:
-        exact_12 = 0.0
-    at_least_6_pct = f"{at_least_6*100:.1f}%"
-    at_least_8_pct = f"{at_least_8*100:.1f}%"
-    at_least_10_pct = f"{at_least_10*100:.1f}%"
-    exact_12_pct = f"{exact_12*100:.1f}%"
-    # ================
     rows = []
-    for g in range(1, num_games + 1):
-        opp = opponents[g-1] if (g-1) < len(opponents) else ""
-        row = {
-            "Game": g,
-            "Opponent": opp
-        }
-        for w in range(num_games + 1):
-            row[w] = dp[g, w]
-        rows.append(row)
 
-    # --- Returning Production (Works for both sources) ---
+    if num_games > 0:
+        # --- Win Probability Simulation ---
+        if "Win Probability" in sched.columns:
+            win_prob_list = sched["Win Probability"].astype(float).values
+        elif "Win Prob" in sched.columns:
+            win_prob_list = sched["Win Prob"].astype(float).values
+        else:
+            win_prob_list = np.full(num_games, 0.5)
+        dp = np.zeros((num_games + 1, num_games + 1))
+        dp[0, 0] = 1.0
+        for g in range(1, num_games + 1):
+            p = win_prob_list[g-1]
+            for w in range(g+1):
+                win_part = dp[g-1, w-1] * p if w > 0 else 0
+                lose_part = dp[g-1, w] * (1 - p)
+                dp[g, w] = win_part + lose_part
+        win_probs = dp[num_games, :]
+        at_least_6 = win_probs[6:].sum() if len(win_probs) > 6 else 0.0
+        at_least_8 = win_probs[8:].sum() if len(win_probs) > 8 else 0.0
+        at_least_10 = win_probs[10:].sum() if len(win_probs) > 10 else 0.0
+        if len(win_probs) > 12:
+            exact_12 = win_probs[12]
+        elif len(win_probs) == 12:
+            exact_12 = win_probs[-1]
+        else:
+            exact_12 = 0.0
+
+        for g in range(1, num_games + 1):
+            opp = opponents[g-1] if (g-1) < len(opponents) else ""
+            row = {"Game": g, "Opponent": opp}
+            for w in range(num_games + 1):
+                row[w] = dp[g, w]
+            rows.append(row)
+    else:
+        at_least_6 = at_least_8 = at_least_10 = exact_12 = None
+        win_probs = []
+
+    # --- Returning Production (always, even for Composite) ---
     df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
     rank_row = df_ranking[df_ranking["Team"].str.strip().str.upper() == selected_team.strip().upper()]
+
     def fmt_pct(val):
         try:
             if isinstance(val, str) and "%" in val:
@@ -960,10 +945,7 @@ elif tab == "Team Dashboards":
         off_ret = fmt_pct(rank_row.iloc[0].get("Off. Returning Production", ""))
         def_ret = fmt_pct(rank_row.iloc[0].get("Def. Returning Production", ""))
     else:
-        ret_prod = off_ret = def_ret = ""
-
-    # --- Universe Size ---
-    num_teams = df_expected["Team"].nunique()
+        ret_prod = off_ret = def_ret = "–"
 
     # --- Helper for Ranking (higher is better) ---
     def get_rank(series, val, ascending=False):
@@ -971,6 +953,11 @@ elif tab == "Team Dashboards":
         if pd.isnull(val) or len(arr) == 0:
             return ""
         arr = arr.apply(lambda x: x/100 if x > 1.01 else x)
+        if val is None or val == "–":
+            return ""
+        if isinstance(val, str) and "%" in val:
+            val = float(val.replace('%',''))
+            val = val/100 if val > 1.01 else val
         if val > 1.01:
             val = val / 100
         rank = (arr >= val).sum() if not ascending else (arr <= val).sum()
@@ -996,60 +983,63 @@ elif tab == "Team Dashboards":
     off_ret_rank = get_rank(df_ranking["Off. Returning Production"], team_off_ret)
     def_ret_rank = get_rank(df_ranking["Def. Returning Production"], team_def_ret)
 
-    ret_prod_str = f"{ret_prod} {ret_rank}"
-    off_ret_str = f"{off_ret} {off_ret_rank}"
-    def_ret_str = f"{def_ret} {def_ret_rank}"
+    ret_prod_str = f"{ret_prod} {ret_rank}".strip()
+    off_ret_str = f"{off_ret} {off_ret_rank}".strip()
+    def_ret_str = f"{def_ret} {def_ret_rank}".strip()
 
-    # --- WIN PROB RANKS (all teams) ---
-    win_prob_metrics = { "at_least_6": [], "at_least_8": [], "at_least_10": [], "exact_12": [] }
-    for team in df_expected["Team"]:
-        sched_team = df_schedule[df_schedule[team_col] == team].copy()
-        n_games = len(sched_team)
-        if "Win Probability" in sched_team.columns:
-            wp_list = sched_team["Win Probability"].astype(float).values
-        elif "Win Prob" in sched_team.columns:
-            wp_list = sched_team["Win Prob"].astype(float).values
-        else:
-            wp_list = np.full(n_games, 0.5)
-        dp = np.zeros((n_games + 1, n_games + 1))
-        dp[0, 0] = 1.0
-        for g in range(1, n_games + 1):
-            p = wp_list[g-1]
-            for w in range(g+1):
-                win_part = dp[g-1, w-1] * p if w > 0 else 0
-                lose_part = dp[g-1, w] * (1 - p)
-                dp[g, w] = win_part + lose_part
-        win_probs = dp[n_games, :]
-        win_prob_metrics["at_least_6"].append(win_probs[6:].sum() if len(win_probs) > 6 else 0.0)
-        win_prob_metrics["at_least_8"].append(win_probs[8:].sum() if len(win_probs) > 8 else 0.0)
-        win_prob_metrics["at_least_10"].append(win_probs[10:].sum() if len(win_probs) > 10 else 0.0)
-        if len(win_probs) > 12:
-            win_prob_metrics["exact_12"].append(win_probs[12])
-        elif len(win_probs) == 12:
-            win_prob_metrics["exact_12"].append(win_probs[-1])
-        else:
-            win_prob_metrics["exact_12"].append(0.0)
-
-    at_least_6_rank = get_rank(pd.Series(win_prob_metrics["at_least_6"]), at_least_6)
-    at_least_8_rank = get_rank(pd.Series(win_prob_metrics["at_least_8"]), at_least_8)
-    at_least_10_rank = get_rank(pd.Series(win_prob_metrics["at_least_10"]), at_least_10)
-    exact_12_rank = get_rank(pd.Series(win_prob_metrics["exact_12"]), exact_12)
-
-    at_least_6_pct_str = f"{at_least_6*100:.1f}% {at_least_6_rank}"
-    at_least_8_pct_str = f"{at_least_8*100:.1f}% {at_least_8_rank}"
-    at_least_10_pct_str = f"{at_least_10*100:.1f}% {at_least_10_rank}"
-    exact_12_pct_str = f"{exact_12*100:.1f}% {exact_12_rank}"
-
-    # --- Power Rating rank string (only if available) ---
-    if "Power Rating" in team_row:
+    # --- Power Rating & Rank ---
+    try:
         team_power = float(team_row["Power Rating"])
         prank = df_expected["Power Rating"].rank(method="min", ascending=False)
         team_rank = int(prank[df_expected["Team"] == selected_team].iloc[0])
         num_teams = len(df_expected)
         power_rank_str = f"({team_rank}/{num_teams})"
         power_rating_str = f"{team_power:.1f} {power_rank_str}"
-    else:
+    except Exception:
         power_rating_str = "N/A"
+
+    # --- Win Prob Ranks (only if rows/schedule) ---
+    win_prob_metrics = { "at_least_6": [], "at_least_8": [], "at_least_10": [], "exact_12": [] }
+    if num_games > 0:
+        for team in df_expected["Team"]:
+            sched_team = df_schedule[df_schedule[team_col] == team].copy()
+            n_games = len(sched_team)
+            if "Win Probability" in sched_team.columns:
+                wp_list = sched_team["Win Probability"].astype(float).values
+            elif "Win Prob" in sched_team.columns:
+                wp_list = sched_team["Win Prob"].astype(float).values
+            else:
+                wp_list = np.full(n_games, 0.5)
+            dp = np.zeros((n_games + 1, n_games + 1))
+            dp[0, 0] = 1.0
+            for g in range(1, n_games + 1):
+                p = wp_list[g-1]
+                for w in range(g+1):
+                    win_part = dp[g-1, w-1] * p if w > 0 else 0
+                    lose_part = dp[g-1, w] * (1 - p)
+                    dp[g, w] = win_part + lose_part
+            win_probs2 = dp[n_games, :]
+            win_prob_metrics["at_least_6"].append(win_probs2[6:].sum() if len(win_probs2) > 6 else 0.0)
+            win_prob_metrics["at_least_8"].append(win_probs2[8:].sum() if len(win_probs2) > 8 else 0.0)
+            win_prob_metrics["at_least_10"].append(win_probs2[10:].sum() if len(win_probs2) > 10 else 0.0)
+            if len(win_probs2) > 12:
+                win_prob_metrics["exact_12"].append(win_probs2[12])
+            elif len(win_probs2) == 12:
+                win_prob_metrics["exact_12"].append(win_probs2[-1])
+            else:
+                win_prob_metrics["exact_12"].append(0.0)
+        at_least_6_rank = get_rank(pd.Series(win_prob_metrics["at_least_6"]), at_least_6)
+        at_least_8_rank = get_rank(pd.Series(win_prob_metrics["at_least_8"]), at_least_8)
+        at_least_10_rank = get_rank(pd.Series(win_prob_metrics["at_least_10"]), at_least_10)
+        exact_12_rank = get_rank(pd.Series(win_prob_metrics["exact_12"]), exact_12)
+    else:
+        at_least_6_rank = at_least_8_rank = at_least_10_rank = exact_12_rank = ""
+
+    # --- Format for Card Strip ---
+    at_least_6_pct_str = f"{at_least_6*100:.1f}% {at_least_6_rank}" if at_least_6 is not None else "–"
+    at_least_8_pct_str = f"{at_least_8*100:.1f}% {at_least_8_rank}" if at_least_8 is not None else "–"
+    at_least_10_pct_str = f"{at_least_10*100:.1f}% {at_least_10_rank}" if at_least_10 is not None else "–"
+    exact_12_pct_str = f"{exact_12*100:.1f}% {exact_12_rank}" if exact_12 is not None else "–"
 
     # --- CARD STRIP (Mobile & Desktop formatting) ---
     if is_mobile():
@@ -1164,13 +1154,13 @@ elif tab == "Team Dashboards":
 
     st.markdown(card_html, unsafe_allow_html=True)
 
-    # --- RECORD CARDS (as before) ---
+    # --- Expected Record Cards ---
     proj_wins = team_row.get("Projected Overall Wins", None)
     proj_losses = team_row.get("Projected Overall Losses", None)
     proj_conf_wins = team_row.get("Projected Conference Wins", None)
     proj_conf_losses = team_row.get("Projected Conference Losses", None)
-    record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
-    conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
+    record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if (proj_wins is not None and proj_losses is not None) else "–"
+    conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if (proj_conf_wins is not None and proj_conf_losses is not None) else "–"
     record_bg = "#FFB347"
     conf_bg = "#9067B8"
     if is_mobile():
