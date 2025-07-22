@@ -183,9 +183,6 @@ if tab == "Rankings":
 
     # ... table rendering here, using df ...
 
-
-    df = df_expected.copy()
-
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
     if conf_search and "Conference" in df.columns:
