@@ -274,8 +274,73 @@ if tab == "Rankings":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
+# --- CONFERENCE OVERVIEWS TAB ---
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
+
+    # --- Toggle for JPR/Composite (unique key for this tab) ---
+    conf_toggle = st.radio(
+        "Select Data Source",
+        options=["JPR", "Composite"],
+        index=0,
+        horizontal=True,
+        key="conf_overview_toggle"
+    )
+
+    # --- Load Data Based on Toggle ---
+    if conf_toggle == "JPR":
+        df_expected = load_sheet(data_path, "Expected Wins", header=1)
+    else:
+        df_expected = load_sheet(data_path, "Industry Expected Wins", header=1)
+
+    # --- Load and prepare logos ---
+    logos_df = load_sheet(data_path, "Logos", header=1)
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+    if "Image URL" in logos_df.columns:
+        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+    df_expected["Team"] = df_expected["Team"].astype(str).str.strip()
+    team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team", "Logo URL"]].copy()
+    df_expected = df_expected.merge(team_logos, on="Team", how="left")
+    df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
+
+    # --- Data Cleaning & Renaming ---
+    empty_cols = [c for c in df_expected.columns if str(c).strip() == ""]
+    df_expected.drop(columns=empty_cols, inplace=True, errors='ignore')
+    for col in ["Column1", "Column3"]:
+        if col in df_expected.columns:
+            df_expected.drop(columns=[col], inplace=True, errors='ignore')
+    rename_map = {
+        "Column18": "Power Rating",
+        "Projected Overall Record": "Projected Overall Wins",
+        "Column2": "Projected Overall Losses",
+        "Projected Conference Record": "Projected Conference Wins",
+        "Column4": "Projected Conference Losses",
+        "Pick": "OVER/UNDER Pick",
+        "Column17": "Schedule Difficulty Rank",
+        "xWins for Playoff Team": "Schedule Difficulty Rating",
+        "Winless Probability": "Average Game Quality",
+        "Final 2024 Rank": "Final 2024 Rank",
+        "Final 2022 Rank": "Final 2024 Rank",
+    }
+    df_expected.rename(columns=rename_map, inplace=True)
+    if "Preseason Rank" not in df_expected.columns:
+        df_expected.insert(0, "Preseason Rank", list(range(1, len(df_expected) + 1)))
+    if "Undefeated Probability" in df_expected.columns:
+        df_expected["Undefeated Probability"] = (
+            df_expected["Undefeated Probability"].apply(
+                lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
+            )
+        )
+    drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
+    numeric_cols = [c for c in df_expected.select_dtypes(include=["number"]).columns if c not in drop_ranks]
+    df_expected[numeric_cols] = df_expected[numeric_cols].round(1)
+    for col in ["Preseason Rank", "Final 2024 Rank"]:
+        if col in df_expected.columns:
+            df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').fillna(0).astype(int)
+    for col in ["Power Rating", "Average Game Quality", "Schedule Difficulty Rating"]:
+        if col in df_expected.columns:
+            df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').round(1)
+
     # --- Conference Summary Table ---
     conf_stats = (
         df_expected.groupby("Conference", as_index=False)
@@ -285,110 +350,27 @@ elif tab == "Conference Overviews":
             Avg_Sched_Diff=('Schedule Difficulty Rating', 'mean')
         )
     )
-    
-    # Get logos for conferences
-    conf_stats["Logo URL"] = conf_stats["Conference"].map(
-        dict(zip(logos_df["Team"], logos_df["Logo URL"]))
-    )
 
-    # --- Clean up conference names for matching ---
+    # --- Conference Logo Matching ---
     def clean_name(s):
         return str(s).strip().upper()
-    
     conf_stats["Conference"] = conf_stats["Conference"].apply(clean_name)
     logos_df["Team"] = logos_df["Team"].apply(clean_name)
-    
-    # --- Build a unique logo map for conferences only ---
-    # Option 1: If your logos_df includes conference rows (preferred)
     conf_logo_map = logos_df.drop_duplicates("Team").set_index("Team")["Logo URL"].to_dict()
-    
-    # Option 2: If you have a separate conference logo sheet, use that instead
-    
-    # --- Attach logos to each conference ---
     conf_stats["Logo URL"] = conf_stats["Conference"].map(conf_logo_map)
-    
-    # --- Check for missing or duplicate logo URLs ---
-    dupe_urls = conf_stats["Logo URL"].value_counts()
-    dupes = dupe_urls[dupe_urls > 1]
-    if not dupes.empty:
-        st.warning("Duplicate logo URLs used by: " +
-                   ", ".join([f"{url} ({count}x)" for url, count in dupes.items()]))
-    
-    missing = conf_stats[conf_stats["Logo URL"].isnull()]["Conference"].tolist()
-    if missing:
-        st.warning("Missing logo for: " + ", ".join(missing))
-    
-    # --- Only plot valid, unique conference points ---
-    conf_stats_plot = conf_stats.dropna(subset=["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"])
-    conf_stats_plot = conf_stats_plot.drop_duplicates(subset=["Logo URL"])
-    
-    # --- Set axis and image sizes ---
-    logo_size = 28
-    scatter_height = 470
-    font_size = 15
-    x_min = float(conf_stats_plot["Avg_Game_Quality"].min()) - 1
-    x_max = float(conf_stats_plot["Avg_Game_Quality"].max()) + 0.3
-    
-    # --- Altair Scatter Plot ---
-    import altair as alt
 
-    logo_size = 28  # Or your preferred size
-    scatter_height = 470  # Taller than before
-    font_size = 15
-    x_min = float(conf_stats_plot["Avg_Game_Quality"].min()) - 1
-    x_max = float(conf_stats_plot["Avg_Game_Quality"].max()) + 0.3
-    
-    chart = alt.Chart(conf_stats_plot).mark_image(
-        width=logo_size,
-        height=logo_size
-    ).encode(
-        x=alt.X(
-            'Avg_Game_Quality:Q',
-            scale=alt.Scale(domain=[x_min, x_max]),
-            axis=alt.Axis(
-                title='Average Game Quality',
-                titleFontSize=font_size + 2,
-                labelFontSize=font_size,
-                labelColor='black',
-                titleColor='black'
-            )
-        ),
-        y=alt.Y(
-            'Avg_Power_Rating:Q',
-            axis=alt.Axis(
-                title='Average Power Rating',
-                titleFontSize=font_size + 2,
-                labelFontSize=font_size,
-                labelColor='black',
-                titleColor='black'
-            )
-        ),
-        url='Logo URL:N',
-        tooltip=[
-            'Conference',
-            alt.Tooltip('Avg_Power_Rating', format=".2f"),
-            alt.Tooltip('Avg_Game_Quality', format=".2f")
-        ]
-    ).properties(
-        height=scatter_height,
-        width='container',
-        title=""
-    )
-    chart = chart.configure_axis(
-        labelColor='black',
-        titleColor='black',
-        gridColor='#eaeaea'
-    ).configure_title(
-        color='black'
-    ).configure_legend(
-        labelColor='black',
-        titleColor='black'
-    ).configure_view(
-        strokeWidth=0
-    )
+    # --- Color Scaling Helpers ---
+    def cell_color(val, col_min, col_max, inverse=False):
+        try:
+            v = float(val)
+        except Exception:
+            return ""
+        t = (v - col_min) / (col_max - col_min) if col_max > col_min else 0
+        if inverse: t = 1 - t
+        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
+        return f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t < 0.5 else 'white'}; font-weight:600;"
 
-
-    # Responsive headers/styles
+    # --- Table Formatting ---
     if is_mobile():
         summary_headers = ["Conference", "Avg. Pwr. Rtg.", "Avg. Game Qty", "Avg. Sched. Diff."]
         summary_cols = ["Conference", "Avg_Power_Rating", "Avg_Game_Quality", "Avg_Sched_Diff"]
@@ -403,29 +385,18 @@ elif tab == "Conference Overviews":
         wrapper_style = "max-width:100%; overflow-x:auto; margin-bottom:16px;"
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
-    
+
     pr_min, pr_max = conf_stats["Avg_Power_Rating"].min(), conf_stats["Avg_Power_Rating"].max()
     gq_min, gq_max = conf_stats["Avg_Game_Quality"].min(), conf_stats["Avg_Game_Quality"].max()
     sd_min, sd_max = conf_stats["Avg_Sched_Diff"].min(), conf_stats["Avg_Sched_Diff"].max()
-    
-    def cell_color(val, col_min, col_max, inverse=False):
-        try:
-            v = float(val)
-        except Exception:
-            return ""
-        t = (v - col_min) / (col_max - col_min) if col_max > col_min else 0
-        if inverse:
-            t = 1 - t
-        r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
-        return f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t < 0.5 else 'white'}; font-weight:600;"
-    
+
     html = [f'<div style="{wrapper_style}"><table style="{table_style}"><thead><tr>']
     for h in summary_headers:
         html.append(
             f'<th style="border:1px solid #ddd; padding:8px; background-color:#002060; color:white; text-align:center; {header_font}">{h}</th>'
         )
     html.append('</tr></thead><tbody>')
-    
+
     for _, row in conf_stats.iterrows():
         html.append('<tr>')
         # Conference Logo (logo only on mobile, logo+name on desktop)
@@ -440,51 +411,32 @@ elif tab == "Conference Overviews":
         else:
             conf_cell = f"{logo_html}{row['Conference']}"
         html.append(f'<td style="border:1px solid #ddd; text-align:left; {cell_font}">{conf_cell}</td>')
-    
+
         # Avg Power Rating
         pr_style = cell_color(row["Avg_Power_Rating"], pr_min, pr_max)
         html.append(f'<td style="border:1px solid #ddd; text-align:center; {cell_font}{pr_style}">{row["Avg_Power_Rating"]:.1f}</td>')
-    
+
         # Avg Game Quality
         gq_style = cell_color(row["Avg_Game_Quality"], gq_min, gq_max)
         html.append(f'<td style="border:1px solid #ddd; text-align:center; {cell_font}{gq_style}">{row["Avg_Game_Quality"]:.1f}</td>')
-    
+
         # Avg Sched Diff (inverse color scale)
         sd_style = cell_color(row["Avg_Sched_Diff"], sd_min, sd_max, inverse=True)
         html.append(f'<td style="border:1px solid #ddd; text-align:center; {cell_font}{sd_style}">{row["Avg_Sched_Diff"]:.1f}</td>')
-    
+
         html.append('</tr>')
     html.append('</tbody></table></div>')
 
-    # Only keep rows with valid numeric values for plotting
+    # --- Altair Scatter Plot ---
     conf_stats_plot = conf_stats.dropna(subset=["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"])
-    # -- Add these lines before your chart code --
-    logo_size = 26         # or adjust to 22, 24, etc. for preferred icon size
-    scatter_height = 380   # or whatever height looks good for your layout
+    conf_stats_plot = conf_stats_plot[conf_stats_plot["Logo URL"].astype(str).str.startswith("http")]
+    logo_size = 28
+    scatter_height = 470
     font_size = 15
-    
     x_min = float(conf_stats_plot["Avg_Game_Quality"].min()) - 1
     x_max = float(conf_stats_plot["Avg_Game_Quality"].max()) + 0.3
 
-    # Ensure all numbers are floats, coerce errors to NaN
-    for col in ["Avg_Power_Rating", "Avg_Game_Quality", "Avg_Sched_Diff"]:
-        conf_stats[col] = pd.to_numeric(conf_stats[col], errors="coerce")
-    
-    # Filter for only valid data
-    conf_stats_plot = conf_stats.dropna(subset=["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"])
-    conf_stats_plot = conf_stats_plot[
-        conf_stats_plot["Logo URL"].astype(str).str.startswith("http")
-    ]
-    
-    # Optional debug: show which are still missing
-    missing_plot = conf_stats[
-        conf_stats[["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"]].isnull().any(axis=1) |
-        ~conf_stats["Logo URL"].astype(str).str.startswith("http")
-    ]["Conference"].tolist()
-    if missing_plot:
-        st.warning("Conferences not plotted: " + ", ".join(missing_plot))
-
-    # ---- CHART CODE (scatterplot) ----
+    import altair as alt
     chart = alt.Chart(conf_stats_plot).mark_image(
         width=logo_size,
         height=logo_size
@@ -522,7 +474,6 @@ elif tab == "Conference Overviews":
     if is_mobile():
         st.markdown("#### Conference Summary")
         st.markdown("".join(html), unsafe_allow_html=True)
-        # No chart on mobile
     else:
         left, right = st.columns([1, 1])
         with left:
@@ -531,16 +482,19 @@ elif tab == "Conference Overviews":
         with right:
             st.markdown("#### Power Rating vs Game Quality")
             st.altair_chart(chart, use_container_width=True)
-   
+
     # --- Conference Standings Table ---
     st.markdown("#### Conference Standings")
     conference_options = sorted(df_expected["Conference"].dropna().unique())
-    selected_conf = st.selectbox("Select Conference", conference_options, index=0)
+    selected_conf = st.selectbox("Select Conference", conference_options, index=0, key="conf_selectbox")
     standings = df_expected[df_expected["Conference"] == selected_conf].copy()
     standings = standings.sort_values(
         by="Projected Conference Wins", ascending=False
     ).reset_index(drop=True)
     standings.insert(0, "Projected Finish", standings.index + 1)
+
+    # Merge logos for standings table
+    standings = standings.merge(team_logos, on="Team", how="left")
 
     mobile_header_map = {
         "Projected Finish": "Conf. Standings",
@@ -654,6 +608,7 @@ elif tab == "Conference Overviews":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
 
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
