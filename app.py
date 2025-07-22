@@ -42,10 +42,21 @@ df_expected_ind = load_sheet(data_path, "Industry Expected Wins", header=1)
 df_schedule_ind = load_sheet(data_path, "Industry Schedule", header=0)
 df_ranking_ind = load_sheet(data_path, "Industry Ranking", header=1)
 
-# Normalize names in both
+# --- Normalize for Logo Merges ---
 logos_df["Team_norm"] = logos_df["Team"].apply(normalize_team_name)
 df_expected["Team_norm"] = df_expected["Team"].apply(normalize_team_name)
 df_expected_ind["Team_norm"] = df_expected_ind["Team"].apply(normalize_team_name)
+
+# --- Merge logos (now robust to weird casing/spacing) ---
+df_expected = df_expected.merge(
+    logos_df[["Team_norm", "Logo URL"]],
+    on="Team_norm",
+    how="left"
+)
+df_expected_ind = df_expected_ind.merge(
+    logos_df[["Team_norm", "Logo URL"]],
+    on="Team_norm",
+    how="left"
 # ... elsewhere, near top
 def inject_mobile_css():
     st.markdown("""
