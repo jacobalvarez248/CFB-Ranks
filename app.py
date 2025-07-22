@@ -1714,7 +1714,9 @@ elif tab == "Team Dashboards":
                 td += cell_font
                 cell = v
         
-                # --- Your existing coloring/logic here (see previous answers) ---
+                has_bg_color = False  # <--- New flag!
+        
+                # Conditional cell formatting (your logic)
                 if c == "Team":
                     logo = row.get("Logo URL")
                     if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
@@ -1728,33 +1730,34 @@ elif tab == "Team Dashboards":
                     else:
                         cell = "" if is_mobile() else v
                 else:
-                    # Power Rating conditional coloring
                     if c == "Power Rating" and pd.notnull(v):
                         t = (v - pr_min) / (pr_max - pr_min) if pr_max > pr_min else 0
                         r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                         td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                         cell = f"{v:.1f}"
-                    # Average Conference Game Quality
+                        has_bg_color = True   # <-- Set flag!
                     elif c == "Average Conference Game Quality" and pd.notnull(v):
                         t = (v - acgq_min) / (acgq_max - acgq_min) if acgq_max > acgq_min else 0
                         r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                         td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                         cell = f"{v:.1f}"
-                    # Average Conference Schedule Difficulty (inverse)
+                        has_bg_color = True
                     elif c == "Average Conference Schedule Difficulty" and pd.notnull(v):
                         inv = 1 - ((v - acsd_min) / (acsd_max - acsd_min) if acsd_max > acsd_min else 0)
                         r, g, b = [int(255 + (x - 255) * inv) for x in (0, 32, 96)]
                         td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if inv<0.5 else 'white'};"
                         cell = f"{v:.1f}"
+                        has_bg_color = True
                     else:
                         cell = v
         
-                # --- Row highlight (but not if already #E2EFDA) ---
-                if is_selected_team and "background-color" not in td:
+                # --- Row highlight ONLY if not already colored
+                if is_selected_team and not has_bg_color:
                     td += " background-color:#fffac8;"
         
                 standings_html.append(f"<td style='{td}'>{cell}</td>")
             standings_html.append("</tr>")
+
         standings_html.append("</tbody></table></div>")
         
                 # Render
