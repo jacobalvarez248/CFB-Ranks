@@ -1488,10 +1488,104 @@ elif tab == "Team Dashboards":
     table_html.append("</tbody></table></div>")
 
     # --- Prepare chart data (final win distribution) ---
-    final_row = rows[-1]
-    win_counts = list(range(num_games + 1))
-    win_probs = [final_row.get(w, 0.0) for w in win_counts]
-    win_probs_pct = [p * 100 for p in win_probs]
+    if rows:
+        final_row = rows[-1]
+        win_counts = list(range(num_games + 1))
+        win_probs = [final_row.get(w, 0.0) for w in win_counts]
+        win_probs_pct = [p * 100 for p in win_probs]
+    
+        import pandas as pd
+        import altair as alt
+    
+        df_win_dist = pd.DataFrame({
+            "Wins": win_counts,
+            "Probability": win_probs_pct
+        })
+        df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
+    
+        # --- Show table & chart: side by side on desktop, stacked on mobile ---
+        if not is_mobile():
+            left_col, right_col = st.columns([1, 1])
+            with left_col:
+                st.markdown("#### Probability Distribution of Wins After Each Game")
+                st.markdown("".join(table_html), unsafe_allow_html=True)
+            with right_col:
+                st.markdown("#### Win Probability Distribution")
+                bar = alt.Chart(df_win_dist).mark_bar(
+                    color="#002060"
+                ).encode(
+                    x=alt.X("Wins:O", axis=alt.Axis(
+                        title="Wins",
+                        labelAngle=0,
+                        labelColor="black",   # <-- Axis tick text
+                        titleColor="black"    # <-- Axis label
+                    )),
+                    y=alt.Y("Probability:Q", axis=alt.Axis(
+                        title="Probability (%)",
+                        labelColor="black",
+                        titleColor="black"
+                    )),
+                    tooltip=[
+                        alt.Tooltip("Wins:O", title="Wins"),
+                        alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
+                    ]
+                )
+                text = bar.mark_text(
+                    align='center',
+                    baseline='bottom',
+                    dy=-2,
+                    color='black',
+                    fontSize=10
+                ).encode(
+                    text="Label"
+                )
+                final_chart = (bar + text).properties(
+                    width=350,
+                    height=515,
+                    title=""
+                )
+                st.altair_chart(final_chart, use_container_width=True)
+        else:
+            st.markdown("#### Probability Distribution of Wins After Each Game")
+            st.markdown("".join(table_html), unsafe_allow_html=True)
+            st.markdown("#### Win Probability Distribution")
+            bar = alt.Chart(df_win_dist).mark_bar(
+                color="#002060"
+            ).encode(
+                x=alt.X("Wins:O", axis=alt.Axis(
+                    title="Wins",
+                    labelAngle=0,
+                    labelColor="black",
+                    titleColor="black"
+                )),
+                y=alt.Y("Probability:Q", axis=alt.Axis(
+                    title="Probability (%)",
+                    labelColor="black",
+                    titleColor="black"
+                )),
+                tooltip=[
+                    alt.Tooltip("Wins:O", title="Wins"),
+                    alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
+                ]
+            )
+            text = bar.mark_text(
+                align='center',
+                baseline='bottom',
+                dy=-2,
+                color='black',
+                fontSize=8
+            ).encode(
+                text="Label"
+            )
+            final_chart = (bar + text).properties(
+                width=340,
+                height=240,
+                title=""
+            )
+            st.altair_chart(final_chart, use_container_width=True)
+    else:
+        st.info("No schedule data available for this team.")
+
 
     import pandas as pd
     import altair as alt
