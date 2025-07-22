@@ -27,10 +27,15 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
 
 # --- Load Data ---
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
+# Current code:
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
-logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
-df_schedule.columns = df_schedule.columns.str.strip()
+df_ranking = load_sheet(data_path, "Ranking", header=1)
+logos_df = load_sheet(data_path, "Logos", header=1)
+# Add industry version:
+df_expected_ind = load_sheet(data_path, "Industry Expected Wins", header=1)
+df_schedule_ind = load_sheet(data_path, "Industry Schedule", header=0)
+df_ranking_ind = load_sheet(data_path, "Industry Ranking", header=1)
 
 # ... elsewhere, near top
 def inject_mobile_css():
@@ -135,15 +140,83 @@ tab = st.sidebar.radio(
 
 # ------ Rankings ------
 if tab == "Rankings":
+    # ---- 1. Data Source Toggle ----
+    data_source = st.radio(
+        "Data Source",
+        ["JPR", "Composite"],
+        horizontal=True,
+        index=0,
+        key="data_source_rankings"
+    )
+
+    # ---- 2. Choose Which DataFrames to Use ----
+    if data_source == "JPR":
+        df_exp = df_expected.copy()
+    else:
+        df_exp = df_expected_ind.copy()
+
+    # ---- 3. Clean/Merge Logos as Before ----
+    logos_df["Team"] = logos_df["Team"].str.strip()
+    df_exp["Team"] = df_exp["Team"].str.strip()
+    if "Image URL" in logos_df.columns:
+        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+    team_logos = logos_df[logos_df["Team"].isin(df_exp["Team"])][["Team","Logo URL"]].copy()
+    df_exp = df_exp.merge(team_logos, on="Team", how="left")
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+    df_exp["Conference"] = df_exp["Conference"].astype(str).str.strip().str.upper()
+
+    # ---- 4. Cleaning, Renaming Columns (just as before, but for df_exp) ----
+    df_exp["Conference"] = (
+        df_exp["Conference"].astype(str)
+        .str.strip()
+        .str.replace("-", "", regex=False)
+        .str.upper()
+    )
+    empty_cols = [c for c in df_exp.columns if str(c).strip() == ""]
+    df_exp.drop(columns=empty_cols, inplace=True, errors='ignore')
+    df_exp.drop(columns=["Column1", "Column3"], inplace=True, errors='ignore')
+    rename_map = {
+        "Column18": "Power Rating",
+        "Projected Overall Record": "Projected Overall Wins",
+        "Column2": "Projected Overall Losses",
+        "Projected Conference Record": "Projected Conference Wins",
+        "Column4": "Projected Conference Losses",
+        "Pick": "OVER/UNDER Pick",
+        "Column17": "Schedule Difficulty Rank",
+        "xWins for Playoff Team": "Schedule Difficulty Rating",
+        "Winless Probability": "Average Game Quality",
+        "Final 2024 Rank": "Final 2024 Rank",
+        "Final 2022 Rank": "Final 2024 Rank",
+    }
+    df_exp.rename(columns=rename_map, inplace=True)
+    if "Preseason Rank" not in df_exp.columns:
+        df_exp.insert(0, "Preseason Rank", list(range(1, len(df_exp) + 1)))
+    if "Undefeated Probability" in df_exp.columns:
+        df_exp["Undefeated Probability"] = (
+            df_exp["Undefeated Probability"].apply(
+                lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
+            )
+        )
+    drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
+    numeric_cols = [c for c in df_exp.select_dtypes(include=["number"]).columns if c not in drop_ranks]
+    df_exp[numeric_cols] = df_exp[numeric_cols].round(1)
+    for col in ["Preseason Rank", "Final 2024 Rank"]:
+        if col in df_exp.columns:
+            df_exp[col] = pd.to_numeric(df_exp[col], errors='coerce').fillna(0).astype(int)
+    for col in ["Power Rating", "Average Game Quality", "Schedule Difficulty Rating"]:
+        if col in df_exp.columns:
+            df_exp[col] = pd.to_numeric(df_exp[col], errors='coerce').round(1)
+
+    # ---- 5. UI Controls/Filtering (no changes needed) ----
     st.header("📋 Rankings")
     team_search = st.sidebar.text_input("Search team...", "")
     conf_search = st.sidebar.text_input("Filter by conference...", "")
     sort_col = st.sidebar.selectbox(
-        "Sort by column", df_expected.columns, df_expected.columns.get_loc("Preseason Rank")
+        "Sort by column", df_exp.columns, df_exp.columns.get_loc("Preseason Rank")
     )
     asc = st.sidebar.checkbox("Ascending order", True)
 
-    df = df_expected.copy()
+    df = df_exp.copy()
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
     if conf_search and "Conference" in df.columns:
@@ -154,6 +227,7 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
+    # ---- 6. Responsive Table Formatting and Rendering (your existing logic) ----
     mobile_header_map = {
         "Preseason Rank": "Rank",
         "Team": "Team",
@@ -194,7 +268,6 @@ if tab == "Rankings":
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
-        # Set min/max widths for compact columns on desktop
     compact_cols = [
         "Final 2024 Rank", "Preseason Rank", "Projected Overall Wins", "Projected Overall Losses",
         "Projected Conference Wins", "Projected Conference Losses", "Undefeated Probability",
@@ -216,7 +289,6 @@ if tab == "Rankings":
             th += " white-space:nowrap;"
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
-
 
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
@@ -262,11 +334,11 @@ if tab == "Rankings":
                     cell = f"{v:.1f}"
                 else:
                     cell = v
-
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
 
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
@@ -279,7 +351,14 @@ elif tab == "Conference Overviews":
             Avg_Sched_Diff=('Schedule Difficulty Rating', 'mean')
         )
     )
-    
+    data_source = st.radio(
+        "Data Source",
+        ["JPR", "Composite"],
+        horizontal=True,
+        index=0,
+        key=f"data_source_{tab.replace(' ', '_')}"
+    )
+
     # Get logos for conferences
     conf_stats["Logo URL"] = conf_stats["Conference"].map(
         dict(zip(logos_df["Team"], logos_df["Logo URL"]))
@@ -848,6 +927,13 @@ elif tab == "Industry Composite Ranking":
 
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
+    data_source = st.radio(
+        "Data Source",
+        ["JPR", "Composite"],
+        horizontal=True,
+        index=0,
+        key=f"data_source_{tab.replace(' ', '_')}"
+    )
 
     # In Team Dashboards tab:
     if is_mobile():
