@@ -48,6 +48,14 @@ df_composite["Conference"] = df_composite["Conference"].astype(str).str.strip().
 if "Conference" in logos_df.columns:
     logos_df["Conference"] = logos_df["Conference"].astype(str).str.strip().str.upper()
 
+# --- Fix logo column name if needed ---
+if "Image URL" in logos_df.columns and "Logo URL" not in logos_df.columns:
+    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+
+# Now safe to merge
+df_expected = df_expected.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+df_composite = df_composite.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+
 # --- Merge logo URL (after cleaning, only ONCE for each) ---
 df_expected = df_expected.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
 df_composite = df_composite.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
@@ -58,8 +66,7 @@ if "Column18" in df_expected.columns:
 if "Column18" in df_composite.columns:
     df_composite.rename(columns={"Column18": "Power Rating"}, inplace=True)
 
-# --- No extra returns, no extra merges, no extra logo code below! ---
-
+# --- No extra returns, no extra merges, no extra logo code below! --
 
 
 # Clean both dataframes and merge in logo
