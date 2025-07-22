@@ -32,10 +32,16 @@ df_composite = load_sheet(data_path, "Industry Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 
 # --- Normalize team names (and conference) in all relevant DataFrames ---
-def clean_team_name(name):
-    if pd.isnull(name):
-        return ""
-    return " ".join(str(name).strip().upper().split())
+def clean_teams_and_logos(df, logos_df):
+    df["Team"] = df["Team"].astype(str).str.strip().str.upper()
+    df["Conference"] = df["Conference"].astype(str).str.strip().str.upper()
+    if "Image URL" in logos_df.columns and "Logo URL" not in logos_df.columns:
+        logos_df = logos_df.rename(columns={"Image URL": "Logo URL"})
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+    # Merge logo URL
+    df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+    return df
+
 
 # Clean team columns
 df_expected["Team"] = df_expected["Team"].apply(clean_team_name)
