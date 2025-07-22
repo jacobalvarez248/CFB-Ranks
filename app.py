@@ -28,120 +28,9 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
 # --- Load Data ---
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
-df_composite = load_sheet(data_path, "Industry Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
-
-# --- Normalize team names (and conference) in all relevant DataFrames ---
-def clean_teams_and_logos(df, logos_df):
-    df["Team"] = df["Team"].astype(str).str.strip().str.upper()
-    df["Conference"] = df["Conference"].astype(str).str.strip().str.upper()
-    if "Image URL" in logos_df.columns and "Logo URL" not in logos_df.columns:
-        logos_df = logos_df.rename(columns={"Image URL": "Logo URL"})
-    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
-    # Merge logo URL
-    df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-    return df
-
-
-# Clean team columns
-df_expected["Team"] = df_expected["Team"].apply(clean_team_name)
-df_composite["Team"] = df_composite["Team"].apply(clean_team_name)
-logos_df["Team"] = logos_df["Team"].apply(clean_team_name)
-
-# Clean conference columns (if you use for filter/display)
-df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
-df_composite["Conference"] = df_composite["Conference"].astype(str).str.strip().str.upper()
-if "Conference" in logos_df.columns:
-    logos_df["Conference"] = logos_df["Conference"].astype(str).str.strip().str.upper()
-
-# --- Fix logo column name if needed ---
-if "Image URL" in logos_df.columns and "Logo URL" not in logos_df.columns:
-    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-
-# Now safe to merge
-df_expected = df_expected.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-df_composite = df_composite.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-
-# --- Merge logo URL (after cleaning, only ONCE for each) ---
-df_expected = df_expected.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-df_composite = df_composite.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-
-# --- Power Rating column fix (if needed, do this after loading but before merge) ---
-if "Column18" in df_expected.columns:
-    df_expected.rename(columns={"Column18": "Power Rating"}, inplace=True)
-if "Column18" in df_composite.columns:
-    df_composite.rename(columns={"Column18": "Power Rating"}, inplace=True)
-
-# --- No extra returns, no extra merges, no extra logo code below! --
-
-
-# Clean both dataframes and merge in logo
-df_expected = clean_teams_and_logos(df_expected, logos_df)
-df_composite = clean_teams_and_logos(df_composite, logos_df)
-
-# After loading df_composite, add this:
-if "Winless Probability" in df_composite.columns:
-    df_composite.rename(columns={"Winless Probability": "Average Game Quality"}, inplace=True)
-if "xWins for Playoff Team" in df_composite.columns:
-    df_composite.rename(columns={"xWins for Playoff Team": "Schedule Difficulty Rating"}, inplace=True)
-
-def clean_rankings_dataframe(df, logos_df):
-    # --- Rename columns to user-friendly names ---
-    rename_map = {
-        "Column18": "Power Rating",
-        "Projected Overall Record": "Projected Overall Wins",
-        "Column2": "Projected Overall Losses",
-        "Projected Conference Record": "Projected Conference Wins",
-        "Column4": "Projected Conference Losses",
-        "Pick": "OVER/UNDER Pick",
-        "Vegas Win Total": "Vegas Win Total",
-        "Winless Probability": "Average Game Quality",  # for composite
-        "Schedule Difficulty Rank": "Schedule Difficulty Rank",
-        "xWins for Playoff Team": "Schedule Difficulty Rating",
-        "Final 2022 Rank": "Final 2024 Rank",
-        "Final 2024 Rank": "Final 2024 Rank",
-        # Add any others needed
-    }
-    df = df.rename(columns=rename_map)
-    # --- Add "Preseason Rank" if missing
-    if "Preseason Rank" not in df.columns:
-        df.insert(0, "Preseason Rank", list(range(1, len(df) + 1)))
-    # --- Add logos
-    df["Team"] = df["Team"].astype(str).str.strip()
-    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
-    if "Image URL" in logos_df.columns:
-        logos_df = logos_df.rename(columns={"Image URL": "Logo URL"})
-    df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-    # --- Standardize Conference text
-    if "Conference" in df.columns:
-        df["Conference"] = df["Conference"].astype(str).str.strip().str.upper()
-    # --- Drop empty or unwanted columns
-    empty_cols = [c for c in df.columns if str(c).strip() == ""]
-    drop_cols = ["Column1", "Column3"] + empty_cols
-    df = df.drop(columns=[c for c in drop_cols if c in df.columns], errors="ignore")
-    # --- Round numeric columns for display
-    drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
-    numeric_cols = [c for c in df.select_dtypes(include=["number"]).columns if c not in drop_ranks]
-    df[numeric_cols] = df[numeric_cols].round(1)
-    for col in ["Preseason Rank", "Final 2024 Rank"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
-    # --- Format percentages
-    if "Undefeated Probability" in df.columns:
-        def format_percent(val):
-            try:
-                if isinstance(val, str) and "%" in val:
-                    return val  # Already formatted
-                val_f = float(val)
-                if val_f > 1.01:
-                    return f"{val_f:.1f}%"
-                return f"{val_f*100:.1f}%"
-            except Exception:
-                return ""
-        if "Undefeated Probability" in df.columns:
-            df["Undefeated Probability"] = df["Undefeated Probability"].apply(format_percent)
-
-    return df
+df_schedule = load_sheet(data_path, "Schedule", header=0)
+df_schedule.columns = df_schedule.columns.str.strip()
 
 # ... elsewhere, near top
 def inject_mobile_css():
@@ -246,41 +135,25 @@ tab = st.sidebar.radio(
 
 # ------ Rankings ------
 if tab == "Rankings":
-    # --- Source Toggle (above table, not sidebar) ---
-    rank_source = st.radio(
-        "Ranking Source",
-        ["JPR", "Composite"],
-        horizontal=True
+    st.header("📋 Rankings")
+    team_search = st.sidebar.text_input("Search team...", "")
+    conf_search = st.sidebar.text_input("Filter by conference...", "")
+    sort_col = st.sidebar.selectbox(
+        "Sort by column", df_expected.columns, df_expected.columns.get_loc("Preseason Rank")
     )
+    asc = st.sidebar.checkbox("Ascending order", True)
 
-    # --- Pick and clean DataFrame ---
-    if rank_source == "JPR":
-        df = clean_rankings_dataframe(df_expected.copy(), logos_df)
-    else:
-        df = clean_rankings_dataframe(df_composite.copy(), logos_df)
-    
-
-    # --- Filters (above table, not sidebar) ---
-    team_search = st.text_input("Search team...", "")
-    conf_search = st.text_input("Filter by conference...", "")
-    sort_col = st.selectbox(
-        "Sort by column", df.columns, df.columns.get_loc("Preseason Rank") if "Preseason Rank" in df.columns else 0
-    )
-    asc = st.checkbox("Ascending order", True)
-
-    # --- Filtering ---
+    df = df_expected.copy()
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
     if conf_search and "Conference" in df.columns:
         df = df[df["Conference"].str.contains(conf_search, case=False, na=False)]
-
-    # --- Sorting ---
+    df = df.sort_values(by="Preseason Rank")
     try:
         df = df.sort_values(by=sort_col, ascending=asc)
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
-    # --- Responsive Table: mobile/desktop HTML rendering ---
     mobile_header_map = {
         "Preseason Rank": "Rank",
         "Team": "Team",
@@ -306,7 +179,6 @@ if tab == "Rankings":
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
     else:
-        # Desktop version: all available columns up to Sched. Diff.
         cols_rank = (
             df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
             if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
@@ -317,17 +189,12 @@ if tab == "Rankings":
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
 
-    # --- Column coloring min/max setup ---
-    pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
-    agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
-    sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
-
-    # --- HTML Table Generation ---
     html = [
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
+        # Set min/max widths for compact columns on desktop
     compact_cols = [
         "Final 2024 Rank", "Preseason Rank", "Projected Overall Wins", "Projected Overall Losses",
         "Projected Conference Wins", "Projected Conference Losses", "Undefeated Probability",
@@ -349,7 +216,11 @@ if tab == "Rankings":
             th += " white-space:nowrap;"
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
-    html.append("</tr></thead><tbody>")
+
+
+    pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
+    agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
+    sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
 
     for _, row in df.iterrows():
         html.append("<tr>")
@@ -391,6 +262,7 @@ if tab == "Rankings":
                     cell = f"{v:.1f}"
                 else:
                     cell = v
+
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
     html.append("</tbody></table></div>")
