@@ -191,12 +191,20 @@ if tab == "Rankings":
     df_exp.rename(columns=rename_map, inplace=True)
     if "Preseason Rank" not in df_exp.columns:
         df_exp.insert(0, "Preseason Rank", list(range(1, len(df_exp) + 1)))
+    def fmt_undefeated(x):
+        try:
+            # If it's already a string ending with '%', just return it.
+            if isinstance(x, str) and "%" in x:
+                return x
+            # If it's numeric (int/float/np number), convert to percent string.
+            val = float(x)
+            return f"{val*100:.1f}%"
+        except Exception:
+            return ""
+    
     if "Undefeated Probability" in df_exp.columns:
-        df_exp["Undefeated Probability"] = (
-            df_exp["Undefeated Probability"].apply(
-                lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
-            )
-        )
+        df_exp["Undefeated Probability"] = df_exp["Undefeated Probability"].apply(fmt_undefeated)
+
     drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
     numeric_cols = [c for c in df_exp.select_dtypes(include=["number"]).columns if c not in drop_ranks]
     df_exp[numeric_cols] = df_exp[numeric_cols].round(1)
