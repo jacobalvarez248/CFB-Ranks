@@ -341,6 +341,7 @@ elif tab == "Conference Overviews":
         if col in df_expected.columns:
             df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').round(1)
 
+    
     # --- Conference Summary Table ---
     conf_stats = (
         df_expected.groupby("Conference", as_index=False)
@@ -351,7 +352,14 @@ elif tab == "Conference Overviews":
         )
     )
     conf_stats["Conference"] = conf_stats["Conference"].astype(str).str.strip().str.upper()
-    conf_stats["Logo URL"] = conf_stats["Conference"].map(conference_logo_map)
+    
+    # --- Get conference logos from logos_df (for both teams and conferences) ---
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+    conf_stats = conf_stats.merge(
+        logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
+        left_on="Conference", right_on="Team", how="left"
+    )
+    conf_stats.rename(columns={"Logo URL": "Logo URL"}, inplace=True)
 
     # --- Color Scaling Helpers ---
     def cell_color(val, col_min, col_max, inverse=False):
