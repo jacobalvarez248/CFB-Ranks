@@ -57,6 +57,54 @@ if "Winless Probability" in df_composite.columns:
 if "xWins for Playoff Team" in df_composite.columns:
     df_composite.rename(columns={"xWins for Playoff Team": "Schedule Difficulty Rating"}, inplace=True)
 
+def clean_rankings_dataframe(df, logos_df):
+    # --- Rename columns to user-friendly names ---
+    rename_map = {
+        "Column18": "Power Rating",
+        "Projected Overall Record": "Projected Overall Wins",
+        "Column2": "Projected Overall Losses",
+        "Projected Conference Record": "Projected Conference Wins",
+        "Column4": "Projected Conference Losses",
+        "Pick": "OVER/UNDER Pick",
+        "Vegas Win Total": "Vegas Win Total",
+        "Winless Probability": "Average Game Quality",  # for composite
+        "Schedule Difficulty Rank": "Schedule Difficulty Rank",
+        "xWins for Playoff Team": "Schedule Difficulty Rating",
+        "Final 2022 Rank": "Final 2024 Rank",
+        "Final 2024 Rank": "Final 2024 Rank",
+        # Add any others needed
+    }
+    df = df.rename(columns=rename_map)
+    # --- Add "Preseason Rank" if missing
+    if "Preseason Rank" not in df.columns:
+        df.insert(0, "Preseason Rank", list(range(1, len(df) + 1)))
+    # --- Add logos
+    df["Team"] = df["Team"].astype(str).str.strip()
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+    if "Image URL" in logos_df.columns:
+        logos_df = logos_df.rename(columns={"Image URL": "Logo URL"})
+    df = df.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+    # --- Standardize Conference text
+    if "Conference" in df.columns:
+        df["Conference"] = df["Conference"].astype(str).str.strip().str.upper()
+    # --- Drop empty or unwanted columns
+    empty_cols = [c for c in df.columns if str(c).strip() == ""]
+    drop_cols = ["Column1", "Column3"] + empty_cols
+    df = df.drop(columns=[c for c in drop_cols if c in df.columns], errors="ignore")
+    # --- Round numeric columns for display
+    drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
+    numeric_cols = [c for c in df.select_dtypes(include=["number"]).columns if c not in drop_ranks]
+    df[numeric_cols] = df[numeric_cols].round(1)
+    for col in ["Preseason Rank", "Final 2024 Rank"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype(int)
+    # --- Format percentages
+    if "Undefeated Probability" in df.columns:
+        df["Undefeated Probability"] = (
+            df["Undefeated Probability"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
+        )
+    return df
+
 # ... elsewhere, near top
 def inject_mobile_css():
     st.markdown("""
@@ -169,18 +217,10 @@ if tab == "Rankings":
 
     # --- Pick and clean DataFrame ---
     if rank_source == "JPR":
-        df = df_expected.copy()
-        # Ensure "Power Rating" and other display columns are present
+        df = clean_rankings_dataframe(df_expected.copy(), logos_df)
     else:
-        df = df_composite.copy()
-        # If not already renamed at load, do so here:
-        rename_map = {
-            "Column18": "Power Rating",
-            # Add other renames if needed for composite
-        }
-        df.rename(columns=rename_map, inplace=True)
-        if "Preseason Rank" not in df.columns:
-            df.insert(0, "Preseason Rank", list(range(1, len(df) + 1)))
+        df = clean_rankings_dataframe(df_composite.copy(), logos_df)
+    
 
     # --- Filters (above table, not sidebar) ---
     team_search = st.text_input("Search team...", "")
