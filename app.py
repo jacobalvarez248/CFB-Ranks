@@ -1664,8 +1664,19 @@ elif tab == "Team Dashboards":
             wrapper_style = "max-width:100%; overflow-x:auto;"
             header_font = ""
             cell_font = "white-space:nowrap; font-size:15px;"
-    
-        # ---- Table HTML ----
+        # Merge in up-to-date team logos for the standings table
+        standings["Team"] = standings["Team"].astype(str).str.strip().str.upper()
+        logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+        standings = standings.drop(columns=[c for c in ["Logo URL"] if c in standings.columns])
+        standings = standings.merge(
+            logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
+            on="Team", how="left"
+        )
+        missing = standings[standings["Logo URL"].isna()]["Team"].tolist()
+        if missing:
+            st.warning(f"Logos missing for: {', '.join(missing[:8])}{'...' if len(missing)>8 else ''}")
+        
+                # ---- Table HTML ----
         standings_html = [
             f'<div style="{wrapper_style}">',
             f'<table style="{table_style}">',
