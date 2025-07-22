@@ -1,12 +1,12 @@
 import pandas as pd
 import streamlit as st
 from pathlib import Path
-data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 import altair as alt
-import io
 import numpy as np
 
-# Helper to load Excel sheets via xlwings or pandas/openpyxl
+data_path = Path(__file__).parent / "Preseason 2025.xlsm"
+
+# Helper function
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
     try:
         import xlwings as xw
@@ -25,26 +25,7 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
             header=header
         )
     return df
-rankings_toggle = st.radio(
-    "Select Data Source",
-    options=["JPR", "Composite"],
-    index=0,
-    horizontal=True,
-    key="rankings_toggle"
-)
 
-# --- Load Data ---
-if rankings_toggle == "JPR":
-    df_expected = load_sheet(data_path, "Expected Wins", header=1)
-    df_schedule = load_sheet(data_path, "Schedule", header=0)
-    df_ranking = load_sheet(data_path, "Ranking", header=1)
-else:
-    df_expected = load_sheet(data_path, "Industry Expected Wins", header=1)
-    df_schedule = load_sheet(data_path, "Industry Schedule", header=0)
-    df_ranking = load_sheet(data_path, "Industry Ranking", header=1)
-
-logos_df = load_sheet(data_path, "Logos", header=1)
-# ... elsewhere, near top
 def inject_mobile_css():
     st.markdown("""
     <style>
@@ -61,20 +42,8 @@ def inject_mobile_css():
     }
     </style>
     """, unsafe_allow_html=True)
-# Normalize logo column
-logos_df["Team"] = logos_df["Team"].str.strip()
-df_expected["Team"] = df_expected["Team"].str.strip()
-if "Image URL" in logos_df.columns:
-    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-
-team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]].copy()
-df_expected = df_expected.merge(team_logos, on="Team", how="left")
-logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
-df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
 
 # --- Streamlit Config ---
-import streamlit.components.v1 as components
-
 FORCE_MOBILE = st.sidebar.checkbox("Mobile View", False)
 def is_mobile():
     return FORCE_MOBILE
@@ -96,50 +65,7 @@ else:
 
 st.title("🎯 College Football 2025 Pre-Season Preview")
 
-# --- Data Cleaning & Renaming ---
-df_expected["Conference"] = (
-    df_expected["Conference"].astype(str)
-    .str.strip()
-    .str.replace("-", "", regex=False)
-    .str.upper()
-)
-
-empty_cols = [c for c in df_expected.columns if str(c).strip() == ""]
-df_expected.drop(columns=empty_cols, inplace=True, errors='ignore')
-df_expected.drop(columns=["Column1", "Column3"], inplace=True, errors='ignore')
-rename_map = {
-    "Column18": "Power Rating",
-    "Projected Overall Record": "Projected Overall Wins",
-    "Column2": "Projected Overall Losses",
-    "Projected Conference Record": "Projected Conference Wins",
-    "Column4": "Projected Conference Losses",
-    "Pick": "OVER/UNDER Pick",
-    "Column17": "Schedule Difficulty Rank",
-    "xWins for Playoff Team": "Schedule Difficulty Rating",
-    "Winless Probability": "Average Game Quality",
-    "Final 2024 Rank": "Final 2024 Rank",
-    "Final 2022 Rank": "Final 2024 Rank",
-}
-df_expected.rename(columns=rename_map, inplace=True)
-if "Preseason Rank" not in df_expected.columns:
-    df_expected.insert(0, "Preseason Rank", list(range(1, len(df_expected) + 1)))
-if "Undefeated Probability" in df_expected.columns:
-    df_expected["Undefeated Probability"] = (
-        df_expected["Undefeated Probability"].apply(
-            lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
-        )
-    )
-drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
-numeric_cols = [c for c in df_expected.select_dtypes(include=["number"]).columns if c not in drop_ranks]
-df_expected[numeric_cols] = df_expected[numeric_cols].round(1)
-for col in ["Preseason Rank", "Final 2024 Rank"]:
-    if col in df_expected.columns:
-        df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').fillna(0).astype(int)
-for col in ["Power Rating", "Average Game Quality", "Schedule Difficulty Rating"]:
-    if col in df_expected.columns:
-        df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').round(1)
-
-# --- Sidebar & Tabs ---
+# --- Sidebar Navigation ---
 tab = st.sidebar.radio(
     "Navigation",
     ["Rankings", "Conference Overviews", "Industry Composite Ranking", "Team Dashboards", "Charts & Graphs"]
@@ -149,7 +75,7 @@ tab = st.sidebar.radio(
 if tab == "Rankings":
     st.header("📋 Rankings")
 
-    # --- JPR/Composite Toggle ---
+    # --- JPR/Composite Toggle (unique key for this tab) ---
     rankings_toggle = st.radio(
         "Select Data Source",
         options=["JPR", "Composite"],
@@ -168,14 +94,12 @@ if tab == "Rankings":
         df_schedule = load_sheet(data_path, "Industry Schedule", header=0)
         df_ranking = load_sheet(data_path, "Industry Ranking", header=1)
 
-    # --- Logo Data (load ONCE, outside toggle) ---
+    # --- Load and prepare logos ---
     logos_df = load_sheet(data_path, "Logos", header=1)
     logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
-
-    # --- Merge Logos ---
-    df_expected["Team"] = df_expected["Team"].astype(str).str.strip()
     if "Image URL" in logos_df.columns:
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+    df_expected["Team"] = df_expected["Team"].astype(str).str.strip()
     team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]].copy()
     df_expected = df_expected.merge(team_logos, on="Team", how="left")
     df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
@@ -349,7 +273,6 @@ if tab == "Rankings":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
-
 
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
