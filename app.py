@@ -299,10 +299,17 @@ elif tab == "Conference Overviews":
     if "Image URL" in logos_df.columns:
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
     df_expected["Team"] = df_expected["Team"].astype(str).str.strip().str.upper()
-    team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team", "Logo URL"]].copy()
-    df_expected = df_expected.merge(team_logos, on="Team", how="left")
-    df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
+    df_expected = df_expected.merge(
+        logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
+        on="Team",
+        how="left"
+    )
+    missing = df_expected[df_expected["Logo URL"].isna()]["Team"].unique()
+    if len(missing) > 0:
+        st.warning(f"Missing logos for: {', '.join(missing[:10])}{'...' if len(missing) > 10 else ''}")
 
+    df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
+    st.write(standings[["Team", "Logo URL"]].head(20))
     # --- Data Cleaning & Renaming ---
     empty_cols = [c for c in df_expected.columns if str(c).strip() == ""]
     df_expected.drop(columns=empty_cols, inplace=True, errors='ignore')
@@ -482,8 +489,6 @@ elif tab == "Conference Overviews":
         with right:
             st.markdown("#### Power Rating vs Game Quality")
             st.altair_chart(chart, use_container_width=True)
-
-    st.write(standings[["Team", "Logo URL"]].head(20))
 
     # --- Conference Standings Table ---
     st.markdown("#### Conference Standings")
