@@ -43,6 +43,13 @@ def inject_mobile_css():
     </style>
     """, unsafe_allow_html=True)
 
+# --- Load DataFrames needed for all tabs ---
+df_expected = load_sheet(data_path, "Expected Wins", header=1)
+df_schedule = load_sheet(data_path, "Schedule", header=0)
+logos_df = load_sheet(data_path, "Logos", header=1)
+if "Image URL" in logos_df.columns:
+    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+
 # --- Streamlit Config ---
 FORCE_MOBILE = st.sidebar.checkbox("Mobile View", False)
 def is_mobile():
