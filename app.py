@@ -278,7 +278,7 @@ if tab == "Rankings":
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
 
-    # --- Toggle for JPR/Composite (unique key for this tab) ---
+    # --- Toggle for JPR/Composite ---
     conf_toggle = st.radio(
         "Select Data Source",
         options=["JPR", "Composite"],
@@ -350,14 +350,8 @@ elif tab == "Conference Overviews":
             Avg_Sched_Diff=('Schedule Difficulty Rating', 'mean')
         )
     )
-
-    # --- Conference Logo Matching ---
-    def clean_name(s):
-        return str(s).strip().upper()
-    conf_stats["Conference"] = conf_stats["Conference"].apply(clean_name)
-    logos_df["Team"] = logos_df["Team"].apply(clean_name)
-    conf_logo_map = logos_df.drop_duplicates("Team").set_index("Team")["Logo URL"].to_dict()
-    conf_stats["Logo URL"] = conf_stats["Conference"].map(conf_logo_map)
+    conf_stats["Conference"] = conf_stats["Conference"].astype(str).str.strip().str.upper()
+    conf_stats["Logo URL"] = conf_stats["Conference"].map(conference_logo_map)
 
     # --- Color Scaling Helpers ---
     def cell_color(val, col_min, col_max, inverse=False):
@@ -399,7 +393,7 @@ elif tab == "Conference Overviews":
 
     for _, row in conf_stats.iterrows():
         html.append('<tr>')
-        # Conference Logo (logo only on mobile, logo+name on desktop)
+        # Conference Logo + Name
         logo_url = row["Logo URL"]
         logo_width = 28 if is_mobile() else 24
         if pd.notnull(logo_url) and isinstance(logo_url, str) and logo_url.startswith("http"):
@@ -428,6 +422,7 @@ elif tab == "Conference Overviews":
     html.append('</tbody></table></div>')
 
     # --- Altair Scatter Plot ---
+    import altair as alt
     conf_stats_plot = conf_stats.dropna(subset=["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"])
     conf_stats_plot = conf_stats_plot[conf_stats_plot["Logo URL"].astype(str).str.startswith("http")]
     logo_size = 28
@@ -436,7 +431,6 @@ elif tab == "Conference Overviews":
     x_min = float(conf_stats_plot["Avg_Game_Quality"].min()) - 1
     x_max = float(conf_stats_plot["Avg_Game_Quality"].max()) + 0.3
 
-    import altair as alt
     chart = alt.Chart(conf_stats_plot).mark_image(
         width=logo_size,
         height=logo_size
@@ -492,8 +486,6 @@ elif tab == "Conference Overviews":
         by="Projected Conference Wins", ascending=False
     ).reset_index(drop=True)
     standings.insert(0, "Projected Finish", standings.index + 1)
-
-    # Merge logos for standings table
     standings = standings.merge(team_logos, on="Team", how="left")
 
     mobile_header_map = {
@@ -608,6 +600,7 @@ elif tab == "Conference Overviews":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
 
 
 elif tab == "Industry Composite Ranking":
