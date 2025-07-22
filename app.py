@@ -51,6 +51,10 @@ if "Column18" in df_composite.columns:
 df_expected = clean_teams_and_logos(df_expected, logos_df)
 df_composite = clean_teams_and_logos(df_composite, logos_df)
 
+# After loading df_composite, add this:
+if "Winless Probability" in df_composite.columns:
+    df_composite.rename(columns={"Winless Probability": "Average Game Quality"}, inplace=True)
+
 # ... elsewhere, near top
 def inject_mobile_css():
     st.markdown("""
