@@ -24,6 +24,13 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
             header=header
         )
     return df
+rankings_toggle = st.radio(
+    "Select Data Source",
+    options=["JPR", "Composite"],
+    index=0,
+    horizontal=True,
+    key="rankings_toggle"
+)
 
 # --- Load Data ---
 if rankings_toggle == "JPR":
