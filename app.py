@@ -47,8 +47,17 @@ def inject_mobile_css():
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 logos_df = load_sheet(data_path, "Logos", header=1)
+
+# --- Standardize columns: Remove leading/trailing whitespace ---
+df_expected.columns = [str(c).strip() for c in df_expected.columns]
+df_schedule.columns = [str(c).strip() for c in df_schedule.columns]
+logos_df.columns = [str(c).strip() for c in logos_df.columns]
+
+# --- Rename columns for consistency ---
 if "Image URL" in logos_df.columns:
     logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+if "Column18" in df_expected.columns:
+    df_expected.rename(columns={"Column18": "Power Rating"}, inplace=True)
 
 # --- Streamlit Config ---
 FORCE_MOBILE = st.sidebar.checkbox("Mobile View", False)
