@@ -1636,6 +1636,11 @@ elif tab == "Team Dashboards":
             by="Projected Conference Wins", ascending=False
         ).reset_index(drop=True)
         standings.insert(0, "Projected Finish", standings.index + 1)
+        # Exclude columns that should remain integer
+        for col in standings.select_dtypes(include=['float', 'float64', 'number']):
+            if col != "Projected Finish":  # Add more exclusions as needed
+                standings[col] = standings[col].round(1)
+
 
         pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
         acgq_min, acgq_max = standings["Average Conference Game Quality"].min(), standings["Average Conference Game Quality"].max()
