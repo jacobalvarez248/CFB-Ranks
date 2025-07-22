@@ -56,7 +56,7 @@ df_expected = df_expected.merge(
 df_expected_ind = df_expected_ind.merge(
     logos_df[["Team_norm", "Logo URL"]],
     on="Team_norm",
-    how="left"
+    how="left")
 # ... elsewhere, near top
 def inject_mobile_css():
     st.markdown("""
