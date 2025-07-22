@@ -490,6 +490,24 @@ elif tab == "Conference Overviews":
         with right:
             st.markdown("#### Power Rating vs Game Quality")
             st.altair_chart(chart, use_container_width=True)
+    
+    standings["Team"] = standings["Team"].astype(str).str.strip().str.upper()
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+    
+    # Merge team logos for standings (defensively)
+    if "Logo URL" not in standings.columns:
+        standings = standings.merge(
+            logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
+            on="Team", how="left"
+        )
+    
+    # Warn if any team logos are missing (defensive)
+    if "Logo URL" in standings.columns:
+        missing_standings_logos = standings[standings["Logo URL"].isna()]["Team"].unique()
+        if len(missing_standings_logos) > 0:
+            st.warning(
+                f"Missing team logos in standings: {', '.join(missing_standings_logos[:10])}{'...' if len(missing_standings_logos) > 10 else ''}"
+            )
 
     # --- Conference Standings Table ---
     st.markdown("#### Conference Standings")
