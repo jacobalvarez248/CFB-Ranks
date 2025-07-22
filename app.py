@@ -1178,15 +1178,6 @@ elif tab == "Team Dashboards":
         '''
 
     st.markdown(card_html, unsafe_allow_html=True)
-
-    # --- Calculate Expected Records ---
-    proj_wins = team_row.get("Projected Overall Wins", None)
-    proj_losses = team_row.get("Projected Overall Losses", None)
-    proj_conf_wins = team_row.get("Projected Conference Wins", None)
-    proj_conf_losses = team_row.get("Projected Conference Losses", None)
-    
-    record_str = f"{proj_wins:.1f} - {proj_losses:.1f}" if proj_wins is not None and proj_losses is not None else "-"
-    conf_record_str = f"{proj_conf_wins:.1f} - {proj_conf_losses:.1f}" if proj_conf_wins is not None and proj_conf_losses is not None else "-"
     
     # Color choices
     record_bg = "#FFB347"    # Amber/Orange
