@@ -1623,7 +1623,15 @@ elif tab == "Team Dashboards":
             "Projected Conference Wins", "Projected Conference Losses",
             "Average Conference Game Quality", "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
         ]
-    
+        # Clean column names
+        standings.columns = [c.strip() for c in standings.columns]
+        # Rename columns if needed
+        standings = standings.rename(columns={
+            "Projected Conference Record": "Projected Conference Wins",
+            "Column4": "Projected Conference Losses",
+            # Add others as needed
+        })
+
         # Get the standings for this conference
         standings = df_expected[df_expected["Conference"] == conference].copy()
         standings = standings.sort_values(
