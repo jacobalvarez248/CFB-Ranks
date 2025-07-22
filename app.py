@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 from pathlib import Path
+data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 import altair as alt
 import io
 import numpy as np
