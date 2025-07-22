@@ -8,6 +8,7 @@ import numpy as np
 def normalize_team_name(s):
     if pd.isnull(s):
         return ""
+    # Remove all leading/trailing spaces, make uppercase, squash internal spaces
     return " ".join(str(s).strip().upper().split())
 
 # Helper to load Excel sheets via xlwings or pandas/openpyxl
@@ -42,16 +43,17 @@ df_expected_ind = load_sheet(data_path, "Industry Expected Wins", header=1)
 df_schedule_ind = load_sheet(data_path, "Industry Schedule", header=0)
 df_ranking_ind = load_sheet(data_path, "Industry Ranking", header=1)
 
-# --- Rename logo column immediately after loading logos_df! ---
+
+# Always run *after* any column renaming (e.g., for logos)
 if "Image URL" in logos_df.columns:
     logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
 
-# --- Normalize for Logo Merges ---
+# Normalize on both sides
 logos_df["Team_norm"] = logos_df["Team"].apply(normalize_team_name)
 df_expected["Team_norm"] = df_expected["Team"].apply(normalize_team_name)
 df_expected_ind["Team_norm"] = df_expected_ind["Team"].apply(normalize_team_name)
 
-# --- Merge logos (now robust to weird casing/spacing) ---
+# Now merge on Team_norm
 df_expected = df_expected.merge(
     logos_df[["Team_norm", "Logo URL"]],
     on="Team_norm",
@@ -60,7 +62,8 @@ df_expected = df_expected.merge(
 df_expected_ind = df_expected_ind.merge(
     logos_df[["Team_norm", "Logo URL"]],
     on="Team_norm",
-    how="left")
+    how="left"
+)
 # ... elsewhere, near top
 def inject_mobile_css():
     st.markdown("""
