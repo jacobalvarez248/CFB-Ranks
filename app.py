@@ -5,6 +5,11 @@ import altair as alt
 import io
 import numpy as np
 
+def normalize_team_name(s):
+    if pd.isnull(s):
+        return ""
+    return " ".join(str(s).strip().upper().split())
+
 # Helper to load Excel sheets via xlwings or pandas/openpyxl
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
     try:
@@ -37,6 +42,10 @@ df_expected_ind = load_sheet(data_path, "Industry Expected Wins", header=1)
 df_schedule_ind = load_sheet(data_path, "Industry Schedule", header=0)
 df_ranking_ind = load_sheet(data_path, "Industry Ranking", header=1)
 
+# Normalize names in both
+logos_df["Team_norm"] = logos_df["Team"].apply(normalize_team_name)
+df_expected["Team_norm"] = df_expected["Team"].apply(normalize_team_name)
+df_expected_ind["Team_norm"] = df_expected_ind["Team"].apply(normalize_team_name)
 # ... elsewhere, near top
 def inject_mobile_css():
     st.markdown("""
