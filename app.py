@@ -1056,9 +1056,6 @@ elif tab == "Team Dashboards":
     power_rank_str = f"({team_rank}/{num_teams})"
     power_rating_str = f"{team_power:.1f} {power_rank_str}"
 
-    st.write("DEBUG: df_expected columns:", df_expected.columns.tolist())
-    st.write("DEBUG: team_row:", team_row)
-
     # --- CARD STRIP (Responsive, no sidebar overlap) ---
     if is_mobile():
         # MOBILE CSS ONLY injected here
