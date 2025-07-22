@@ -278,7 +278,7 @@ if tab == "Rankings":
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
 
-    # --- Data Source Toggle ---
+    # --- Toggle for JPR/Composite ---
     conf_toggle = st.radio(
         "Select Data Source",
         options=["JPR", "Composite"],
@@ -287,13 +287,13 @@ elif tab == "Conference Overviews":
         key="conf_overview_toggle"
     )
 
-    # --- Load Main Data ---
+    # --- Load Data Based on Toggle ---
     if conf_toggle == "JPR":
         df_expected = load_sheet(data_path, "Expected Wins", header=1)
     else:
         df_expected = load_sheet(data_path, "Industry Expected Wins", header=1)
 
-    # --- Load & Prepare Logos ---
+    # --- Load and clean logos ---
     logos_df = load_sheet(data_path, "Logos", header=1)
     if "Image URL" in logos_df.columns:
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
@@ -301,7 +301,7 @@ elif tab == "Conference Overviews":
     df_expected["Team"] = df_expected["Team"].astype(str).str.strip().str.upper()
     df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
 
-    # --- Merge ALL Team Logos, warn on missing ---
+    # --- Merge ALL Team Logos (and warn if missing) ---
     df_expected = df_expected.merge(
         logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
         on="Team", how="left"
@@ -309,9 +309,8 @@ elif tab == "Conference Overviews":
     missing_teams = df_expected[df_expected["Logo URL"].isna()]["Team"].unique()
     if len(missing_teams) > 0:
         st.warning(f"Missing team logos for: {', '.join(missing_teams[:10])}{'...' if len(missing_teams) > 10 else ''}")
-        st.write("Teams missing logos (sample):", missing_teams[:20])
 
-    # --- Clean Data Columns & Renaming ---
+    # --- Data Cleaning & Renaming ---
     empty_cols = [c for c in df_expected.columns if str(c).strip() == ""]
     df_expected.drop(columns=empty_cols, inplace=True, errors='ignore')
     for col in ["Column1", "Column3"]:
@@ -359,8 +358,7 @@ elif tab == "Conference Overviews":
         )
     )
     conf_stats["Conference"] = conf_stats["Conference"].astype(str).str.strip().str.upper()
-
-    # --- Merge in Conference Logos from Logos sheet ---
+    # Merge in conference logos
     conf_stats = conf_stats.merge(
         logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
         left_on="Conference", right_on="Team", how="left"
@@ -368,7 +366,6 @@ elif tab == "Conference Overviews":
     missing_confs = conf_stats[conf_stats["Logo URL"].isna()]["Conference"].unique()
     if len(missing_confs) > 0:
         st.warning(f"Missing conference logos for: {', '.join(missing_confs[:10])}{'...' if len(missing_confs) > 10 else ''}")
-        st.write("Conferences missing logos (sample):", missing_confs[:20])
 
     # --- Color Scaling Helper ---
     def cell_color(val, col_min, col_max, inverse=False):
@@ -438,7 +435,8 @@ elif tab == "Conference Overviews":
         html.append('</tr>')
     html.append('</tbody></table></div>')
 
-    # --- Altair Scatter Plot (same as before) ---
+    # --- Altair Scatter Plot ---
+    import altair as alt
     conf_stats_plot = conf_stats.dropna(subset=["Avg_Power_Rating", "Avg_Game_Quality", "Logo URL"])
     conf_stats_plot = conf_stats_plot[conf_stats_plot["Logo URL"].astype(str).str.startswith("http")]
     logo_size = 28
@@ -503,17 +501,18 @@ elif tab == "Conference Overviews":
     ).reset_index(drop=True)
     standings.insert(0, "Projected Finish", standings.index + 1)
     standings["Team"] = standings["Team"].astype(str).str.strip().str.upper()
+    # Merge in team logos for this conference
     standings = standings.merge(
         logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
         on="Team", how="left"
     )
-
-    # Debug: Show teams in this conference missing logos!
     missing_standings_logos = standings[standings["Logo URL"].isna()]["Team"].unique()
     if len(missing_standings_logos) > 0:
-        st.warning(f"Missing team logos in standings: {', '.join(missing_standings_logos[:10])}{'...' if len(missing_standings_logos) > 10 else ''}")
-        st.write("Conference standings missing logos (sample):", missing_standings_logos[:20])
+        st.warning(
+            f"Missing team logos in standings: {', '.join(missing_standings_logos[:10])}{'...' if len(missing_standings_logos) > 10 else ''}"
+        )
 
+    # ---- Responsive headers/columns setup ----
     mobile_header_map = {
         "Projected Finish": "Conf. Standings",
         "Team": "Team",
@@ -535,6 +534,8 @@ elif tab == "Conference Overviews":
         "Projected Conference Wins", "Projected Conference Losses",
         "Average Conference Game Quality", "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
     ]
+
+    # --- Calculate color scales ---
     pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
     acgq_min, acgq_max = standings["Average Conference Game Quality"].min(), standings["Average Conference Game Quality"].max()
     acsd_min, acsd_max = standings["Average Conference Schedule Difficulty"].min(), standings["Average Conference Schedule Difficulty"].max()
@@ -626,7 +627,6 @@ elif tab == "Conference Overviews":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
-
 
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
