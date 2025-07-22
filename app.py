@@ -518,19 +518,26 @@ elif tab == "Conference Overviews":
         by="Projected Conference Wins", ascending=False
     ).reset_index(drop=True)
     standings.insert(0, "Projected Finish", standings.index + 1)
+    
+    # Clean team names for the merge
     standings["Team"] = standings["Team"].astype(str).str.strip().str.upper()
-    # Merge in team logos for this conference
-    standings = standings.merge(
-        logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
-        on="Team", how="left"
-    )
-    missing_standings_logos = standings[standings["Logo URL"].isna()]["Team"].unique()
-    if len(missing_standings_logos) > 0:
-        st.warning(
-            f"Missing team logos in standings: {', '.join(missing_standings_logos[:10])}{'...' if len(missing_standings_logos) > 10 else ''}"
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+    
+    # Merge in team logos (only if missing)
+    if "Logo URL" not in standings.columns:
+        standings = standings.merge(
+            logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
+            on="Team", how="left"
         )
-
-    # ---- Responsive headers/columns setup ----
+    # Warn if any team logos are missing (defensive)
+    if "Logo URL" in standings.columns:
+        missing_standings_logos = standings[standings["Logo URL"].isna()]["Team"].unique()
+        if len(missing_standings_logos) > 0:
+            st.warning(
+                f"Missing team logos in standings: {', '.join(missing_standings_logos[:10])}{'...' if len(missing_standings_logos) > 10 else ''}"
+            )
+    
+    # --- Responsive headers/columns setup ---
     mobile_header_map = {
         "Projected Finish": "Conf. Standings",
         "Team": "Team",
@@ -552,12 +559,12 @@ elif tab == "Conference Overviews":
         "Projected Conference Wins", "Projected Conference Losses",
         "Average Conference Game Quality", "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
     ]
-
+    
     # --- Calculate color scales ---
     pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
     acgq_min, acgq_max = standings["Average Conference Game Quality"].min(), standings["Average Conference Game Quality"].max()
     acsd_min, acsd_max = standings["Average Conference Schedule Difficulty"].min(), standings["Average Conference Schedule Difficulty"].max()
-
+    
     if is_mobile():
         cols = [c for c in mobile_cols if c in standings.columns]
         display_headers = [mobile_header_map[c] for c in cols]
@@ -576,7 +583,7 @@ elif tab == "Conference Overviews":
         wrapper_style = "max-width:100%; overflow-x:auto;"
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
-
+    
     html = [
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
@@ -645,6 +652,7 @@ elif tab == "Conference Overviews":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+     
 
 elif tab == "Industry Composite Ranking":
     st.header("📊 Industry Composite Ranking")
