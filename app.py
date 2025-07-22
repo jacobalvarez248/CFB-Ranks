@@ -840,7 +840,7 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # --- Toggle for JPR/Composite ---
+    # --- Data Source Toggle ---
     team_toggle = st.radio(
         "Select Data Source",
         options=["JPR", "Composite"],
@@ -849,7 +849,7 @@ elif tab == "Team Dashboards":
         key="team_dash_toggle"
     )
 
-    # --- Load Data Based on Toggle ---
+    # --- Load Data ---
     if team_toggle == "JPR":
         df_expected = load_sheet(data_path, "Expected Wins", header=1)
         df_schedule = load_sheet(data_path, "Schedule", header=0)
@@ -859,19 +859,19 @@ elif tab == "Team Dashboards":
         df_schedule = load_sheet(data_path, "Industry Schedule", header=0)
         df_ranking = load_sheet(data_path, "Industry Ranking", header=1)
 
-    # --- Load and prepare logos ---
+    # --- Load and prep logos ---
     logos_df = load_sheet(data_path, "Logos", header=1)
     if "Image URL" in logos_df.columns:
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
     logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
     df_expected["Team"] = df_expected["Team"].astype(str).str.strip().str.upper()
+    df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
     df_expected = df_expected.merge(
         logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
         on="Team", how="left"
     )
-    df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
 
-    # --- Mobile CSS ---
+    # --- Responsive CSS on mobile ---
     if is_mobile():
         inject_mobile_css()
 
@@ -885,9 +885,14 @@ elif tab == "Team Dashboards":
     if conference in logos_df["Team"].values:
         conf_logo_url = logos_df.loc[logos_df["Team"] == conference, "Logo URL"].values[0]
 
+    # --- Rank Info ---
     overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
     conf_teams = df_expected[df_expected["Conference"] == conference].copy()
-    conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
+    # Only sort by "Power Rating" if present, else by "Preseason Rank"
+    if "Power Rating" in conf_teams.columns:
+        conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
+    else:
+        conf_teams = conf_teams.sort_values("Preseason Rank", ascending=True)
     conf_teams["Conf Rank"] = range(1, len(conf_teams) + 1)
     this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
 
@@ -903,7 +908,8 @@ elif tab == "Team Dashboards":
     elif "Win Prob" in sched.columns:
         win_prob_list = sched["Win Prob"].astype(float).values
     else:
-        win_prob_list = np.full(num_games, 0.5)
+        win_prob_list = np.full(num_games, 0.5)  # fallback
+
     dp = np.zeros((num_games + 1, num_games + 1))
     dp[0, 0] = 1.0
     for g in range(1, num_games + 1):
@@ -926,6 +932,7 @@ elif tab == "Team Dashboards":
     at_least_8_pct = f"{at_least_8*100:.1f}%"
     at_least_10_pct = f"{at_least_10*100:.1f}%"
     exact_12_pct = f"{exact_12*100:.1f}%"
+    # ================
     rows = []
     for g in range(1, num_games + 1):
         opp = opponents[g-1] if (g-1) < len(opponents) else ""
@@ -937,9 +944,9 @@ elif tab == "Team Dashboards":
             row[w] = dp[g, w]
         rows.append(row)
 
-    # --- Returning Production, Off, Def ---
+    # --- Returning Production (Works for both sources) ---
     df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
-    rank_row = df_ranking[df_ranking["Team"].str.strip().str.upper() == selected_team.strip()]
+    rank_row = df_ranking[df_ranking["Team"].str.strip().str.upper() == selected_team.strip().upper()]
     def fmt_pct(val):
         try:
             if isinstance(val, str) and "%" in val:
@@ -964,8 +971,6 @@ elif tab == "Team Dashboards":
         if pd.isnull(val) or len(arr) == 0:
             return ""
         arr = arr.apply(lambda x: x/100 if x > 1.01 else x)
-        if isinstance(val, str) and "%" in val:
-            val = float(val.replace("%", "")) / 100
         if val > 1.01:
             val = val / 100
         rank = (arr >= val).sum() if not ascending else (arr <= val).sum()
@@ -995,7 +1000,7 @@ elif tab == "Team Dashboards":
     off_ret_str = f"{off_ret} {off_ret_rank}"
     def_ret_str = f"{def_ret} {def_ret_rank}"
 
-    # --- WIN PROB RANKS ---
+    # --- WIN PROB RANKS (all teams) ---
     win_prob_metrics = { "at_least_6": [], "at_least_8": [], "at_least_10": [], "exact_12": [] }
     for team in df_expected["Team"]:
         sched_team = df_schedule[df_schedule[team_col] == team].copy()
@@ -1035,23 +1040,20 @@ elif tab == "Team Dashboards":
     at_least_10_pct_str = f"{at_least_10*100:.1f}% {at_least_10_rank}"
     exact_12_pct_str = f"{exact_12*100:.1f}% {exact_12_rank}"
 
-    team_power = float(team_row["Power Rating"])
-    prank = df_expected["Power Rating"].rank(method="min", ascending=False)
-    team_rank = int(prank[df_expected["Team"] == selected_team].iloc[0])
-    num_teams = len(df_expected)
-    power_rank_str = f"({team_rank}/{num_teams})"
-    power_rating_str = f"{team_power:.1f} {power_rank_str}"
+    # --- Power Rating rank string (only if available) ---
+    if "Power Rating" in team_row:
+        team_power = float(team_row["Power Rating"])
+        prank = df_expected["Power Rating"].rank(method="min", ascending=False)
+        team_rank = int(prank[df_expected["Team"] == selected_team].iloc[0])
+        num_teams = len(df_expected)
+        power_rank_str = f"({team_rank}/{num_teams})"
+        power_rating_str = f"{team_power:.1f} {power_rank_str}"
+    else:
+        power_rating_str = "N/A"
 
-    # --- CARD STRIP (as before) ---
+    # --- CARD STRIP (Mobile & Desktop formatting) ---
     if is_mobile():
-        st.markdown("""
-        <style>
-        [data-testid="stHorizontalBlock"] { max-width:100vw !important; }
-        .block-container, .main { padding-left:0 !important; padding-right:0 !important; }
-        body, html { overflow-x: hidden !important; }
-        </style>
-        """, unsafe_allow_html=True)
-        n_items = 10  # logos + 9 cards
+        n_items = 10
         card_width = 100 / n_items - 0.5
         card_base = (
             f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; "
@@ -1159,6 +1161,7 @@ elif tab == "Team Dashboards":
             </div>
         </div>
         '''
+
     st.markdown(card_html, unsafe_allow_html=True)
 
     # --- RECORD CARDS (as before) ---
