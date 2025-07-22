@@ -31,6 +31,20 @@ df_expected = load_sheet(data_path, "Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 df_schedule.columns = df_schedule.columns.str.strip()
+df_composite = load_sheet(data_path, "Industry Expected Wins", header=1)
+
+def clean_ranking_df(df, logos_df):
+    df["Team"] = df["Team"].str.strip()
+    df["Conference"] = df["Conference"].astype(str).str.strip().str.replace("-", "", regex=False).str.upper()
+    empty_cols = [c for c in df.columns if str(c).strip() == ""]
+    df.drop(columns=empty_cols, inplace=True, errors='ignore')
+    # (repeat your column renaming, drop, round, logo merge, etc. as in your code)
+    # Make sure you don't double-insert columns like "Preseason Rank"
+    # Return cleaned df
+    return df
+
+df_expected = clean_ranking_df(df_expected, logos_df)
+df_composite = clean_ranking_df(df_composite, logos_df)
 
 # ... elsewhere, near top
 def inject_mobile_css():
@@ -135,15 +149,45 @@ tab = st.sidebar.radio(
 
 # ------ Rankings ------
 if tab == "Rankings":
-    st.header("📋 Rankings")
-    team_search = st.sidebar.text_input("Search team...", "")
+    if rank_source == "JPR":
+        st.header("📋 Rankings – JPR")
+    else:
+        st.header("📋 Rankings – Composite")
+    
+        team_search = st.sidebar.text_input("Search team...", "")
     conf_search = st.sidebar.text_input("Filter by conference...", "")
     sort_col = st.sidebar.selectbox(
         "Sort by column", df_expected.columns, df_expected.columns.get_loc("Preseason Rank")
     )
     asc = st.sidebar.checkbox("Ascending order", True)
+    rank_source = st.sidebar.radio(
+        "Ranking Source",
+        ["JPR", "Composite"],
+        index=0,
+        horizontal=True
+    )
+    if rank_source == "JPR":
+        df = df_expected.copy()
+    else:
+        df = df_composite.copy()
 
     df = df_expected.copy()
+    # In your Rankings tab section:
+
+    rank_source = st.sidebar.radio(
+        "Ranking Source",
+        ["JPR", "Composite"],
+        index=0,
+        horizontal=True
+    )
+    
+    if rank_source == "JPR":
+        df = df_expected.copy()
+    else:
+        df = df_composite.copy()
+    
+    # Now everything else: team_search, conf_search, sort_col, table rendering, etc. uses `df`
+
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
     if conf_search and "Conference" in df.columns:
