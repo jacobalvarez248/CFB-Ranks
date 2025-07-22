@@ -31,26 +31,36 @@ df_expected = load_sheet(data_path, "Expected Wins", header=1)
 df_composite = load_sheet(data_path, "Industry Expected Wins", header=1)
 logos_df = load_sheet(data_path, "Logos", header=1)
 
-# Normalize logo column and team/conference text
+# --- Normalize team names (and conference) in all relevant DataFrames ---
 def clean_team_name(name):
     if pd.isnull(name):
         return ""
     return " ".join(str(name).strip().upper().split())
 
-# For all three DataFrames:
+# Clean team columns
 df_expected["Team"] = df_expected["Team"].apply(clean_team_name)
 df_composite["Team"] = df_composite["Team"].apply(clean_team_name)
 logos_df["Team"] = logos_df["Team"].apply(clean_team_name)
 
-# Merge logo URL
+# Clean conference columns (if you use for filter/display)
+df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
+df_composite["Conference"] = df_composite["Conference"].astype(str).str.strip().str.upper()
+if "Conference" in logos_df.columns:
+    logos_df["Conference"] = logos_df["Conference"].astype(str).str.strip().str.upper()
+
+# --- Merge logo URL (after cleaning, only ONCE for each) ---
 df_expected = df_expected.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
 df_composite = df_composite.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-return df
-# Rename power rating column in both sheets to "Power Rating" (if needed)
+
+# --- Power Rating column fix (if needed, do this after loading but before merge) ---
 if "Column18" in df_expected.columns:
     df_expected.rename(columns={"Column18": "Power Rating"}, inplace=True)
 if "Column18" in df_composite.columns:
     df_composite.rename(columns={"Column18": "Power Rating"}, inplace=True)
+
+# --- No extra returns, no extra merges, no extra logo code below! ---
+
+
 
 # Clean both dataframes and merge in logo
 df_expected = clean_teams_and_logos(df_expected, logos_df)
