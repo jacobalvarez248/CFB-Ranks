@@ -1626,18 +1626,17 @@ elif tab == "Team Dashboards":
 
         # Get the standings for this conference
         standings = df_expected[df_expected["Conference"] == conference].copy()
-        standings = standings.sort_values(
-            by="Projected Conference Wins", ascending=False
-        ).reset_index(drop=True)
-        standings.insert(0, "Projected Finish", standings.index + 1)
-         # Clean column names
         standings.columns = [c.strip() for c in standings.columns]
-        # Rename columns if needed
         standings = standings.rename(columns={
             "Projected Conference Record": "Projected Conference Wins",
             "Column4": "Projected Conference Losses",
             # Add others as needed
         })
+        standings = standings.sort_values(
+            by="Projected Conference Wins", ascending=False
+        ).reset_index(drop=True)
+        standings.insert(0, "Projected Finish", standings.index + 1)
+
         pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
         acgq_min, acgq_max = standings["Average Conference Game Quality"].min(), standings["Average Conference Game Quality"].max()
         acsd_min, acsd_max = standings["Average Conference Schedule Difficulty"].min(), standings["Average Conference Schedule Difficulty"].max()
