@@ -26,12 +26,16 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
     return df
 
 # --- Load Data ---
-data_path = Path(__file__).parent / "Preseason 2025.xlsm"
-df_expected = load_sheet(data_path, "Expected Wins", header=1)
-logos_df = load_sheet(data_path, "Logos", header=1)
-df_schedule = load_sheet(data_path, "Schedule", header=0)
-df_schedule.columns = df_schedule.columns.str.strip()
+if toggle == "JPR":
+    df_expected = load_sheet(data_path, "Expected Wins", header=1)
+    df_schedule = load_sheet(data_path, "Schedule", header=0)
+    df_ranking = load_sheet(data_path, "Ranking", header=1)
+else:
+    df_expected = load_sheet(data_path, "Industry Expected Wins", header=1)
+    df_schedule = load_sheet(data_path, "Industry Schedule", header=0)
+    df_ranking = load_sheet(data_path, "Industry Ranking", header=1)
 
+logos_df = load_sheet(data_path, "Logos", header=1)
 # ... elsewhere, near top
 def inject_mobile_css():
     st.markdown("""
@@ -136,6 +140,77 @@ tab = st.sidebar.radio(
 # ------ Rankings ------
 if tab == "Rankings":
     st.header("📋 Rankings")
+
+    # --- JPR/Composite Toggle ---
+    rankings_toggle = st.radio(
+        "Select Data Source",
+        options=["JPR", "Composite"],
+        index=0,
+        horizontal=True,
+        key="rankings_toggle"
+    )
+
+    # --- Load Data Based on Toggle ---
+    if rankings_toggle == "JPR":
+        df_expected = load_sheet(data_path, "Expected Wins", header=1)
+        df_schedule = load_sheet(data_path, "Schedule", header=0)
+        df_ranking = load_sheet(data_path, "Ranking", header=1)
+    else:
+        df_expected = load_sheet(data_path, "Industry Expected Wins", header=1)
+        df_schedule = load_sheet(data_path, "Industry Schedule", header=0)
+        df_ranking = load_sheet(data_path, "Industry Ranking", header=1)
+
+    # --- Logo Data (load ONCE, outside toggle) ---
+    logos_df = load_sheet(data_path, "Logos", header=1)
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+
+    # --- Merge Logos ---
+    df_expected["Team"] = df_expected["Team"].astype(str).str.strip()
+    if "Image URL" in logos_df.columns:
+        logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+    team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team","Logo URL"]].copy()
+    df_expected = df_expected.merge(team_logos, on="Team", how="left")
+    df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
+
+    # --- Data Cleaning ---
+    empty_cols = [c for c in df_expected.columns if str(c).strip() == ""]
+    df_expected.drop(columns=empty_cols, inplace=True, errors='ignore')
+    for col in ["Column1", "Column3"]:
+        if col in df_expected.columns:
+            df_expected.drop(columns=[col], inplace=True, errors='ignore')
+    rename_map = {
+        "Column18": "Power Rating",
+        "Projected Overall Record": "Projected Overall Wins",
+        "Column2": "Projected Overall Losses",
+        "Projected Conference Record": "Projected Conference Wins",
+        "Column4": "Projected Conference Losses",
+        "Pick": "OVER/UNDER Pick",
+        "Column17": "Schedule Difficulty Rank",
+        "xWins for Playoff Team": "Schedule Difficulty Rating",
+        "Winless Probability": "Average Game Quality",
+        "Final 2024 Rank": "Final 2024 Rank",
+        "Final 2022 Rank": "Final 2024 Rank",
+    }
+    df_expected.rename(columns=rename_map, inplace=True)
+    if "Preseason Rank" not in df_expected.columns:
+        df_expected.insert(0, "Preseason Rank", list(range(1, len(df_expected) + 1)))
+    if "Undefeated Probability" in df_expected.columns:
+        df_expected["Undefeated Probability"] = (
+            df_expected["Undefeated Probability"].apply(
+                lambda x: f"{x*100:.1f}%" if pd.notnull(x) else ""
+            )
+        )
+    drop_ranks = ["Preseason Rank", "Schedule Difficulty Rank", "Final 2024 Rank"]
+    numeric_cols = [c for c in df_expected.select_dtypes(include=["number"]).columns if c not in drop_ranks]
+    df_expected[numeric_cols] = df_expected[numeric_cols].round(1)
+    for col in ["Preseason Rank", "Final 2024 Rank"]:
+        if col in df_expected.columns:
+            df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').fillna(0).astype(int)
+    for col in ["Power Rating", "Average Game Quality", "Schedule Difficulty Rating"]:
+        if col in df_expected.columns:
+            df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').round(1)
+
+    # --- Sidebar Controls ---
     team_search = st.sidebar.text_input("Search team...", "")
     conf_search = st.sidebar.text_input("Filter by conference...", "")
     sort_col = st.sidebar.selectbox(
@@ -143,6 +218,7 @@ if tab == "Rankings":
     )
     asc = st.sidebar.checkbox("Ascending order", True)
 
+    # --- Filtering & Sorting ---
     df = df_expected.copy()
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
@@ -154,6 +230,7 @@ if tab == "Rankings":
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
+    # --- Mobile/Desktop Table Logic (identical for both data sources) ---
     mobile_header_map = {
         "Preseason Rank": "Rank",
         "Team": "Team",
@@ -170,8 +247,7 @@ if tab == "Rankings":
         cols_rank = [c for c in mobile_cols if c in df.columns]
         display_headers = [mobile_header_map[c] for c in cols_rank]
         table_style = (
-            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; "
-            "font-size:13px;"
+            "width:100vw; max-width:100vw; border-collapse:collapse; table-layout:fixed; font-size:13px;"
         )
         wrapper_style = (
             "max-width:100vw; overflow-x:hidden; margin:0 -16px 0 -16px;"
@@ -189,12 +265,12 @@ if tab == "Rankings":
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
 
+    # --- Color/Conditional Formatting ---
     html = [
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
-        # Set min/max widths for compact columns on desktop
     compact_cols = [
         "Final 2024 Rank", "Preseason Rank", "Projected Overall Wins", "Projected Overall Losses",
         "Projected Conference Wins", "Projected Conference Losses", "Undefeated Probability",
@@ -216,7 +292,6 @@ if tab == "Rankings":
             th += " white-space:nowrap;"
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
-
 
     pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
     agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
@@ -262,11 +337,11 @@ if tab == "Rankings":
                     cell = f"{v:.1f}"
                 else:
                     cell = v
-
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
+
 
 elif tab == "Conference Overviews":
     st.header("🏟️ Conference Overviews")
