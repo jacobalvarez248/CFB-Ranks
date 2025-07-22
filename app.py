@@ -154,48 +154,49 @@ tab = st.sidebar.radio(
 
 # ------ Rankings ------
 if tab == "Rankings":
-    st.header("🏆 Team Rankings")
-
-    # 1. Place the filter ABOVE the table, not in sidebar
+    # --- Source Toggle (above table, not sidebar) ---
     rank_source = st.radio(
         "Ranking Source",
-        ["JPR (Expected Wins)", "Composite (Industry)"],
+        ["JPR", "Composite"],
         horizontal=True
     )
-    # 2. Pick the source df
-    if rank_source.startswith("JPR"):
+
+    # --- Pick and clean DataFrame ---
+    if rank_source == "JPR":
         df = df_expected.copy()
-        rating_source_label = "JPR"
+        # Ensure "Power Rating" and other display columns are present
     else:
         df = df_composite.copy()
-        rating_source_label = "Composite"
+        # If not already renamed at load, do so here:
+        rename_map = {
+            "Column18": "Power Rating",
+            # Add other renames if needed for composite
+        }
+        df.rename(columns=rename_map, inplace=True)
+        if "Preseason Rank" not in df.columns:
+            df.insert(0, "Preseason Rank", list(range(1, len(df) + 1)))
 
-    # 3. Filters
-    team_search = st.text_input("Search team...")
-    conf_search = st.text_input("Filter by conference...")
-    sort_col = st.selectbox("Sort by column", [c for c in df.columns if df[c].dtype != 'O' or c in ["Team", "Conference"]], index=0)
-    asc = st.checkbox("Ascending order", sort_col == "Preseason Rank")
+    # --- Filters (above table, not sidebar) ---
+    team_search = st.text_input("Search team...", "")
+    conf_search = st.text_input("Filter by conference...", "")
+    sort_col = st.selectbox(
+        "Sort by column", df.columns, df.columns.get_loc("Preseason Rank") if "Preseason Rank" in df.columns else 0
+    )
+    asc = st.checkbox("Ascending order", True)
 
-    # 4. Filtering and sorting
-    if team_search:
-        df = df[df["Team"].str.contains(team_search, case=False, na=False)]
-    if conf_search:
-        df = df[df["Conference"].str.contains(conf_search, case=False, na=False)]
-    if sort_col in df.columns:
-        df = df.sort_values(by=sort_col, ascending=asc)
-
-    # ... table rendering here, using df ...
-
+    # --- Filtering ---
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
     if conf_search and "Conference" in df.columns:
         df = df[df["Conference"].str.contains(conf_search, case=False, na=False)]
-    df = df.sort_values(by="Preseason Rank")
+
+    # --- Sorting ---
     try:
         df = df.sort_values(by=sort_col, ascending=asc)
     except TypeError:
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
+    # --- Responsive Table: mobile/desktop HTML rendering ---
     mobile_header_map = {
         "Preseason Rank": "Rank",
         "Team": "Team",
@@ -221,6 +222,7 @@ if tab == "Rankings":
         header_font = "font-size:13px; white-space:normal;"
         cell_font = "font-size:13px; white-space:nowrap;"
     else:
+        # Desktop version: all available columns up to Sched. Diff.
         cols_rank = (
             df.columns.tolist()[: df.columns.tolist().index("Schedule Difficulty Rating") + 1]
             if "Schedule Difficulty Rating" in df.columns else df.columns.tolist()
@@ -231,12 +233,17 @@ if tab == "Rankings":
         header_font = ""
         cell_font = "white-space:nowrap; font-size:15px;"
 
+    # --- Column coloring min/max setup ---
+    pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
+    agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
+    sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
+
+    # --- HTML Table Generation ---
     html = [
         f'<div style="{wrapper_style}">',
         f'<table style="{table_style}">',
         '<thead><tr>'
     ]
-        # Set min/max widths for compact columns on desktop
     compact_cols = [
         "Final 2024 Rank", "Preseason Rank", "Projected Overall Wins", "Projected Overall Losses",
         "Projected Conference Wins", "Projected Conference Losses", "Undefeated Probability",
@@ -258,11 +265,7 @@ if tab == "Rankings":
             th += " white-space:nowrap;"
         th += header_font
         html.append(f"<th style='{th}'>{disp_col}</th>")
-
-
-    pr_min, pr_max = df["Power Rating"].min(), df["Power Rating"].max()
-    agq_min, agq_max = df["Average Game Quality"].min(), df["Average Game Quality"].max()
-    sdr_min, sdr_max = df["Schedule Difficulty Rating"].min(), df["Schedule Difficulty Rating"].max()
+    html.append("</tr></thead><tbody>")
 
     for _, row in df.iterrows():
         html.append("<tr>")
@@ -304,7 +307,6 @@ if tab == "Rankings":
                     cell = f"{v:.1f}"
                 else:
                     cell = v
-
             html.append(f"<td style='{td}'>{cell}</td>")
         html.append("</tr>")
     html.append("</tbody></table></div>")
