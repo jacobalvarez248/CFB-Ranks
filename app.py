@@ -182,21 +182,6 @@ if tab == "Rankings":
         df = df.sort_values(by=sort_col, ascending=asc, key=lambda s: s.astype(str))
 
     df = df_expected.copy()
-    # In your Rankings tab section:
-
-    rank_source = st.sidebar.radio(
-        "Ranking Source",
-        ["JPR", "Composite"],
-        index=0,
-        horizontal=True
-    )
-    
-    if rank_source == "JPR":
-        df = df_expected.copy()
-    else:
-        df = df_composite.copy()
-    
-    # Now everything else: team_search, conf_search, sort_col, table rendering, etc. uses `df`
 
     if team_search:
         df = df[df["Team"].str.contains(team_search, case=False, na=False)]
