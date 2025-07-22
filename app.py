@@ -295,10 +295,10 @@ elif tab == "Conference Overviews":
 
     # --- Load and prepare logos ---
     logos_df = load_sheet(data_path, "Logos", header=1)
-    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
     if "Image URL" in logos_df.columns:
         logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-    df_expected["Team"] = df_expected["Team"].astype(str).str.strip()
+    df_expected["Team"] = df_expected["Team"].astype(str).str.strip().str.upper()
     team_logos = logos_df[logos_df["Team"].isin(df_expected["Team"])][["Team", "Logo URL"]].copy()
     df_expected = df_expected.merge(team_logos, on="Team", how="left")
     df_expected["Conference"] = df_expected["Conference"].astype(str).str.strip().str.upper()
@@ -341,7 +341,6 @@ elif tab == "Conference Overviews":
         if col in df_expected.columns:
             df_expected[col] = pd.to_numeric(df_expected[col], errors='coerce').round(1)
 
-    
     # --- Conference Summary Table ---
     conf_stats = (
         df_expected.groupby("Conference", as_index=False)
@@ -352,14 +351,13 @@ elif tab == "Conference Overviews":
         )
     )
     conf_stats["Conference"] = conf_stats["Conference"].astype(str).str.strip().str.upper()
-    
-    # --- Get conference logos from logos_df (for both teams and conferences) ---
-    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+
+    # Merge with logos_df to get conference logos (works if conference names exist in Logos sheet)
     conf_stats = conf_stats.merge(
         logos_df[["Team", "Logo URL"]].drop_duplicates("Team"),
         left_on="Conference", right_on="Team", how="left"
     )
-    conf_stats.rename(columns={"Logo URL": "Logo URL"}, inplace=True)
+    conf_stats.drop(columns=["Team"], inplace=True)  # Remove duplicate column
 
     # --- Color Scaling Helpers ---
     def cell_color(val, col_min, col_max, inverse=False):
@@ -608,7 +606,6 @@ elif tab == "Conference Overviews":
         html.append("</tr>")
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
-
 
 
 elif tab == "Industry Composite Ranking":
