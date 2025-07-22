@@ -482,6 +482,8 @@ elif tab == "Conference Overviews":
         with right:
             st.markdown("#### Power Rating vs Game Quality")
             st.altair_chart(chart, use_container_width=True)
+    
+    st.write(logos_df.head(10))
 
     # --- Conference Standings Table ---
     st.markdown("#### Conference Standings")
@@ -495,7 +497,6 @@ elif tab == "Conference Overviews":
     standings["Team"] = standings["Team"].astype(str).str.strip().str.upper()
     team_logos = logos_df[["Team", "Logo URL"]].drop_duplicates("Team")
     standings = standings.merge(team_logos, on="Team", how="left")
-    st.write("Team/logo sample:", standings[["Team", "Logo URL"]].head(15))
 
     mobile_header_map = {
         "Projected Finish": "Conf. Standings",
