@@ -883,10 +883,11 @@ elif tab == "Team Dashboards":
         else:
             return "-"
     
-    proj_wins = team_row.get("Projected Overall Wins", None)
-    proj_losses = team_row.get("Projected Overall Losses", None)
-    proj_conf_wins = team_row.get("Projected Conference Wins", None)
-    proj_conf_losses = team_row.get("Projected Conference Losses", None)
+    proj_wins = team_row.get("Projected Overall Record", None)
+    proj_losses = team_row.get("Column2", None)
+    proj_conf_wins = team_row.get("Projected Conference Record", None)
+    proj_conf_losses = team_row.get("Column4", None)
+
     
     record_str = fmt_rec(proj_wins, proj_losses)
     conf_record_str = fmt_rec(proj_conf_wins, proj_conf_losses)
