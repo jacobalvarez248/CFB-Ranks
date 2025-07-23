@@ -7,6 +7,17 @@ import pydeck as pdk
 
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 
+def parse_lat_lon(s):
+    """Parse a string like '(38.9, -77.1)' or '38.9, -77.1' into (lat, lon) floats."""
+    if pd.isnull(s):
+        return (None, None)
+    try:
+        s = str(s).replace('(', '').replace(')', '').strip()
+        lat, lon = s.split(',')
+        return float(lat), float(lon)
+    except Exception:
+        return (None, None)
+
 # Helper function
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
     try:
