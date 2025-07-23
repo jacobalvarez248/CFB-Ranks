@@ -48,6 +48,8 @@ def inject_mobile_css():
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 logos_df = load_sheet(data_path, "Logos", header=1)
+teams_df = load_sheet(data_path, "Teams", header=0)
+teams_df.columns = [str(c).strip() for c in teams_df.columns]
 
 # --- Standardize columns: Remove leading/trailing whitespace ---
 df_expected.columns = [str(c).strip() for c in df_expected.columns]
