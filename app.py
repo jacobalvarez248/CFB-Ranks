@@ -1932,49 +1932,37 @@ elif tab == "Team Dashboards":
     # Remove the duplicated 'Team' column if you want
     teams_df = teams_df.drop(columns=["Team"])
 
-    # --- Step 1: Parse Latitude and Longitude from 'location' column ---
-    def parse_lat_lon(s):
-        if pd.isnull(s):
-            return (None, None)
-        s = str(s).strip('() ')
-        lat, lon = s.split(',')
-        return float(lat), float(lon)
+    # Clean columns
+    teams_df["school"] = teams_df["school"].astype(str).str.strip().str.upper()
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
     
+    # Merge so every team gets a logo
+    teams_df = teams_df.merge(
+        logos_df[["Team", "Logo URL"]],
+        left_on="school", right_on="Team", how="left"
+    )
+    
+    # Parse lat/lon if missing
     if 'Latitude' not in teams_df.columns or 'Longitude' not in teams_df.columns:
         teams_df[['Latitude', 'Longitude']] = teams_df['location'].apply(lambda s: pd.Series(parse_lat_lon(s)))
     
-    # Find selected team's coordinates
     selected_row = teams_df[teams_df['school'] == selected_team].iloc[0]
-    sel_lat = selected_row['Latitude']
-    sel_lon = selected_row['Longitude']
-    
-    def haversine(lat1, lon1, lat2, lon2):
-        # Returns distance in km
-        R = 6371.0
-        lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        a = np.sin(dlat/2.0)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(dlon/2.0)**2
-        c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
-        return R * c
+    sel_lat, sel_lon = selected_row['Latitude'], selected_row['Longitude']
     
     teams_df['distance'] = teams_df.apply(
         lambda row: haversine(sel_lat, sel_lon, row['Latitude'], row['Longitude']), axis=1
     )
+    nearby = teams_df.nsmallest(16, 'distance')
     
-    nearby = teams_df.nsmallest(16, 'distance')  # includes selected team + 15 nearest
-    
+    fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
     def make_icon(url, highlight=False):
         size = 80 if highlight else 58
+        url = url if isinstance(url, str) and url.startswith("http") else fallback_logo_url
         return {"url": url, "width": size, "height": size, "anchorY": size}
     
     nearby['icon_data'] = nearby.apply(
-        lambda row: make_icon(row['Logo URL'], highlight=(row['school'] == selected_team)), axis=1
+        lambda row: make_icon(row['Logo URL'], highlight=(row['school']==selected_team)), axis=1
     )
-    
-    center_lat = sel_lat
-    center_lon = sel_lon
-    zoom = 5.8  # adjust if needed
     
     icon_layer = pdk.Layer(
         "IconLayer",
@@ -1985,14 +1973,12 @@ elif tab == "Team Dashboards":
         pickable=True,
         tooltip=True,
     )
-    
     view_state = pdk.ViewState(
-        latitude=center_lat,
-        longitude=center_lon,
-        zoom=zoom,
+        latitude=sel_lat,
+        longitude=sel_lon,
+        zoom=5.8,
         pitch=0,
     )
-    
     st.markdown("""
         <style>
             .block-container {padding-left:0px !important; padding-right:0px !important;}
@@ -2000,7 +1986,6 @@ elif tab == "Team Dashboards":
             .stDeckGlJsonChart {max-width: 100vw !important;}
         </style>
     """, unsafe_allow_html=True)
-    
     st.markdown("#### 🗺️ Nearest Teams Map")
     st.pydeck_chart(
         pdk.Deck(
@@ -2010,7 +1995,6 @@ elif tab == "Team Dashboards":
         ),
         use_container_width=True
     )
-
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
