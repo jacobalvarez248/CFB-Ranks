@@ -859,6 +859,14 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
+    # Load Teams sheet (header row is first row)
+    teams_df = load_sheet(data_path, "Teams", header=0)
+    teams_df.columns = [str(c).strip() for c in teams_df.columns]
+    
+    # Load Logos sheet (header row is second row, usually header=1)
+    logos_df = load_sheet(data_path, "Logos", header=1)
+    logos_df.columns = [str(c).strip() for c in logos_df.columns]
+
     # In Team Dashboards tab:
     if is_mobile():
         inject_mobile_css()
@@ -1894,8 +1902,24 @@ elif tab == "Team Dashboards":
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
 
+    # Ensure columns are correct
+    if "Image URL" in logos_df.columns:
+        logos_df = logos_df.rename(columns={"Image URL": "Logo URL"})
+    
+    # Strip whitespace just in case
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
+    teams_df["school"] = teams_df["school"].astype(str).str.strip()
+
+    # Merge so that every row in teams_df gets its logo
+    teams_df = teams_df.merge(
+        logos_df[["Team", "Logo URL"]],
+        left_on="school", right_on="Team", how="left"
+    )
+    # Remove the duplicated 'Team' column if you want
+    teams_df = teams_df.drop(columns=["Team"])
+
     # --- Step 1: Parse Latitude and Longitude from 'location' column ---
-    def parse_lat_lon(s):
+   def parse_lat_lon(s):
         if pd.isnull(s):
             return (None, None)
         s = str(s).strip('() ')
@@ -1904,6 +1928,74 @@ elif tab == "Team Dashboards":
     
     if 'Latitude' not in teams_df.columns or 'Longitude' not in teams_df.columns:
         teams_df[['Latitude', 'Longitude']] = teams_df['location'].apply(lambda s: pd.Series(parse_lat_lon(s)))
+    
+    # Find selected team's coordinates
+    selected_row = teams_df[teams_df['school'] == selected_team].iloc[0]
+    sel_lat = selected_row['Latitude']
+    sel_lon = selected_row['Longitude']
+    
+    def haversine(lat1, lon1, lat2, lon2):
+        # Returns distance in km
+        R = 6371.0
+        lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+        a = np.sin(dlat/2.0)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(dlon/2.0)**2
+        c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
+        return R * c
+    
+    teams_df['distance'] = teams_df.apply(
+        lambda row: haversine(sel_lat, sel_lon, row['Latitude'], row['Longitude']), axis=1
+    )
+    
+    nearby = teams_df.nsmallest(16, 'distance')  # includes selected team + 15 nearest
+    
+    def make_icon(url, highlight=False):
+        size = 80 if highlight else 58
+        return {"url": url, "width": size, "height": size, "anchorY": size}
+    
+    nearby['icon_data'] = nearby.apply(
+        lambda row: make_icon(row['Logo URL'], highlight=(row['school'] == selected_team)), axis=1
+    )
+    
+    center_lat = sel_lat
+    center_lon = sel_lon
+    zoom = 5.8  # adjust if needed
+    
+    icon_layer = pdk.Layer(
+        "IconLayer",
+        data=nearby,
+        get_icon="icon_data",
+        get_position="[Longitude, Latitude]",
+        size_scale=7,
+        pickable=True,
+        tooltip=True,
+    )
+    
+    view_state = pdk.ViewState(
+        latitude=center_lat,
+        longitude=center_lon,
+        zoom=zoom,
+        pitch=0,
+    )
+    
+    st.markdown("""
+        <style>
+            .block-container {padding-left:0px !important; padding-right:0px !important;}
+            .main .element-container {max-width: 100vw !important;}
+            .stDeckGlJsonChart {max-width: 100vw !important;}
+        </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("#### 🗺️ Nearest Teams Map")
+    st.pydeck_chart(
+        pdk.Deck(
+            layers=[icon_layer],
+            initial_view_state=view_state,
+            tooltip={"text": "{school}"}
+        ),
+        use_container_width=True
+    )
 
     # --- Step 2: Merge in Logos if not already present ---
     if 'Logo URL' not in teams_df.columns:
