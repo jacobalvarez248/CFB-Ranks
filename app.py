@@ -1957,7 +1957,19 @@ elif tab == "Team Dashboards":
     if 'Latitude' not in teams_df.columns or 'Longitude' not in teams_df.columns:
         teams_df[['Latitude', 'Longitude']] = teams_df['location'].apply(lambda s: pd.Series(parse_lat_lon(s)))
     
-    selected_row = teams_df[teams_df['school'] == selected_team].iloc[0]
+    # Normalize both values for comparison (UPPER, STRIP)
+    selected_team_key = str(selected_team).strip().upper()
+    school_keys = teams_df['school'].astype(str).str.strip().str.upper()
+    
+    mask = school_keys == selected_team_key
+    
+    if not teams_df[mask].empty:
+        selected_row = teams_df[mask].iloc[0]
+    else:
+        st.warning(f"No row found in teams_df for selected_team='{selected_team}' (normalized: '{selected_team_key}').")
+        st.write("Available school keys:", teams_df['school'].unique())
+        st.stop()  # Prevents the script from continuing and crashing
+
     sel_lat, sel_lon = selected_row['Latitude'], selected_row['Longitude']
     
     teams_df['distance'] = teams_df.apply(
