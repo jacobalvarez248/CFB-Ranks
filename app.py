@@ -3,9 +3,6 @@ import streamlit as st
 from pathlib import Path
 import altair as alt
 import numpy as np
-import folium
-from streamlit_folium import st_folium
-import re
 
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 
@@ -29,43 +26,6 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
         )
     return df
 
-# --- Load DataFrames needed for all tabs ---
-df_expected = load_sheet(data_path, "Expected Wins", header=1)
-df_schedule = load_sheet(data_path, "Schedule", header=0)
-logos_df = load_sheet(data_path, "Logos", header=1)
-
-# --- Standardize columns: Remove leading/trailing whitespace ---
-df_expected.columns = [str(c).strip() for c in df_expected.columns]
-df_schedule.columns = [str(c).strip() for c in df_schedule.columns]
-logos_df.columns = [str(c).strip() for c in logos_df.columns]
-
-# --- Rename columns for consistency ---
-if "Image URL" in logos_df.columns:
-    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-if "Column18" in df_expected.columns:
-    df_expected.rename(columns={"Column18": "Power Rating"}, inplace=True)
-# --- Cached team locations and logos ---
-@st.cache_data(show_spinner="Loading team geo-locations…")
-def get_team_locations(logos_df):
-    df_teams = load_sheet(data_path, "Teams", header=0)
-    df_teams["Team"] = df_teams["school"].astype(str).str.strip().str.upper()
-    # Parse (lat/lon)
-    def parse_latlon(loc_str):
-        if isinstance(loc_str, str):
-            m = re.match(r"\(?\s*([-+]?\d*\.?\d+)[,/ ]+([-+]?\d*\.?\d+)\s*\)?", loc_str)
-            if m:
-                return float(m.group(1)), float(m.group(2))
-        return None, None
-    df_teams[["lat", "lon"]] = df_teams["location"].apply(lambda x: pd.Series(parse_latlon(x)))
-    # Merge logos
-    df_teams = df_teams.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-    return df_teams
-
-df_teams = get_team_locations(logos_df)  # Now this runs *once*, not every rerender
-
-
-
-
 def inject_mobile_css():
     st.markdown("""
     <style>
@@ -83,7 +43,21 @@ def inject_mobile_css():
     </style>
     """, unsafe_allow_html=True)
 
+# --- Load DataFrames needed for all tabs ---
+df_expected = load_sheet(data_path, "Expected Wins", header=1)
+df_schedule = load_sheet(data_path, "Schedule", header=0)
+logos_df = load_sheet(data_path, "Logos", header=1)
 
+# --- Standardize columns: Remove leading/trailing whitespace ---
+df_expected.columns = [str(c).strip() for c in df_expected.columns]
+df_schedule.columns = [str(c).strip() for c in df_schedule.columns]
+logos_df.columns = [str(c).strip() for c in logos_df.columns]
+
+# --- Rename columns for consistency ---
+if "Image URL" in logos_df.columns:
+    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+if "Column18" in df_expected.columns:
+    df_expected.rename(columns={"Column18": "Power Rating"}, inplace=True)
 
 # --- Streamlit Config ---
 FORCE_MOBILE = st.sidebar.checkbox("Mobile View", False)
@@ -881,8 +855,6 @@ elif tab == "Industry Composite Ranking":
 # --- TEAM DASHBOARDS TAB ---
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
-
-    df_teams = get_team_locations(logos_df)
 
     # In Team Dashboards tab:
     if is_mobile():
@@ -1919,59 +1891,6 @@ elif tab == "Team Dashboards":
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
         
-    #----MAP STUFF-----------------------
-    selected_team_upper = selected_team.strip().upper()
-    selected_team_row = df_teams[df_teams["Team"] == selected_team_upper]
-    
-    if not selected_team_row.empty and pd.notnull(selected_team_row.iloc[0]["lat"]):
-        center_lat = selected_team_row.iloc[0]["lat"]
-        center_lon = selected_team_row.iloc[0]["lon"]
-        # Vectorized distance calc (excluding self)
-        mask = (df_teams["Team"] != selected_team_upper) & df_teams["lat"].notna() & df_teams["lon"].notna()
-        lats = df_teams.loc[mask, "lat"].values
-        lons = df_teams.loc[mask, "lon"].values
-        def haversine_np(lat1, lon1, lat2, lon2):
-            R = 6371
-            lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
-            dlat = lat2 - lat1
-            dlon = lon2 - lon1
-            a = np.sin(dlat/2)**2 + np.cos(lat1)*np.cos(lat2)*np.sin(dlon/2)**2
-            c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
-            return R * c
-        dists = haversine_np(center_lat, center_lon, lats, lons)
-        df_nearby = df_teams.loc[mask].copy()
-        df_nearby["distance"] = dists
-        df_closest = df_nearby.nsmallest(10, "distance")
-    
-        # --- Map creation ---
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=6, control_scale=False, scrollWheelZoom=False, dragging=False, zoom_control=False)
-        selected_logo = selected_team_row.iloc[0]["Logo URL"]
-        if isinstance(selected_logo, str) and selected_logo.startswith("http"):
-            folium.Marker(
-                location=[center_lat, center_lon],
-                icon=folium.CustomIcon(selected_logo, icon_size=(56, 56)),
-                tooltip=selected_team,
-            ).add_to(m)
-        for _, row in df_closest.iterrows():
-            logo_url = row["Logo URL"]
-            if isinstance(logo_url, str) and logo_url.startswith("http"):
-                folium.Marker(
-                    location=[row["lat"], row["lon"]],
-                    icon=folium.CustomIcon(logo_url, icon_size=(38, 38)),
-                    tooltip=row["Team"],
-                ).add_to(m)
-        all_lats = [center_lat] + df_closest["lat"].tolist()
-        all_lons = [center_lon] + df_closest["lon"].tolist()
-        if all_lats and all_lons:
-            sw = [min(all_lats), min(all_lons)]
-            ne = [max(all_lats), max(all_lons)]
-            m.fit_bounds([sw, ne], max_zoom=8)
-        st.markdown("#### Nearby Teams Map")
-        st_folium(m, width="100%", height=420)
-    else:
-        st.info("No valid location found for this team, so a map cannot be displayed.")
-    
-            
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
