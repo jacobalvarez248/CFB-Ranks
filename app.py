@@ -3,6 +3,9 @@ import streamlit as st
 from pathlib import Path
 import altair as alt
 import numpy as np
+import folium
+from streamlit_folium import st_folium
+import re
 
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 
@@ -1890,6 +1893,88 @@ elif tab == "Team Dashboards":
     else:
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
+
+    # --- Load Teams sheet and extract coordinates ---
+    df_teams = load_sheet(data_path, "Teams", header=0)
+    df_teams["Team"] = df_teams["school"].astype(str).str.strip().str.upper()
+    
+    # Helper to parse (lat/lon) strings
+    def parse_latlon(loc_str):
+        # Expects "(lat/lon)", e.g. "(32.1234/-97.6543)"
+        if isinstance(loc_str, str):
+            m = re.match(r"\(?\s*([-+]?\d*\.?\d+)[,/ ]+([-+]?\d*\.?\d+)\s*\)?", loc_str)
+            if m:
+                return float(m.group(1)), float(m.group(2))
+        return None, None
+    
+    df_teams[["lat", "lon"]] = df_teams["location"].apply(lambda x: pd.Series(parse_latlon(x)))
+    # Merge logos
+    df_teams = df_teams.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+    
+    # --- Find selected team and closest teams ---
+    selected_team_upper = selected_team.strip().upper()
+    selected_team_row = df_teams[df_teams["Team"] == selected_team_upper]
+    
+    if not selected_team_row.empty and pd.notnull(selected_team_row.iloc[0]["lat"]):
+        center_lat = selected_team_row.iloc[0]["lat"]
+        center_lon = selected_team_row.iloc[0]["lon"]
+    
+        # Haversine formula to calculate distance between two points
+        from math import radians, sin, cos, sqrt, atan2
+    
+        def haversine(lat1, lon1, lat2, lon2):
+            R = 6371  # Earth radius in km
+            phi1, phi2 = radians(lat1), radians(lat2)
+            dphi = radians(lat2 - lat1)
+            dlambda = radians(lon2 - lon1)
+            a = sin(dphi/2)**2 + cos(phi1)*cos(phi2)*sin(dlambda/2)**2
+            return 2 * R * atan2(sqrt(a), sqrt(1 - a))
+    
+        df_teams["distance"] = df_teams.apply(
+            lambda row: haversine(center_lat, center_lon, row["lat"], row["lon"]) if pd.notnull(row["lat"]) and pd.notnull(row["lon"]) else float("inf"),
+            axis=1
+        )
+    
+        # Show the 10 closest teams (excluding itself)
+        N = 10
+        df_closest = df_teams[df_teams["Team"] != selected_team_upper].nsmallest(N, "distance")
+        
+        # --- Create map ---
+        # Center map on selected team
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=6, control_scale=False, scrollWheelZoom=False, dragging=False, zoom_control=False)
+    
+        # Add selected team (center, larger logo)
+        selected_logo = selected_team_row.iloc[0]["Logo URL"]
+        if isinstance(selected_logo, str) and selected_logo.startswith("http"):
+            folium.Marker(
+                location=[center_lat, center_lon],
+                icon=folium.CustomIcon(selected_logo, icon_size=(56, 56)),
+                tooltip=selected_team,
+            ).add_to(m)
+        
+        # Add closest teams (smaller logos)
+        for _, row in df_closest.iterrows():
+            if pd.notnull(row["lat"]) and pd.notnull(row["lon"]):
+                logo_url = row["Logo URL"]
+                if isinstance(logo_url, str) and logo_url.startswith("http"):
+                    folium.Marker(
+                        location=[row["lat"], row["lon"]],
+                        icon=folium.CustomIcon(logo_url, icon_size=(38, 38)),
+                        tooltip=row["Team"],
+                    ).add_to(m)
+        
+        # Fit map bounds so all teams are visible, limit zoom out
+        all_lats = [center_lat] + df_closest["lat"].dropna().tolist()
+        all_lons = [center_lon] + df_closest["lon"].dropna().tolist()
+        if all_lats and all_lons:
+            sw = [min(all_lats), min(all_lons)]
+            ne = [max(all_lats), max(all_lons)]
+            m.fit_bounds([sw, ne], max_zoom=8)
+        
+        st.markdown("#### Nearby Teams Map")
+        st_folium(m, width="100%", height=420)
+    else:
+        st.info("No valid location found for this team, so a map cannot be displayed.")
         
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
