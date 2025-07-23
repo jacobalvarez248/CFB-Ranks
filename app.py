@@ -1900,9 +1900,9 @@ elif tab == "Team Dashboards":
         lat, lon = s.split(',')
         return float(lat), float(lon)
     
-    if 'Latitude' not in teams_df or 'Longitude' not in teams_df:
+    if 'Latitude' not in teams_df.columns or 'Longitude' not in teams_df.columns:
         teams_df[['Latitude', 'Longitude']] = teams_df['location'].apply(lambda s: pd.Series(parse_lat_lon(s)))
-    
+
     # --- Step 2: Merge in Logos if not already present ---
     if 'Logo URL' not in teams_df.columns:
         teams_df = teams_df.merge(logos_df[['school', 'Logo URL']], on='school', how='left')
