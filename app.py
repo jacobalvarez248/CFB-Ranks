@@ -3,33 +3,8 @@ import streamlit as st
 from pathlib import Path
 import altair as alt
 import numpy as np
-import pydeck as pdk
 
-def haversine(lat1, lon1, lat2, lon2):
-    """
-    Calculate the great circle distance between two points 
-    on the earth (specified in decimal degrees).
-    Returns distance in kilometers.
-    """
-    R = 6371.0  # Earth radius in km
-    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
-    a = np.sin(dlat / 2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2.0)**2
-    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1 - a))
-    return R * c
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
-
-def parse_lat_lon(s):
-    """Parse a string like '(38.9, -77.1)' or '38.9, -77.1' into (lat, lon) floats."""
-    if pd.isnull(s):
-        return (None, None)
-    try:
-        s = str(s).replace('(', '').replace(')', '').strip()
-        lat, lon = s.split(',')
-        return float(lat), float(lon)
-    except Exception:
-        return (None, None)
 
 # Helper function
 def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFrame:
@@ -72,16 +47,6 @@ def inject_mobile_css():
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 logos_df = load_sheet(data_path, "Logos", header=1)
-# --- CLEAN LOGOS_DF COLUMNS ---
-logos_df.columns = [str(col).strip() for col in logos_df.columns]
-for col in logos_df.columns:
-    if col.lower().replace(" ", "") in ["imageurl", "logourl"]:
-        logos_df = logos_df.rename(columns={col: "Logo URL"})
-if "Logo URL" not in logos_df.columns:
-    st.error("Could not find 'Logo URL' in the Logos sheet columns: " + ", ".join(logos_df.columns))
-
-teams_df = load_sheet(data_path, "Teams", header=0)
-teams_df.columns = [str(c).strip() for c in teams_df.columns]
 
 # --- Standardize columns: Remove leading/trailing whitespace ---
 df_expected.columns = [str(c).strip() for c in df_expected.columns]
@@ -891,20 +856,6 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # Load Teams sheet (header row is first row)
-    teams_df = load_sheet(data_path, "Teams", header=0)
-    teams_df.columns = [str(c).strip() for c in teams_df.columns]
-    
-    # Load Logos sheet (header row is second row, usually header=1)
-    logos_df = load_sheet(data_path, "Logos", header=1)
-    # --- CLEAN LOGOS_DF COLUMNS ---
-    logos_df.columns = [str(col).strip() for col in logos_df.columns]
-    for col in logos_df.columns:
-        if col.lower().replace(" ", "") in ["imageurl", "logourl"]:
-            logos_df = logos_df.rename(columns={col: "Logo URL"})
-    if "Logo URL" not in logos_df.columns:
-        st.error("Could not find 'Logo URL' in the Logos sheet columns: " + ", ".join(logos_df.columns))
-        
     # In Team Dashboards tab:
     if is_mobile():
         inject_mobile_css()
@@ -1939,99 +1890,7 @@ elif tab == "Team Dashboards":
     else:
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
-
-    # Ensure columns are correct
-    if "Image URL" in logos_df.columns:
-        logos_df = logos_df.rename(columns={"Image URL": "Logo URL"})
-    
-    # Strip whitespace just in case
-    logos_df["Team"] = logos_df["Team"].astype(str).str.strip()
-    teams_df["school"] = teams_df["school"].astype(str).str.strip()
-
-    # Merge so that every row in teams_df gets its logo
-    teams_df = teams_df.merge(
-        logos_df[["Team", "Logo URL"]],
-        left_on="school", right_on="Team", how="left"
-    )
-    # Remove the duplicated 'Team' column if you want
-    teams_df = teams_df.drop(columns=["Team"])
-
-    # Clean columns
-    teams_df["school"] = teams_df["school"].astype(str).str.strip().str.upper()
-    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
-    
-    # Merge so every team gets a logo
-    teams_df = teams_df.merge(
-        logos_df[["Team", "Logo URL"]],
-        left_on="school", right_on="Team", how="left"
-    )
-    
-    # Parse lat/lon if missing
-    if 'Latitude' not in teams_df.columns or 'Longitude' not in teams_df.columns:
-        teams_df[['Latitude', 'Longitude']] = teams_df['location'].apply(lambda s: pd.Series(parse_lat_lon(s)))
-    
-    # Normalize both values for comparison (UPPER, STRIP)
-    selected_team_key = str(selected_team).strip().upper()
-    school_keys = teams_df['school'].astype(str).str.strip().str.upper()
-    
-    mask = school_keys == selected_team_key
-    
-    if not teams_df[mask].empty:
-        selected_row = teams_df[mask].iloc[0]
-    else:
-        st.warning(f"No row found in teams_df for selected_team='{selected_team}' (normalized: '{selected_team_key}').")
-        st.write("Available school keys:", teams_df['school'].unique())
-        st.stop()  # Prevents the script from continuing and crashing
-
-    sel_lat, sel_lon = selected_row['Latitude'], selected_row['Longitude']
-    
-    teams_df['distance'] = teams_df.apply(
-        lambda row: haversine(sel_lat, sel_lon, row['Latitude'], row['Longitude']), axis=1
-    )
-    nearby = teams_df.nsmallest(16, 'distance')
-    
-    fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
-    def make_icon(url, highlight=False):
-        size = 80 if highlight else 58
-        url = url if isinstance(url, str) and url.startswith("http") else fallback_logo_url
-        return {"url": url, "width": size, "height": size, "anchorY": size}
-    
-    nearby['icon_data'] = nearby.apply(
-        lambda row: make_icon(row['Logo URL'], highlight=(row['school']==selected_team)), axis=1
-    )
-    
-    icon_layer = pdk.Layer(
-        "IconLayer",
-        data=nearby,
-        get_icon="icon_data",
-        get_position="[Longitude, Latitude]",
-        size_scale=7,
-        pickable=True,
-        tooltip=True,
-    )
-    view_state = pdk.ViewState(
-        latitude=sel_lat,
-        longitude=sel_lon,
-        zoom=5.8,
-        pitch=0,
-    )
-    st.markdown("""
-        <style>
-            .block-container {padding-left:0px !important; padding-right:0px !important;}
-            .main .element-container {max-width: 100vw !important;}
-            .stDeckGlJsonChart {max-width: 100vw !important;}
-        </style>
-    """, unsafe_allow_html=True)
-    st.markdown("#### 🗺️ Nearest Teams Map")
-    st.pydeck_chart(
-        pdk.Deck(
-            layers=[icon_layer],
-            initial_view_state=view_state,
-            tooltip={"text": "{school}"}
-        ),
-        use_container_width=True
-    )
-
+        
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
