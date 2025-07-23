@@ -1919,7 +1919,7 @@ elif tab == "Team Dashboards":
     teams_df = teams_df.drop(columns=["Team"])
 
     # --- Step 1: Parse Latitude and Longitude from 'location' column ---
-   def parse_lat_lon(s):
+    def parse_lat_lon(s):
         if pd.isnull(s):
             return (None, None)
         s = str(s).strip('() ')
