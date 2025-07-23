@@ -7,24 +7,6 @@ import folium
 from streamlit_folium import st_folium
 import re
 
-# --- Cached team locations and logos ---
-@st.cache_data(show_spinner="Loading team geo-locations…")
-def get_team_locations(logos_df):
-    df_teams = load_sheet(data_path, "Teams", header=0)
-    df_teams["Team"] = df_teams["school"].astype(str).str.strip().str.upper()
-    # Parse (lat/lon)
-    def parse_latlon(loc_str):
-        if isinstance(loc_str, str):
-            m = re.match(r"\(?\s*([-+]?\d*\.?\d+)[,/ ]+([-+]?\d*\.?\d+)\s*\)?", loc_str)
-            if m:
-                return float(m.group(1)), float(m.group(2))
-        return None, None
-    df_teams[["lat", "lon"]] = df_teams["location"].apply(lambda x: pd.Series(parse_latlon(x)))
-    # Merge logos
-    df_teams = df_teams.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
-    return df_teams
-
-df_teams = get_team_locations(logos_df)  # Now this runs *once*, not every rerender
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 
 # Helper function
@@ -47,6 +29,43 @@ def load_sheet(data_path: Path, sheet_name: str, header: int = 1) -> pd.DataFram
         )
     return df
 
+# --- Load DataFrames needed for all tabs ---
+df_expected = load_sheet(data_path, "Expected Wins", header=1)
+df_schedule = load_sheet(data_path, "Schedule", header=0)
+logos_df = load_sheet(data_path, "Logos", header=1)
+
+# --- Standardize columns: Remove leading/trailing whitespace ---
+df_expected.columns = [str(c).strip() for c in df_expected.columns]
+df_schedule.columns = [str(c).strip() for c in df_schedule.columns]
+logos_df.columns = [str(c).strip() for c in logos_df.columns]
+
+# --- Rename columns for consistency ---
+if "Image URL" in logos_df.columns:
+    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
+if "Column18" in df_expected.columns:
+    df_expected.rename(columns={"Column18": "Power Rating"}, inplace=True)
+# --- Cached team locations and logos ---
+@st.cache_data(show_spinner="Loading team geo-locations…")
+def get_team_locations(logos_df):
+    df_teams = load_sheet(data_path, "Teams", header=0)
+    df_teams["Team"] = df_teams["school"].astype(str).str.strip().str.upper()
+    # Parse (lat/lon)
+    def parse_latlon(loc_str):
+        if isinstance(loc_str, str):
+            m = re.match(r"\(?\s*([-+]?\d*\.?\d+)[,/ ]+([-+]?\d*\.?\d+)\s*\)?", loc_str)
+            if m:
+                return float(m.group(1)), float(m.group(2))
+        return None, None
+    df_teams[["lat", "lon"]] = df_teams["location"].apply(lambda x: pd.Series(parse_latlon(x)))
+    # Merge logos
+    df_teams = df_teams.merge(logos_df[["Team", "Logo URL"]], on="Team", how="left")
+    return df_teams
+
+df_teams = get_team_locations(logos_df)  # Now this runs *once*, not every rerender
+
+
+
+
 def inject_mobile_css():
     st.markdown("""
     <style>
@@ -64,21 +83,7 @@ def inject_mobile_css():
     </style>
     """, unsafe_allow_html=True)
 
-# --- Load DataFrames needed for all tabs ---
-df_expected = load_sheet(data_path, "Expected Wins", header=1)
-df_schedule = load_sheet(data_path, "Schedule", header=0)
-logos_df = load_sheet(data_path, "Logos", header=1)
 
-# --- Standardize columns: Remove leading/trailing whitespace ---
-df_expected.columns = [str(c).strip() for c in df_expected.columns]
-df_schedule.columns = [str(c).strip() for c in df_schedule.columns]
-logos_df.columns = [str(c).strip() for c in logos_df.columns]
-
-# --- Rename columns for consistency ---
-if "Image URL" in logos_df.columns:
-    logos_df.rename(columns={"Image URL": "Logo URL"}, inplace=True)
-if "Column18" in df_expected.columns:
-    df_expected.rename(columns={"Column18": "Power Rating"}, inplace=True)
 
 # --- Streamlit Config ---
 FORCE_MOBILE = st.sidebar.checkbox("Mobile View", False)
