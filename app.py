@@ -48,6 +48,14 @@ def inject_mobile_css():
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
 df_schedule = load_sheet(data_path, "Schedule", header=0)
 logos_df = load_sheet(data_path, "Logos", header=1)
+# --- CLEAN LOGOS_DF COLUMNS ---
+logos_df.columns = [str(col).strip() for col in logos_df.columns]
+for col in logos_df.columns:
+    if col.lower().replace(" ", "") in ["imageurl", "logourl"]:
+        logos_df = logos_df.rename(columns={col: "Logo URL"})
+if "Logo URL" not in logos_df.columns:
+    st.error("Could not find 'Logo URL' in the Logos sheet columns: " + ", ".join(logos_df.columns))
+
 teams_df = load_sheet(data_path, "Teams", header=0)
 teams_df.columns = [str(c).strip() for c in teams_df.columns]
 
@@ -865,8 +873,14 @@ elif tab == "Team Dashboards":
     
     # Load Logos sheet (header row is second row, usually header=1)
     logos_df = load_sheet(data_path, "Logos", header=1)
-    logos_df.columns = [str(c).strip() for c in logos_df.columns]
-
+    # --- CLEAN LOGOS_DF COLUMNS ---
+    logos_df.columns = [str(col).strip() for col in logos_df.columns]
+    for col in logos_df.columns:
+        if col.lower().replace(" ", "") in ["imageurl", "logourl"]:
+            logos_df = logos_df.rename(columns={col: "Logo URL"})
+    if "Logo URL" not in logos_df.columns:
+        st.error("Could not find 'Logo URL' in the Logos sheet columns: " + ", ".join(logos_df.columns))
+        
     # In Team Dashboards tab:
     if is_mobile():
         inject_mobile_css()
