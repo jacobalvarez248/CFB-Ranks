@@ -1947,7 +1947,20 @@ elif tab == "Team Dashboards":
    # --- TEAM LOCATION MAP OF NEAREST TEAMS ---
 
     import ast
+
+    # Standardize team keys for merging
+    teams_df['school_key'] = teams_df['school'].astype(str).str.strip().str.upper()
+    logos_df['Team_key'] = logos_df['Team'].astype(str).str.strip().str.upper()
     
+    # Merge logo_url into teams_df
+    teams_df = teams_df.merge(
+        logos_df[['Team_key', 'Logo URL']].rename(columns={'Logo URL': 'logo_url'}),
+        left_on='school_key', right_on='Team_key', how='left'
+    )
+    
+    # Fallback if logo missing
+    teams_df['logo_url'] = teams_df['logo_url'].fillna(
+        "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
     # Ensure lat/lon columns
     if 'lat' not in teams_df.columns or 'lon' not in teams_df.columns:
         def parse_location(loc):
