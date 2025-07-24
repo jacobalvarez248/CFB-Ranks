@@ -1525,79 +1525,86 @@ elif tab == "Team Dashboards":
     })
     df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
 
-    # --- Win Probability Distribution Chart ---
-    bar = alt.Chart(df_win_dist).mark_bar(
-        color="#002060"
-    ).encode(
-        x=alt.X("Wins:O", axis=alt.Axis(
-            title="Wins",
-            labelAngle=0,
-            labelColor="black",
-            titleColor="black"
-        )),
-        y=alt.Y("Probability:Q", axis=alt.Axis(
-            title="Probability (%)",
-            labelColor="black",
-            titleColor="black"
-        )),
-        tooltip=[
-            alt.Tooltip("Wins:O", title="Wins"),
-            alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
-        ]
-    )
-    
-    text = bar.mark_text(
-        align='center',
-        baseline='bottom',
-        dy=-2,
-        color='black',
-        fontSize=10 if not is_mobile() else 8
-    ).encode(
-        text="Label"
-    )
-    
-    final_chart = (bar + text).properties(
-        width=350 if not is_mobile() else 340,
-        height=515 if not is_mobile() else 240,
-        title=""
-    )
-    # Build Conference Standings HTML table for this team
-    standings = df_expected[df_expected["Conference"] == conference].copy()
-    standings.columns = [c.strip() for c in standings.columns]
-    standings = standings.rename(columns={
-        "Projected Conference Record": "Projected Conference Wins",
-        "Column4": "Projected Conference Losses",
-        # Add others as needed
-    })
-    standings = standings.sort_values(
-        by="Projected Conference Wins", ascending=False
-    ).reset_index(drop=True)
-    standings.insert(0, "Projected Finish", standings.index + 1)
-    # Exclude columns that should remain integer
-    for col in standings.select_dtypes(include=['float', 'float64', 'number']):
-        if col != "Projected Finish":  # Add more exclusions as needed
-            standings[col] = standings[col].round(1)
-    
-    # (then build standings_html with your loop, as you already do)
-    # (I'm omitting your full loop here for brevity)
-    standings_html = [
-        f'<div style="{wrapper_style}">',  # etc
-        # ... table build
-    ]
+    # --- Show table & chart: side by side on desktop, stacked on mobile ---
     if not is_mobile():
         left_col, right_col = st.columns([1, 1])
         with left_col:
-            st.markdown("#### Conference Standings")
-            st.markdown("".join(standings_html), unsafe_allow_html=True)
+            st.markdown("#### Probability Distribution of Wins After Each Game")
+            st.markdown("".join(table_html), unsafe_allow_html=True)
         with right_col:
             st.markdown("#### Win Probability Distribution")
+            bar = alt.Chart(df_win_dist).mark_bar(
+                color="#002060"
+            ).encode(
+                x=alt.X("Wins:O", axis=alt.Axis(
+                    title="Wins",
+                    labelAngle=0,
+                    labelColor="black",   # <-- Axis tick text
+                    titleColor="black"    # <-- Axis label
+                )),
+                y=alt.Y("Probability:Q", axis=alt.Axis(
+                    title="Probability (%)",
+                    labelColor="black",
+                    titleColor="black"
+                )),
+                tooltip=[
+                    alt.Tooltip("Wins:O", title="Wins"),
+                    alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
+                ]
+            )
+            text = bar.mark_text(
+                align='center',
+                baseline='bottom',
+                dy=-2,
+                color='black',
+                fontSize=10
+            ).encode(
+                text="Label"
+            )
+            final_chart = (bar + text).properties(
+                width=350,
+                height=515,
+                title=""
+            )
             st.altair_chart(final_chart, use_container_width=True)
     else:
         st.markdown("#### Probability Distribution of Wins After Each Game")
         st.markdown("".join(table_html), unsafe_allow_html=True)
         st.markdown("#### Win Probability Distribution")
+        bar = alt.Chart(df_win_dist).mark_bar(
+            color="#002060"
+        ).encode(
+            x=alt.X("Wins:O", axis=alt.Axis(
+                title="Wins",
+                labelAngle=0,
+                labelColor="black",
+                titleColor="black"
+            )),
+            y=alt.Y("Probability:Q", axis=alt.Axis(
+                title="Probability (%)",
+                labelColor="black",
+                titleColor="black"
+            )),
+            tooltip=[
+                alt.Tooltip("Wins:O", title="Wins"),
+                alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
+            ]
+        )
+        text = bar.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-2,
+            color='black',
+            fontSize=8
+        ).encode(
+            text="Label"
+        )
+        final_chart = (bar + text).properties(
+            width=340,
+            height=240,
+            title=""
+        )
         st.altair_chart(final_chart, use_container_width=True)
-
     # ---- Conference Standings Table below Win Distribution ----
 
     # Only render if a team is selected
