@@ -1561,7 +1561,29 @@ elif tab == "Team Dashboards":
         height=515 if not is_mobile() else 240,
         title=""
     )
+    # Build Conference Standings HTML table for this team
+    standings = df_expected[df_expected["Conference"] == conference].copy()
+    standings.columns = [c.strip() for c in standings.columns]
+    standings = standings.rename(columns={
+        "Projected Conference Record": "Projected Conference Wins",
+        "Column4": "Projected Conference Losses",
+        # Add others as needed
+    })
+    standings = standings.sort_values(
+        by="Projected Conference Wins", ascending=False
+    ).reset_index(drop=True)
+    standings.insert(0, "Projected Finish", standings.index + 1)
+    # Exclude columns that should remain integer
+    for col in standings.select_dtypes(include=['float', 'float64', 'number']):
+        if col != "Projected Finish":  # Add more exclusions as needed
+            standings[col] = standings[col].round(1)
     
+    # (then build standings_html with your loop, as you already do)
+    # (I'm omitting your full loop here for brevity)
+    standings_html = [
+        f'<div style="{wrapper_style}">',  # etc
+        # ... table build
+    ]
     if not is_mobile():
         left_col, right_col = st.columns([1, 1])
         with left_col:
