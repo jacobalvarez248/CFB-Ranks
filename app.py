@@ -3,6 +3,7 @@ import streamlit as st
 from pathlib import Path
 import altair as alt
 import numpy as np
+import textwrap
 
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 
@@ -1897,18 +1898,18 @@ elif tab == "Team Dashboards":
 
     # --- TEAM INFO TABLE ---
     team_info = teams_df[teams_df["school"] == selected_team]
-
+    
     if not team_info.empty:
         row = team_info.iloc[0]
     
-        # NOTE: the opening """ is at column 4, but the <div> is at column 0:
-        st.markdown(f"""
-    <div style="background-color:#002060;padding:8px;border-radius:4px;margin-top:24px;">
-      <h4 style="color:white;margin:0;">{row['full_name']}</h4>
-    </div>
-    """, unsafe_allow_html=True)
+        # Team name header
+        st.markdown(textwrap.dedent(f"""
+            <div style="background-color:#002060;padding:8px;border-radius:4px;margin-top:24px;">
+                <h4 style="color:white;margin:0;">{row['full_name']}</h4>
+            </div>
+        """), unsafe_allow_html=True)
     
-        # build your info dict
+        # Build your info dict
         info = {
             "Stadium":  row["home_venue"],
             "Capacity": f"{row['venue_capacity']:,}",
@@ -1917,41 +1918,40 @@ elif tab == "Team Dashboards":
             "Elevation":f"{row['elevation']:.1f}",
         }
     
-        # now table
-        html = """
-    <div style="margin-top:24px;">
-      <table style="width:100%;border-collapse:collapse;
-                    border-left:1px solid #ddd;
-                    border-right:1px solid #ddd;
-                    border-bottom:1px solid #ddd;">
-        <tbody>
-    """
+        # Start HTML table
+        html = textwrap.dedent("""
+            <div style="margin-top:24px;">
+                <table style="width:100%;border-collapse:collapse;
+                              border-left:1px solid #ddd;
+                              border-right:1px solid #ddd;
+                              border-bottom:1px solid #ddd;">
+                    <tbody>
+        """)
+    
+        # Add info rows
         for key, val in info.items():
-            html += f"""
-        <tr>
-          <td style="background-color:#002060;
-                     color:white;
-                     padding:8px;
-                     font-weight:600;
-                     width:35%;">
-            {key}
-          </td>
-          <td style="background-color:white;
-                     color:#222;
-                     padding:8px;
-                     width:65%;">
-            {val}
-          </td>
-        </tr>
-    """
-        html += """
-        </tbody>
-      </table>
-    </div>
-    """
+            html += textwrap.dedent(f"""
+                <tr>
+                    <td style="background-color:#002060;
+                               color:white;
+                               padding:8px;
+                               font-weight:600;
+                               width:35%;">{key}</td>
+                    <td style="background-color:white;
+                               color:#222;
+                               padding:8px;
+                               width:65%;">{val}</td>
+                </tr>
+            """)
+    
+        # Close table and div
+        html += textwrap.dedent("""
+                    </tbody>
+                </table>
+            </div>
+        """)
+    
         st.markdown(html, unsafe_allow_html=True)
-            
-
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
