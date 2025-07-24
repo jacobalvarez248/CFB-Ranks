@@ -1896,22 +1896,18 @@ elif tab == "Team Dashboards":
         st.altair_chart(chart, use_container_width=True)
 
     # --- TEAM INFO TABLE ---
-    # Grab the matching row by school (this matches your selected_team)
     team_info = teams_df[teams_df["school"] == selected_team]
     
     if not team_info.empty:
         row = team_info.iloc[0]
     
-        # Blue header bar, but use the official full_name here
-        st.markdown(
-            f"""
-            <div style="background-color:#002060;padding:8px;border-radius:4px;margin-top:24px;">
-              <h4 style="color:white;margin:0;">{row['full_name']}</h4>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        
+        # Blue header bar, using the official full_name
+        st.markdown(f"""
+    <div style="background-color:#002060; padding:8px; border-radius:4px; margin-top:24px;">
+      <h4 style="color:white; margin:0;">{row['full_name']}</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    
         # build your info dict
         info = {
             "Stadium":   row["home_venue"],
@@ -1920,55 +1916,27 @@ elif tab == "Team Dashboards":
             "State":     row["state"],
             "Elevation": f"{row['elevation']:.1f}",
         }
-        
-        # now render it with raw HTML/CSS
-        html = f'''
-        <div style="margin-top:24px;">
-          <!-- full‑width blue header -->
-        <div style="
-          background-color:#002060;
-          padding:8px;
-          border-top-left-radius:4px;
-          border-top-right-radius:4px;
-        ">
-        <h4 style="color:white; margin:0;">{row['full_name']}</h4>
-        </div>
-        
-        <!-- two‑column key/value table -->
-        <table style="
-          width:100%;
-          border-collapse:collapse;
-          border-left:1px solid #ddd;
-          border-right:1px solid #ddd;
-          border-bottom:1px solid #ddd;
-        ">
+    
+        # now render the two-column key/value table
+        html = f"""
+    <div style="margin-top:24px;">
+      <table style="width:100%; border-collapse:collapse; border-left:1px solid #ddd; border-right:1px solid #ddd; border-bottom:1px solid #ddd;">
         <tbody>
-        '''
+    """
         for key, val in info.items():
-        html += f'''
-          <tr>
-            <td style="
-                background-color:#002060;
-                color:white;
-                padding:8px;
-                font-weight:600;
-                width:35%;
-            ">{key}</td>
-            <td style="
-                background-color:white;
-                color:#222;
-                padding:8px;
-                width:65%;
-            ">{val}</td>
-          </tr>
-        '''
-        html += '''
+            html += f"""
+        <tr>
+          <td style="background-color:#002060; color:white; padding:8px; font-weight:600; width:35%;">{key}</td>
+          <td style="background-color:white; color:#222; padding:8px; width:65%;">{val}</td>
+        </tr>
+    """
+        html += """
         </tbody>
-        </table>
-        </div>
-        '''
-        
+      </table>
+    </div>
+    """
         st.markdown(html, unsafe_allow_html=True)
+
 
 
 elif tab == "Charts & Graphs":
