@@ -859,6 +859,22 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
+    # Load teams with lat/lon (and logo URL) for map
+    try:
+        df_teams = load_sheet(data_path, "Teams", header=0)
+    except Exception:
+        st.error("Could not load Teams sheet. Please check your Excel file.")
+    
+    # Clean up columns and merge in logos if needed
+    if "Logo URL" not in df_teams.columns and "school" in df_teams.columns:
+        # Try to merge in from logos_df if needed
+        df_teams["school_up"] = df_teams["school"].astype(str).str.strip().str.upper()
+        logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+        df_teams = df_teams.merge(
+            logos_df[["Team", "Logo URL"]], left_on="school_up", right_on="Team", how="left"
+        )
+    # If already has "Logo URL", great!
+
     # In Team Dashboards tab:
     if is_mobile():
         inject_mobile_css()
