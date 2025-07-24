@@ -1898,18 +1898,16 @@ elif tab == "Team Dashboards":
 
     # --- TEAM INFO TABLE ---
     team_info = teams_df[teams_df["school"] == selected_team]
-    
+
     if not team_info.empty:
         row = team_info.iloc[0]
     
-        # Team name header
-        st.markdown(textwrap.dedent(f"""
+        st.markdown(f"""
             <div style="background-color:#002060;padding:8px;border-radius:4px;margin-top:24px;">
                 <h4 style="color:white;margin:0;">{row['full_name']}</h4>
             </div>
-        """), unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
-        # Build your info dict
         info = {
             "Stadium":  row["home_venue"],
             "Capacity": f"{row['venue_capacity']:,}",
@@ -1918,39 +1916,30 @@ elif tab == "Team Dashboards":
             "Elevation":f"{row['elevation']:.1f}",
         }
     
-        # Start HTML table
-        html = textwrap.dedent("""
-            <div style="margin-top:24px;">
-                <table style="width:100%;border-collapse:collapse;
-                              border-left:1px solid #ddd;
-                              border-right:1px solid #ddd;
-                              border-bottom:1px solid #ddd;">
-                    <tbody>
-        """)
+        html_lines = [
+            '<div style="margin-top:24px;">',
+            '  <table style="width:100%;border-collapse:collapse;'
+            'border-left:1px solid #ddd;'
+            'border-right:1px solid #ddd;'
+            'border-bottom:1px solid #ddd;">',
+            '    <tbody>'
+        ]
     
-        # Add info rows
         for key, val in info.items():
-            html += textwrap.dedent(f"""
-                <tr>
-                    <td style="background-color:#002060;
-                               color:white;
-                               padding:8px;
-                               font-weight:600;
-                               width:35%;">{key}</td>
-                    <td style="background-color:white;
-                               color:#222;
-                               padding:8px;
-                               width:65%;">{val}</td>
-                </tr>
-            """)
+            html_lines.append(
+                f'      <tr>'
+                f'        <td style="background-color:#002060; color:white; padding:8px; font-weight:600; width:35%;">{key}</td>'
+                f'        <td style="background-color:white; color:#222; padding:8px; width:65%;">{val}</td>'
+                f'      </tr>'
+            )
     
-        # Close table and div
-        html += textwrap.dedent("""
-                    </tbody>
-                </table>
-            </div>
-        """)
+        html_lines.extend([
+            '    </tbody>',
+            '  </table>',
+            '</div>'
+        ])
     
+        html = '\n'.join(html_lines)
         st.markdown(html, unsafe_allow_html=True)
 
 elif tab == "Charts & Graphs":
