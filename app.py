@@ -1766,7 +1766,7 @@ elif tab == "Team Dashboards":
                 
         standings_html.append("</tbody></table></div>")
         
-                # Render
+        # Render
         if not is_mobile():
             # On desktop, make width same as win dist table (left side)
             with left_col:
@@ -1884,10 +1884,6 @@ elif tab == "Team Dashboards":
     
     # --- Combine layers: logos on top then circles
     chart = points_with_logo + points_no_logo
-    
-    # --- Render: Standings table, then scatterplot below it (always stacked) ---
-    st.markdown("#### Conference Standings")
-    st.markdown("".join(standings_html), unsafe_allow_html=True)
     
     st.markdown("#### Offensive vs Defensive Power Rating")
     st.altair_chart(chart, use_container_width=True)
