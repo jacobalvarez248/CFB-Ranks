@@ -1896,48 +1896,33 @@ elif tab == "Team Dashboards":
         st.altair_chart(chart, use_container_width=True)
 
     # --- TEAM INFO TABLE ---
+    # Grab the matching row by school (this matches your selected_team)
     team_info = teams_df[teams_df["school"] == selected_team]
+    
     if not team_info.empty:
         row = team_info.iloc[0]
-
-        # 1) Header bar
+    
+        # Blue header bar, but use the official full_name here
         st.markdown(
             f"""
-            <div style="background-color:#002060;
-                        padding:8px;
-                        border-radius:4px;
-                        margin-top:24px;">
+            <div style="background-color:#002060;padding:8px;border-radius:4px;margin-top:24px;">
               <h4 style="color:white;margin:0;">{row['full_name']}</h4>
             </div>
             """,
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
-
-        # 2) Prepare rows (elevation to 1 decimal)
-        rows = [
-            ("Full Name", row["full_name"]),
-            ("Stadium",    row["home_venue"]),
-            ("Capacity",   f"{row['venue_capacity']:,}"),
-            ("City",       row["city"]),
-            ("State",      row["state"]),
-            ("Elevation",  f"{row['elevation']:.1f}"),
-        ]
-
-        # 3) Build <tr>… strings inside a Python f‑string
-        html_rows = ""
-        for label, value in rows:
-            html_rows += f"""
-            <tr>
-              <th style="
-                  background-color:#002060;
-                  color:white;
-                  text-align:left;
-                  padding:6px;
-                  width:30%;
-                ">{label}</th>
-              <td style="padding:6px;">{value}</td>
-            </tr>
-            """
+    
+        # Build a 1‑column “key / value” table including full_name as the first row
+        info = {
+            "Full Name":  row["full_name"],
+            "Stadium":    row["home_venue"],
+            "Capacity":   f"{row['venue_capacity']:,}",
+            "City":       row["city"],
+            "State":      row["state"],
+            "Elevation":  row["elevation"],
+        }
+        info_df = pd.DataFrame.from_dict(info, orient="index", columns=[""])
+        st.table(info_df)
 
 
 elif tab == "Charts & Graphs":
