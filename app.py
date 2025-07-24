@@ -1987,7 +1987,9 @@ elif tab == "Team Dashboards":
             }
             for _, row in plot_df.iterrows()
         }
-        
+
+        st.write(plot_df[["school", "icon_name", "lat", "lon", "Logo URL"]])
+
         icon_layer = pdk.Layer(
             "IconLayer",
             data=plot_df,
