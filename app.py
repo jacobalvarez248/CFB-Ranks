@@ -45,8 +45,12 @@ def inject_mobile_css():
 
 # --- Load DataFrames needed for all tabs ---
 df_expected = load_sheet(data_path, "Expected Wins", header=1)
-df_schedule = load_sheet(data_path, "Schedule", header=0)
-logos_df = load_sheet(data_path, "Logos", header=1)
+df_schedule = load_sheet(data_path, "Schedule",      header=0)
+logos_df    = load_sheet(data_path, "Logos",         header=1)
+
+# — Add Teams sheet for stadium info —
+teams_df    = load_sheet(data_path, "Teams",         header=1)
+
 
 # --- Standardize columns: Remove leading/trailing whitespace ---
 df_expected.columns = [str(c).strip() for c in df_expected.columns]
@@ -1890,7 +1894,43 @@ elif tab == "Team Dashboards":
     else:
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
-        
+
+    # --- TEAM INFO TABLE ---
+    # grab the matching row from the Teams sheet
+    team_info = teams_df[teams_df["full_name"] == selected_team]
+    if not team_info.empty:
+        row = team_info.iloc[0]
+        stadium  = row["home_venue"]
+        capacity = row["venue_capacity"]
+        city     = row["city"]
+        state    = row["state"]
+        elevation= row["elevation"]
+    
+        # blue header bar
+        st.markdown(
+            f"""
+            <div style="background-color:#0B2240;padding:8px;border-radius:4px;margin-top:24px;">
+              <h4 style="color:white;margin:0;">{selected_team}</h4>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+        # build a 2‑column table
+        info_df = (
+          pd.DataFrame({
+            "Stadium": [stadium],
+            "Capacity": [f"{capacity:,}"],
+            "City":     [city],
+            "State":    [state],
+            "Elevation":[elevation]
+          })
+          .T
+          .rename(columns={0: ""})
+        )
+        st.table(info_df)
+
+
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
