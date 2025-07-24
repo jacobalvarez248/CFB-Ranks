@@ -1922,8 +1922,48 @@ elif tab == "Team Dashboards":
             "State":      row["state"],
             "Elevation":  row["elevation"],
         }
-        info_df = pd.DataFrame.from_dict(info, orient="index", columns=[""])
-        st.table(info_df)
+        # --- Custom HTML table for styled key/value pairs ---
+        # 1️⃣ Format elevation with one decimal
+        elev = f"{row['elevation']:.1f}"
+        
+        # 2️⃣ Build up each row
+        rows = [
+            ("Full Name", row["full_name"]),
+            ("Stadium",    row["home_venue"]),
+            ("Capacity",   f"{row['venue_capacity']:,}"),
+            ("City",       row["city"]),
+            ("State",      row["state"]),
+            ("Elevation",  elev),
+        ]
+        
+        # 3️⃣ Render HTML table with inline CSS
+        html_rows = ""
+        for label, value in rows:
+            html_rows += f"""
+            <tr>
+              <th style="
+                  background-color:#002060;
+                  color: white;
+                  text-align: left;
+                  padding: 6px;
+                  width: 30%;
+                ">{label}</th>
+              <td style="padding:6px;">{value}</td>
+            </tr>
+            """
+        
+        html_table = f"""
+        <table style="
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+        ">
+          {html_rows}
+        </table>
+        """
+        
+        st.markdown(html_table, unsafe_allow_html=True)
+
 
 
 elif tab == "Charts & Graphs":
