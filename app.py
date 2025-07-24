@@ -1944,92 +1944,42 @@ elif tab == "Team Dashboards":
         html = '\n'.join(html_lines)
         st.markdown(html, unsafe_allow_html=True)
 
-   # --- TEAM LOCATION MAP OF NEAREST TEAMS ---
+    # --- Responsive Table + Map Layout ---
+    if not is_mobile():
+        table_col, map_col = st.columns([1.1, 2])
+    else:
+        table_col, map_col = st.columns([1, 1])
+    
+    with table_col:
+        # --- TEAM INFO TABLE (with max-width for desktop) ---
+        html_lines = [
+            '<div style="margin-top:24px; max-width:340px;">',  # Shrinks width on desktop!
+            '  <table style="width:100%;border-collapse:collapse;'
+            'border-left:1px solid #ddd;'
+            'border-right:1px solid #ddd;'
+            'border-bottom:1px solid #ddd;">',
+            '    <tbody>'
+        ]
+        for key, val in info.items():
+            html_lines.append(
+                f'      <tr>'
+                f'        <td style="background-color:#002060; color:white; padding:8px; font-weight:600; width:35%;">{key}</td>'
+                f'        <td style="background-color:white; color:#222; padding:8px; width:65%;">{val}</td>'
+                f'      </tr>'
+            )
+        html_lines.extend([
+            '    </tbody>',
+            '  </table>',
+            '</div>'
+        ])
+        st.markdown('\n'.join(html_lines), unsafe_allow_html=True)
+    
+    with map_col:
+        # (insert your haversine, closest-teams, and map code here)
+        # For example:
+        st.markdown("### Closest Teams Map")
+        st_folium(m, width=420, height=375, returned_objects=[])
 
-    import ast
-
-    # Standardize team keys for merging
-    teams_df['school_key'] = teams_df['school'].astype(str).str.strip().str.upper()
-    logos_df['Team_key'] = logos_df['Team'].astype(str).str.strip().str.upper()
-    
-    # Merge logo_url into teams_df
-    teams_df = teams_df.merge(
-        logos_df[['Team_key', 'Logo URL']].rename(columns={'Logo URL': 'logo_url'}),
-        left_on='school_key', right_on='Team_key', how='left'
-    )
-    
-    # Fallback if logo missing
-    teams_df['logo_url'] = teams_df['logo_url'].fillna(
-        "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
-    )
-    # Ensure lat/lon columns
-    if 'lat' not in teams_df.columns or 'lon' not in teams_df.columns:
-        def parse_location(loc):
-            if isinstance(loc, tuple): return loc
-            try: return ast.literal_eval(str(loc))
-            except: return (None, None)
-        teams_df['lat'] = teams_df['location'].apply(lambda x: parse_location(x)[0])
-        teams_df['lon'] = teams_df['location'].apply(lambda x: parse_location(x)[1])
-    
-    # Handle logo column if not present
-    if 'logo_url' not in teams_df.columns:
-        # Use your logos_df or a fallback
-        teams_df = teams_df.merge(
-            logos_df[['Team', 'Logo URL']].rename(columns={'Team':'school', 'Logo URL':'logo_url'}),
-            on='school', how='left'
-        )
-        teams_df['logo_url'] = teams_df['logo_url'].fillna("https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg")
-    
-    # Get the selected team row again in case of merge above
-    team_info = teams_df[teams_df["school"] == selected_team]
-    if team_info.empty: st.warning("No team info for map."); st.stop()
-    row = team_info.iloc[0]
-    
-    # Calculate distances to all other teams
-    def haversine(lat1, lon1, lat2, lon2):
-        R = 6371
-        phi1, phi2 = np.radians(lat1), np.radians(lat2)
-        dphi = np.radians(lat2 - lat1)
-        dlambda = np.radians(lon2 - lon1)
-        a = np.sin(dphi/2)**2 + np.cos(phi1)*np.cos(phi2)*np.sin(dlambda/2)**2
-        return 2 * R * np.arcsin(np.sqrt(a))
-    
-    sel_lat, sel_lon = row['lat'], row['lon']
-    teams_df['distance_km'] = teams_df.apply(
-        lambda r: haversine(sel_lat, sel_lon, r['lat'], r['lon']) if r['school'] != selected_team else np.inf, axis=1)
-    closest = teams_df.nsmallest(10, 'distance_km')
-    
-    # Build the map
-    m = folium.Map(
-        location=[sel_lat, sel_lon],
-        zoom_start=6,
-        dragging=False,
-        scrollWheelZoom=False,
-        zoom_control=False
-    )
-    
-    # Selected team marker with custom logo icon (larger/different size if you want)
-    icon = folium.CustomIcon(row['logo_url'], icon_size=(52, 52))
-    folium.Marker(
-        location=[sel_lat, sel_lon],
-        popup=row['full_name'],
-        icon=icon
-    ).add_to(m)
-
-    
-    # Closest teams: logo markers
-    for _, r in closest.iterrows():
-        icon = folium.CustomIcon(r['logo_url'], icon_size=(40, 40))
-        folium.Marker(
-            location=[r['lat'], r['lon']],
-            popup=r['full_name'],
-            icon=icon
-        ).add_to(m)
-    
-    # Responsive layout: next to table on desktop, below on mobile (auto)
-    map_width = 400 if is_mobile() else 520
-    st.markdown("### Closest Teams Map")
-    st_folium(m, width=map_width, height=375, returned_objects=[]) 
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
