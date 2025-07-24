@@ -1939,16 +1939,6 @@ elif tab == "Team Dashboards":
             </tr>
             """
 
-        # 4) Wrap those rows in one big <table> string
-        html_table = f"""
-        <table style="width:100%; border-collapse:collapse; margin-top:24px;">
-          {html_rows}
-        </table>
-        """
-
-        # 5) Render it
-        st.markdown(html_table, unsafe_allow_html=True)
-
 
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
