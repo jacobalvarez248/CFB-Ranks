@@ -948,19 +948,30 @@ elif tab == "Team Dashboards":
         # Ensure unique name for each marker
         plot_df["icon_name"] = plot_df["school_up"]
     
+        # First, build icon_mapping dictionary for all teams in plot_df
+        icon_mapping = {
+            row["icon_name"]: {
+                "url": row["Logo URL"] if pd.notnull(row["Logo URL"]) else "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png",
+                "width": 40,
+                "height": 40,
+                "anchorY": 40
+            }
+            for _, row in plot_df.iterrows()
+        }
+        
         icon_layer = pdk.Layer(
             "IconLayer",
             data=plot_df,
-            get_icon="icon_data",
+            icon_mapping=icon_mapping,       # <-- Pass the dict here
+            get_icon="icon_name",            # <-- Reference column for mapping
             get_position="[lon, lat]",
             get_size=4,
             size_scale=8 if is_mobile() else 11,
             pickable=True,
-            get_color="[0, 32, 96]" if is_mobile() else "[0, 32, 96]",
-            tooltip=True,
-            get_icon="icon_name"
+            tooltip=True
         )
-    
+        
+            
         # Center map on selected team, adjust zoom for context
         view_state = pdk.ViewState(
             latitude=sel_lat,
