@@ -3,9 +3,6 @@ import streamlit as st
 from pathlib import Path
 import altair as alt
 import numpy as np
-import pydeck as pdk
-import folium
-from streamlit_folium import st_folium
 
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 
@@ -855,139 +852,67 @@ elif tab == "Industry Composite Ranking":
     html.append("</tbody></table></div>")
     st.markdown("".join(html), unsafe_allow_html=True)
 
+# --- TEAM DASHBOARDS TAB ---
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # Load Teams sheet, including logo URL, location, stadium info
-    try:
-        df_teams = load_sheet(data_path, "Teams", header=0)
-    except Exception:
-        st.error("Could not load Teams sheet. Please check your Excel file.")
-        st.stop()
-    
-    # Split location into lat/lon columns
-    def to_tuple(x):
-        if isinstance(x, str):
-            return eval(x)
-        return x
-    if "location" in df_teams.columns:
-        df_teams[["lat", "lon"]] = df_teams["location"].apply(lambda x: pd.Series(to_tuple(x)))
-
-    # Merge in logos if needed (standardize for match)
-    if "Logo URL" not in df_teams.columns and "school" in df_teams.columns:
-        df_teams["school_up"] = df_teams["school"].astype(str).str.strip().str.upper()
-        logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
-        df_teams = df_teams.merge(
-            logos_df[["Team", "Logo URL"]], left_on="school_up", right_on="Team", how="left"
-        )
-
-    # --- TEAM SELECTION ---
+    # In Team Dashboards tab:
+    if is_mobile():
+        inject_mobile_css()
+    # --- Select Team ---
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
-
-    # LOGO lookup
+    # --- LOGO LOOKUP: Team and Conference ---
     logo_url = team_row.get("Logo URL", None)
     if not (isinstance(logo_url, str) and logo_url.startswith("http")):
         logo_match = logos_df[logos_df["Team"] == selected_team]
         logo_url = logo_match["Logo URL"].iloc[0] if not logo_match.empty else None
-
-    # Conference logo, etc...
+    
     conference = team_row.get("Conference", "")
     conf_logo_url = None
     if conference:
         conf_match = logos_df[logos_df["Team"] == conference]
         if not conf_match.empty:
             conf_logo_url = conf_match["Logo URL"].iloc[0]
-
+    
     # --- Record Cards ---
     def fmt_rec(win, loss):
         if win is not None and loss is not None and pd.notnull(win) and pd.notnull(loss):
             return f"{win:.1f} - {loss:.1f}"
         else:
             return "-"
-
+    
     proj_wins = team_row.get("Projected Overall Record", None)
     proj_losses = team_row.get("Column2", None)
     proj_conf_wins = team_row.get("Projected Conference Record", None)
     proj_conf_losses = team_row.get("Column4", None)
+
+    
     record_str = fmt_rec(proj_wins, proj_losses)
     conf_record_str = fmt_rec(proj_conf_wins, proj_conf_losses)
 
-    # --- Stadium/capacity/city/state/altitude info from Teams sheet ---
-    sel_rows = df_teams[df_teams["school"] == selected_team]
-    if sel_rows.empty:
-        st.error(f"No entry in Teams for '{selected_team}'.")
-        st.stop()
-    sel_row = sel_rows.iloc[0]
-    stadium = sel_row.get("stadium", "")
-    capacity = sel_row.get("capacity", "")
-    city = sel_row.get("city", "")
-    state = sel_row.get("state", "")
-    altitude = sel_row.get("altitude", "")
 
-    # --- Card metrics: returns, ranks, power, win prob
-    def fmt_pct(val):
-        try:
-            if isinstance(val, str) and "%" in val:
-                return val
-            val_flt = float(val)
-            return f"{val_flt*100:.1f}%" if val_flt <= 1.01 else f"{val_flt:.1f}%"
-        except Exception:
-            return str(val)
-    def percent_to_float(x):
-        try:
-            if isinstance(x, str) and '%' in x:
-                x = x.replace('%','')
-            val = float(x)
-            return val/100 if val > 1.01 else val
-        except:
-            return float('nan')
-    def get_rank(series, val, ascending=False):
-        arr = pd.to_numeric(series, errors='coerce').dropna()
-        if pd.isnull(val) or len(arr) == 0:
-            return ""
-        arr = arr.apply(lambda x: x/100 if x > 1.01 else x)
-        if val > 1.01:
-            val = val / 100
-        rank = (arr >= val).sum() if not ascending else (arr <= val).sum()
-        return f"({rank}/{len(arr)})"
+    # --- Rank Info ---
+    overall_rank = int(team_row["Preseason Rank"]) if "Preseason Rank" in team_row else None
+    conf_teams = df_expected[df_expected["Conference"] == conference].copy()
+    conf_teams = conf_teams.sort_values("Power Rating", ascending=False)
+    conf_teams["Conf Rank"] = range(1, len(conf_teams) + 1)
+    this_conf_rank = conf_teams.loc[conf_teams["Team"] == selected_team, "Conf Rank"].values[0] if not conf_teams.empty else None
 
-    # Returning Production Cards
-    df_ranking = load_sheet(data_path, "Ranking", header=1)
-    df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
-    rank_row = df_ranking[df_ranking["Team"].str.strip() == selected_team.strip()]
-    if not rank_row.empty:
-        ret_prod = fmt_pct(rank_row.iloc[0].get("Returning Production", ""))
-        off_ret = fmt_pct(rank_row.iloc[0].get("Off. Returning Production", ""))
-        def_ret = fmt_pct(rank_row.iloc[0].get("Def. Returning Production", ""))
-    else:
-        ret_prod = off_ret = def_ret = ""
-    if not rank_row.empty:
-        team_ret_prod = percent_to_float(rank_row.iloc[0].get("Returning Production", ""))
-        team_off_ret = percent_to_float(rank_row.iloc[0].get("Off. Returning Production", ""))
-        team_def_ret = percent_to_float(rank_row.iloc[0].get("Def. Returning Production", ""))
-    else:
-        team_ret_prod = team_off_ret = team_def_ret = float('nan')
-    ret_rank = get_rank(df_ranking["Returning Production"], team_ret_prod)
-    off_ret_rank = get_rank(df_ranking["Off. Returning Production"], team_off_ret)
-    def_ret_rank = get_rank(df_ranking["Def. Returning Production"], team_def_ret)
-    ret_prod_str = f"{ret_prod} {ret_rank}"
-    off_ret_str = f"{off_ret} {off_ret_rank}"
-    def_ret_str = f"{def_ret} {def_ret_rank}"
-
-    # Win probability metrics
-    # --- Schedule
+    # --- Schedule ---
     team_col = [col for col in df_schedule.columns if "Team" in col][0]
     sched = df_schedule[df_schedule[team_col] == selected_team].copy()
     opponents = sched["Opponent"].tolist()
     num_games = len(opponents)
+
+    # --- Win Probabilities ---
     if "Win Probability" in sched.columns:
         win_prob_list = sched["Win Probability"].astype(float).values
     elif "Win Prob" in sched.columns:
         win_prob_list = sched["Win Prob"].astype(float).values
     else:
-        win_prob_list = np.full(num_games, 0.5)
+        win_prob_list = np.full(num_games, 0.5)  # fallback
     dp = np.zeros((num_games + 1, num_games + 1))
     dp[0, 0] = 1.0
     for g in range(1, num_games + 1):
@@ -1006,9 +931,84 @@ elif tab == "Team Dashboards":
         exact_12 = win_probs[-1]
     else:
         exact_12 = 0.0
-
-    # Ranks for win prob
+    at_least_6_pct = f"{at_least_6*100:.1f}%"
+    at_least_8_pct = f"{at_least_8*100:.1f}%"
+    at_least_10_pct = f"{at_least_10*100:.1f}%"
+    exact_12_pct = f"{exact_12*100:.1f}%"
+    # ================
+    rows = []
+    for g in range(1, num_games + 1):
+        opp = opponents[g-1] if (g-1) < len(opponents) else ""
+        row = {
+            "Game": g,
+            "Opponent": opp
+        }
+        for w in range(num_games + 1):
+            row[w] = dp[g, w]
+        rows.append(row)
+# =====================
+    # --- Returning Production ---
+    df_ranking = load_sheet(data_path, "Ranking", header=1)
+    df_ranking.columns = [str(c).strip() for c in df_ranking.columns]
+    rank_row = df_ranking[df_ranking["Team"].str.strip() == selected_team.strip()]
+    def fmt_pct(val):
+        try:
+            if isinstance(val, str) and "%" in val:
+                return val
+            val_flt = float(val)
+            return f"{val_flt*100:.1f}%" if val_flt <= 1.01 else f"{val_flt:.1f}%"
+        except Exception:
+            return str(val)
+    if not rank_row.empty:
+        ret_prod = fmt_pct(rank_row.iloc[0].get("Returning Production", ""))
+        off_ret = fmt_pct(rank_row.iloc[0].get("Off. Returning Production", ""))
+        def_ret = fmt_pct(rank_row.iloc[0].get("Def. Returning Production", ""))
+    else:
+        ret_prod = off_ret = def_ret = ""
+    # --- Universe Size ---
+    num_teams = df_expected["Team"].nunique()
+    
+    # --- Helper for Ranking (higher is better) ---
+    def get_rank(series, val, ascending=False):
+        arr = pd.to_numeric(series, errors='coerce').dropna()
+        if pd.isnull(val) or len(arr) == 0:
+            return ""
+        # For percent: convert 80% to 0.8 if needed
+        arr = arr.apply(lambda x: x/100 if x > 1.01 else x)
+        if val > 1.01:
+            val = val / 100
+        rank = (arr >= val).sum() if not ascending else (arr <= val).sum()
+        return f"({rank}/{len(arr)})"
+    
+    # --- Returning Production Cards ---
+    def percent_to_float(x):
+        try:
+            if isinstance(x, str) and '%' in x:
+                x = x.replace('%','')
+            val = float(x)
+            return val/100 if val > 1.01 else val
+        except:
+            return float('nan')
+    
+    if not rank_row.empty:
+        team_ret_prod = percent_to_float(rank_row.iloc[0].get("Returning Production", ""))
+        team_off_ret = percent_to_float(rank_row.iloc[0].get("Off. Returning Production", ""))
+        team_def_ret = percent_to_float(rank_row.iloc[0].get("Def. Returning Production", ""))
+    else:
+        team_ret_prod = team_off_ret = team_def_ret = float('nan')
+    
+    ret_rank = get_rank(df_ranking["Returning Production"], team_ret_prod)
+    off_ret_rank = get_rank(df_ranking["Off. Returning Production"], team_off_ret)
+    def_ret_rank = get_rank(df_ranking["Def. Returning Production"], team_def_ret)
+    
+    ret_prod_str = f"{ret_prod} {ret_rank}"
+    off_ret_str = f"{off_ret} {off_ret_rank}"
+    def_ret_str = f"{def_ret} {def_ret_rank}"
+    
+    # --- WIN PROB RANKS ---
+    # Calculate for ALL TEAMS
     win_prob_metrics = { "at_least_6": [], "at_least_8": [], "at_least_10": [], "exact_12": [] }
+    
     for team in df_expected["Team"]:
         sched_team = df_schedule[df_schedule[team_col] == team].copy()
         n_games = len(sched_team)
@@ -1036,16 +1036,19 @@ elif tab == "Team Dashboards":
             win_prob_metrics["exact_12"].append(win_probs[-1])
         else:
             win_prob_metrics["exact_12"].append(0.0)
+    
+    # --- Get this team's value and rank ---
     at_least_6_rank = get_rank(pd.Series(win_prob_metrics["at_least_6"]), at_least_6)
     at_least_8_rank = get_rank(pd.Series(win_prob_metrics["at_least_8"]), at_least_8)
     at_least_10_rank = get_rank(pd.Series(win_prob_metrics["at_least_10"]), at_least_10)
     exact_12_rank = get_rank(pd.Series(win_prob_metrics["exact_12"]), exact_12)
+    
     at_least_6_pct_str = f"{at_least_6*100:.1f}% {at_least_6_rank}"
     at_least_8_pct_str = f"{at_least_8*100:.1f}% {at_least_8_rank}"
     at_least_10_pct_str = f"{at_least_10*100:.1f}% {at_least_10_rank}"
     exact_12_pct_str = f"{exact_12*100:.1f}% {exact_12_rank}"
 
-    # Power rating and rank
+    # Power rating and rank string
     team_power = float(team_row["Power Rating"])
     prank = df_expected["Power Rating"].rank(method="min", ascending=False)
     team_rank = int(prank[df_expected["Team"] == selected_team].iloc[0])
@@ -1053,10 +1056,18 @@ elif tab == "Team Dashboards":
     power_rank_str = f"({team_rank}/{num_teams})"
     power_rating_str = f"{team_power:.1f} {power_rank_str}"
 
-    # --- CARD STRIP (Responsive) ---
+    # --- CARD STRIP (Responsive, no sidebar overlap) ---
     if is_mobile():
-        inject_mobile_css()
-        n_items = 10
+        # MOBILE CSS ONLY injected here
+        st.markdown("""
+        <style>
+        /* Only on mobile: force content full width and no scroll */
+        [data-testid="stHorizontalBlock"] { max-width:100vw !important; }
+        .block-container, .main { padding-left:0 !important; padding-right:0 !important; }
+        body, html { overflow-x: hidden !important; }
+        </style>
+        """, unsafe_allow_html=True)
+        n_items = 10  # logos + 9 cards
         card_width = 100 / n_items - 0.5
         card_base = (
             f"flex: 1 1 {card_width:.2f}vw; min-width:{card_width:.2f}vw; max-width:{card_width:.2f}vw; "
@@ -1109,7 +1120,9 @@ elif tab == "Team Dashboards":
             </div>
         </div>
         '''
+
     else:
+        # DESKTOP (no sidebar overlap, no global CSS)
         card_style = (
             "display:inline-flex; flex-direction:column; align-items:center; justify-content:center; "
             "background:#002060; border:1px solid #FFFFFF; border-radius:10px; margin-right:10px; min-width:48px; "
@@ -1164,22 +1177,13 @@ elif tab == "Team Dashboards":
             </div>
         </div>
         '''
+
     st.markdown(card_html, unsafe_allow_html=True)
-
-    # --- Stadium/capacity/city/state/altitude table ---
-    st.markdown(f"""
-    <table style="width:100%; max-width:390px; font-size:15px; margin-bottom:14px;">
-      <tr><th align="left">Stadium</th><td>{stadium}</td></tr>
-      <tr><th align="left">Capacity</th><td>{capacity}</td></tr>
-      <tr><th align="left">City</th><td>{city}</td></tr>
-      <tr><th align="left">State</th><td>{state}</td></tr>
-      <tr><th align="left">Altitude</th><td>{altitude}</td></tr>
-    </table>
-    """, unsafe_allow_html=True)
-
-    # --- Record/conference record cards ---
-    record_bg = "#FFB347"
-    conf_bg = "#9067B8"
+    
+    # Color choices
+    record_bg = "#FFB347"    # Amber/Orange
+    conf_bg = "#9067B8"      # Purple
+    
     if is_mobile():
         card_width = "44vw"
         card_height = "34px"
@@ -1194,6 +1198,7 @@ elif tab == "Team Dashboards":
         record_font = "27px"
         margin = "8px 24px 20px 0"
         wrap = "flex-start"
+    
     record_card = f'''
     <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{record_bg};
     border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#222; border:2px solid #fff; margin:{margin};
@@ -1202,6 +1207,7 @@ elif tab == "Team Dashboards":
         <span style="font-size:{record_font}; font-weight:800; color:#002060; letter-spacing:-1px; line-height:1.1;">{record_str}</span>
     </div>
     '''
+    
     conf_card = f'''
     <div style="display:inline-flex; flex-direction:column; align-items:center; justify-content:center; background:{conf_bg};
     border-radius:12px; box-shadow:0 1px 6px rgba(0,0,0,0.07); color:#fff; border:2px solid #fff; margin:{margin};
@@ -1210,6 +1216,8 @@ elif tab == "Team Dashboards":
         <span style="font-size:{record_font}; font-weight:800; color:#fff; letter-spacing:-1px; line-height:1.1;">{conf_record_str}</span>
     </div>
     '''
+    
+    # Align left on desktop, center on mobile
     st.markdown(f'''
     <div style="display:flex;flex-direction:row;justify-content:{wrap};align-items:center;gap:2vw;width:100%;flex-wrap:wrap;">
         {record_card}
@@ -1217,11 +1225,10 @@ elif tab == "Team Dashboards":
     </div>
     ''', unsafe_allow_html=True)
 
-    # --- SCHEDULE TABLE (responsive) ---
-
+    # --- (Rest of your schedule table code here; you can keep your existing mobile/desktop rendering logic) ---
     if not sched.empty:
         sched["Date"] = pd.to_datetime(sched["Date"]).dt.strftime("%b-%d")
-
+    
         def format_opp_rank(x):
             if pd.isnull(x):
                 return ""
@@ -1230,9 +1237,9 @@ elif tab == "Team Dashboards":
                 return "FCS" if val <= 0 else f"{int(round(val))}"
             except Exception:
                 return str(x)
-
+    
         sched["Opponent Rank"] = sched["Opponent Ranking"].apply(format_opp_rank)
-
+    
         def fmt_spread(x):
             if pd.isnull(x):
                 return ""
@@ -1244,7 +1251,7 @@ elif tab == "Team Dashboards":
         sched["Projected Spread"] = sched["Spread"].apply(fmt_spread)
         sched["Win Probability"] = sched["Win Prob"].apply(lambda x: f"{x*100:.1f}%" if pd.notnull(x) else "")
         sched["Game Quality"] = sched["Game Score"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "")
-
+    
         # --- ADD: Location prefix to Opponent ---
         def format_opp_cell(row):
             location = str(row.get("Location", "")).strip().lower()
@@ -1259,10 +1266,10 @@ elif tab == "Team Dashboards":
                 return f"vs {opp} (Neutral)"
             else:
                 return opp  # fallback
-
+    
         sched["Opponent_Display"] = sched.apply(format_opp_cell, axis=1)
-
-        # --- MOBILE header/column maps ---
+    
+        # --- MOBILE header/column maps (replace 'Opponent' with 'Opponent_Display') ---
         mobile_headers = {
             "Date": "Date",
             "Opponent_Display": "Opp.",
@@ -1272,10 +1279,10 @@ elif tab == "Team Dashboards":
             "Game Quality": "Game Qty"
         }
         mobile_cols = list(mobile_headers.keys())
-
-        # --- DESKTOP version ---
+    
+        # --- DESKTOP version (replace 'Opponent' with 'Opponent_Display') ---
         desktop_headers = ["Game", "Date", "Opponent_Display", "Opponent Rank", "Projected Spread", "Win Probability", "Game Quality"]
-
+    
         # --- Choose headers/columns based on device ---
         if is_mobile():
             headers = [mobile_headers[c] for c in mobile_cols]
@@ -1295,10 +1302,10 @@ elif tab == "Team Dashboards":
             wrapper_style = "max-width:100%; overflow-x:auto;"
             header_font = ""
             cell_font = "white-space:nowrap; font-size:15px;"
-
+    
         gq_vals = pd.to_numeric(sched["Game Quality"], errors='coerce')
         gq_min, gq_max = gq_vals.min(), gq_vals.max()
-
+    
         def win_prob_data_bar(pct_str):
             try:
                 pct = float(pct_str.strip('%'))
@@ -1311,13 +1318,13 @@ elif tab == "Team Dashboards":
                 )
             except Exception:
                 return f'<div style="width:100%; text-align:center; font-weight:600; color:#111;">{pct_str}</div>'
-
+    
         header_style = (
             "background-color:#002060; color:white; text-align:center; padding:8px; "
             "position:sticky; top:0; z-index:2; font-weight:bold;"
         )
         cell_style = "border:1px solid #ddd; padding:8px; text-align:center;"
-
+    
         html = [
             f'<div style="{wrapper_style}">',
             f'<table style="{table_style}">',
@@ -1332,11 +1339,11 @@ elif tab == "Team Dashboards":
             else:
                 html.append(f'<th style="{header_style}{header_font}">{h}</th>')
         html.append('</tr></thead><tbody>')
-
+    
         for _, row in sched.iterrows():
             html.append('<tr>')
             for col in use_cols:
-                val = row[col] if col in row else ""
+                val = row[col]
                 style = cell_style + cell_font + "padding:4px;"
                 if is_mobile() and col == "Opponent_Display":
                     style += "min-width:30vw; max-width:38vw; word-break:break-word; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:normal;"
@@ -1357,7 +1364,7 @@ elif tab == "Team Dashboards":
                     val = win_prob_data_bar(val)
                     html.append(f'<td style="position:relative; {style} width:90px; min-width:70px; max-width:120px; vertical-align:middle;">{val}</td>')
                     continue
-                # Game Quality: blue color scale background
+                # Game Quality: blue color scale background, same as Power Rating
                 if col == "Game Quality":
                     try:
                         v = float(val)
@@ -1366,16 +1373,137 @@ elif tab == "Team Dashboards":
                         style += f"background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'}; font-weight:600;"
                     except Exception:
                         pass
-
+    
                 html.append(f'<td style="{style}">{val}</td>')
             html.append('</tr>')
         html.append('</tbody></table></div>')
-
+    
         st.markdown("".join(html), unsafe_allow_html=True)
 
-    # --- Prepare probability distribution table (final win distribution) ---
+    # Add all team-specific tables/charts below as needed
+    # --- Opponent logos (above the table rendering) ---
+    fallback_logo_url = "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
+    opponent_logos = []
+    for opp in opponents:
+        logo_url = fallback_logo_url
+        try:
+            matches = logos_df["Team"].str.lower() == str(opp).strip().lower()
+            if matches.any():
+                logo_url = logos_df.loc[matches, "Logo URL"].values[0]
+        except Exception:
+            pass
+        opponent_logos.append(logo_url)
 
-    # final_row = last row in 'rows' from your schedule simulation block
+    # --- Unified Responsive Table Block ---
+    n_cols = 2 + num_games + 1  # Game + Opp + win columns
+    col_pct = 100 / n_cols
+
+    if is_mobile():
+        font_size = 6
+        pad = 0
+        logo_size = 10
+        table_style = (
+            f"font-size:{font_size}px; width:100%; min-width:100%; max-width:100%; "
+            "table-layout:fixed; border-collapse:collapse; border:none; margin:0; box-sizing:border-box;"
+        )
+        wrapper_style = (
+            "width:100%; min-width:100%; max-width:100%; margin:0; padding:0; overflow:hidden; box-sizing:border-box;"
+        )
+        visible_wins = list(range(num_games + 1))
+        cell_base_style = (
+            f"padding:{pad}px; box-sizing:border-box; "
+            f"width:{col_pct:.6f}%; min-width:{col_pct:.6f}%; max-width:{col_pct:.6f}%; "
+            "overflow:hidden; white-space:nowrap; border-right:0.5px solid #bbb; border-bottom:0.5px solid #bbb;"
+        )
+        cell_last_style = (
+            f"padding:{pad}px; box-sizing:border-box; "
+            f"width:{col_pct:.6f}%; min-width:{col_pct:.6f}%; max-width:{col_pct:.6f}%; "
+            "overflow:hidden; white-space:nowrap; border-bottom:0.5px solid #bbb;"
+        )
+        game_col_style = cell_base_style
+        opp_col_style = cell_base_style
+        win_col_style = cell_base_style
+    else:
+        font_size = 11
+        pad = 2
+        logo_size = 26
+        n_win_cols = num_games + 1
+        opp_col_pct = 20
+        game_col_pct = 7
+        win_col_pct = (100 - opp_col_pct - game_col_pct) / n_win_cols
+        table_style = (
+            "font-size:11px; width:100%; border-collapse:collapse; table-layout:fixed;"
+        )
+        wrapper_style = "width:100%; max-width:100vw; overflow-x:auto;"
+        visible_wins = list(range(num_games + 1))
+        game_col_style = f"text-align:center; width:{game_col_pct:.4f}%; min-width:38px; max-width:54px; white-space:nowrap;"
+        opp_col_style = f"text-align:left; width:{opp_col_pct:.4f}%; min-width:120px; max-width:270px; white-space:nowrap; overflow:hidden;"
+        win_col_style = f"text-align:center; width:{win_col_pct:.4f}%; min-width:24px; max-width:40px; white-space:nowrap; overflow:hidden;"
+        cell_base_style = win_col_style
+        cell_last_style = win_col_style
+
+    def cell_color(p):
+        if p <= 0:
+            return "background-color:#fff;"
+        elif p < 0.25:
+            t = p / 0.25
+            r = int(224 + (94-224)*t)
+            g = int(75 + (160-75)*t)
+            b = int(90 + (238-90)*t)
+        else:
+            t = (p - 0.25) / 0.75
+            r = int(94 + (27-94)*t)
+            g = int(160 + (60-160)*t)
+            b = int(238 + (255-238)*t)
+        return f"background-color:rgb({r},{g},{b});"
+
+    table_html = [f'<div style="{wrapper_style}">', f'<table style="{table_style}">', "<thead><tr>"]
+
+    # --- Header row ---
+    table_html.append(
+        f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {game_col_style}">Game</th>')
+    opp_header_text = "Opponent" if not is_mobile() else "Opp"
+    table_html.append(
+        f'<th style="border:1px solid #bbb; padding:{pad}px; background:#eaf1fa; {opp_col_style}">{opp_header_text}</th>')
+
+    for w in visible_wins:
+        table_html.append(
+            f'<th style="border:1px solid #bbb; padding:{pad}px; background:#d4e4f7; {win_col_style}">{w}</th>'
+        )
+    table_html.append("</tr></thead><tbody>")
+
+    # --- Body rows ---
+    for i, row in enumerate(rows):
+        table_html.append("<tr>")
+        # Game number
+        table_html.append(f'<td style="{game_col_style}background:#f8fafb; font-weight:bold; text-align:center;">{row["Game"]}</td>')
+        # Opponent logo (mobile: just logo; desktop: logo+name)
+        logo_url = opponent_logos[i]
+        if is_mobile():
+            logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="display:block;margin:auto;" alt="">'
+        else:
+            logo_html = f'<img src="{logo_url}" width="{logo_size}" height="{logo_size}" style="vertical-align:middle;margin-right:3px;"> {row["Opponent"]}'
+        table_html.append(f'<td style="{opp_col_style}background:#f8fafb;">{logo_html}</td>')
+        game_num = row["Game"]
+        for j, w in enumerate(visible_wins):
+            is_last = (j == len(visible_wins) - 1)
+            style = cell_last_style if is_last else win_col_style
+            if w > game_num:
+                cell_style = f"{style}background-color:#444; color:#fff; font-family:Arial; text-align:center;"
+                cell_text = ""
+            else:
+                val = row.get(w, 0.0)
+                pct = val * 100
+                cell_style = (
+                    f"{style}{cell_color(val)}"
+                    + "color:#222; text-align:center;"
+                )
+                cell_text = f"{pct:.1f}%"
+            table_html.append(f'<td style="{cell_style}">{cell_text}</td>')
+        table_html.append("</tr>")
+    table_html.append("</tbody></table></div>")
+
+    # --- Prepare chart data (final win distribution) ---
     final_row = rows[-1]
     win_counts = list(range(num_games + 1))
     win_probs = [final_row.get(w, 0.0) for w in win_counts]
@@ -1390,7 +1518,7 @@ elif tab == "Team Dashboards":
     })
     df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
 
-    # --- Show probability distribution table & chart: side by side on desktop, stacked on mobile ---
+    # --- Show table & chart: side by side on desktop, stacked on mobile ---
     if not is_mobile():
         left_col, right_col = st.columns([1, 1])
         with left_col:
@@ -1404,8 +1532,8 @@ elif tab == "Team Dashboards":
                 x=alt.X("Wins:O", axis=alt.Axis(
                     title="Wins",
                     labelAngle=0,
-                    labelColor="black",   # Axis tick text
-                    titleColor="black"    # Axis label
+                    labelColor="black",   # <-- Axis tick text
+                    titleColor="black"    # <-- Axis label
                 )),
                 y=alt.Y("Probability:Q", axis=alt.Axis(
                     title="Probability (%)",
@@ -1470,11 +1598,11 @@ elif tab == "Team Dashboards":
             title=""
         )
         st.altair_chart(final_chart, use_container_width=True)
-        
     # ---- Conference Standings Table below Win Distribution ----
 
+    # Only render if a team is selected
     if conference:
-        # Define mobile/desktop columns and headers
+        # Find the mobile/desktop columns and headers as in Conference Overview tab
         mobile_header_map = {
             "Projected Finish": "Proj. Finish",
             "Team": "Team",
@@ -1496,27 +1624,28 @@ elif tab == "Team Dashboards":
             "Average Conference Game Quality", "Schedule Difficulty Rank", "Average Conference Schedule Difficulty"
         ]
 
-        # Prepare standings DataFrame
+        # Get the standings for this conference
         standings = df_expected[df_expected["Conference"] == conference].copy()
         standings.columns = [c.strip() for c in standings.columns]
         standings = standings.rename(columns={
             "Projected Conference Record": "Projected Conference Wins",
             "Column4": "Projected Conference Losses",
+            # Add others as needed
         })
         standings = standings.sort_values(
             by="Projected Conference Wins", ascending=False
         ).reset_index(drop=True)
         standings.insert(0, "Projected Finish", standings.index + 1)
-
+        # Exclude columns that should remain integer
         for col in standings.select_dtypes(include=['float', 'float64', 'number']):
-            if col != "Projected Finish":
+            if col != "Projected Finish":  # Add more exclusions as needed
                 standings[col] = standings[col].round(1)
+
 
         pr_min, pr_max = standings["Power Rating"].min(), standings["Power Rating"].max()
         acgq_min, acgq_max = standings["Average Conference Game Quality"].min(), standings["Average Conference Game Quality"].max()
         acsd_min, acsd_max = standings["Average Conference Schedule Difficulty"].min(), standings["Average Conference Schedule Difficulty"].max()
-
-        # Responsive table setup
+    
         if is_mobile():
             cols = [c for c in mobile_cols if c in standings.columns]
             display_headers = [mobile_header_map[c] for c in cols]
@@ -1535,8 +1664,7 @@ elif tab == "Team Dashboards":
             wrapper_style = "max-width:100%; overflow-x:auto;"
             header_font = ""
             cell_font = "white-space:nowrap; font-size:15px;"
-
-        # Merge in logos
+        # Merge in up-to-date team logos for the standings table
         standings["Team"] = standings["Team"].astype(str).str.strip().str.upper()
         logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
         standings = standings.drop(columns=[c for c in ["Logo URL"] if c in standings.columns])
@@ -1547,8 +1675,8 @@ elif tab == "Team Dashboards":
         missing = standings[standings["Logo URL"].isna()]["Team"].tolist()
         if missing:
             st.warning(f"Logos missing for: {', '.join(missing[:8])}{'...' if len(missing)>8 else ''}")
-
-        # Table HTML
+        
+                # ---- Table HTML ----
         standings_html = [
             f'<div style="{wrapper_style}">',
             f'<table style="{table_style}">',
@@ -1576,7 +1704,7 @@ elif tab == "Team Dashboards":
             th += header_font
             standings_html.append(f"<th style='{th}'>{disp_col}</th>")
         standings_html.append("</tr></thead><tbody>")
-
+        
         for _, row in standings.iterrows():
             is_selected_team = (row["Team"] == selected_team)
             standings_html.append("<tr>")
@@ -1585,9 +1713,10 @@ elif tab == "Team Dashboards":
                 td = 'border:1px solid #ddd; padding:8px; text-align:center;'
                 td += cell_font
                 cell = v
-
-                has_bg_color = False
-
+        
+                has_bg_color = False  # <--- New flag!
+        
+                # Conditional cell formatting (your logic)
                 if c == "Team":
                     logo = row.get("Logo URL")
                     if pd.notnull(logo) and isinstance(logo, str) and logo.startswith("http"):
@@ -1606,7 +1735,7 @@ elif tab == "Team Dashboards":
                         r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
                         td += f" background-color:#{r:02x}{g:02x}{b:02x}; color:{'black' if t<0.5 else 'white'};"
                         cell = f"{v:.1f}"
-                        has_bg_color = True
+                        has_bg_color = True   # <-- Set flag!
                     elif c == "Average Conference Game Quality" and pd.notnull(v):
                         t = (v - acgq_min) / (acgq_max - acgq_min) if acgq_max > acgq_min else 0
                         r, g, b = [int(255 + (x - 255) * t) for x in (0, 32, 96)]
@@ -1621,245 +1750,147 @@ elif tab == "Team Dashboards":
                         has_bg_color = True
                     else:
                         cell = v
-
-                # Row highlight as border
+        
+                # Row highlight as border (will always show!)
                 if is_selected_team and not has_bg_color:
                     td += " box-shadow: 0 0 0 3px #fffac8 inset;"
                 standings_html.append(f"<td style='{td}'>{cell}</td>")
             standings_html.append("</tr>")
-
+                
         standings_html.append("</tbody></table></div>")
-
-        # --- SCATTERPLOT: Offensive vs Defensive Power Rating ---
-
-        # Build neighbor DataFrame
-        df_ranking = load_sheet(data_path, "Ranking", header=1)
-        df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
-
-        # Find column indices for flexibility
-        def first_col_index(cols, name):
-            return [i for i, c in enumerate(cols) if c == name][0]
-
-        cols = df_ranking.columns.tolist()
-        team_idx = first_col_index(cols, "Team")
-        power_idx = first_col_index(cols, "Power Rating")
-        off_idx = first_col_index(cols, "Off. Power Rating")
-        def_idx = first_col_index(cols, "Def. Power Rating")
-
-        df_ranking_clean = df_ranking.iloc[:, [team_idx, power_idx, off_idx, def_idx]].copy()
-        df_ranking_clean.columns = ["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
-
-        for col in ["Power Rating", "Off. Power Rating", "Def. Power Rating"]:
-            df_ranking_clean[col] = pd.to_numeric(df_ranking_clean[col], errors="coerce")
-        df_ranking_clean = df_ranking_clean.dropna(subset=["Power Rating", "Off. Power Rating", "Def. Power Rating"])
-        df_ranking_clean = df_ranking_clean.sort_values("Power Rating", ascending=False).reset_index(drop=True)
-
-        # Select N teams near the selected team
-        if selected_team in df_ranking_clean["Team"].values:
-            selected_idx = df_ranking_clean.index[df_ranking_clean["Team"] == selected_team][0]
-        else:
-            st.warning(f"Selected team '{selected_team}' not found in ranking.")
-            selected_idx = 0
-
-        N = 5
-        num_teams = len(df_ranking_clean)
-        if selected_idx < N:
-            start = 0
-            end = min(2 * N + 1, num_teams)
-        elif selected_idx > num_teams - N - 1:
-            start = max(0, num_teams - (2 * N + 1))
-            end = num_teams
-        else:
-            start = selected_idx - N
-            end = selected_idx + N + 1
-
-        df_neighbors = df_ranking_clean.iloc[start:end].copy()
-
-        scatter_df2 = df_neighbors[["Off. Power Rating", "Def. Power Rating", "Team"]].copy()
-        scatter_df2.columns = ["Off", "Def", "Team"]
-        scatter_df2["Team_key"] = (
-            scatter_df2["Team"]
-            .astype(str)
-            .str.strip()
-            .str.upper()
-        )
-        logo_lookup = logos_df.set_index("Team")["Logo URL"].to_dict()
-        scatter_df2["Logo URL"] = scatter_df2["Team_key"].map(logo_lookup)
-
-        # Axis bounds
-        off_vals = scatter_df2["Off"]
-        def_vals = scatter_df2["Def"]
-        off_min, off_max = off_vals.min(), off_vals.max()
-        def_min, def_max = def_vals.min(), def_vals.max()
-
-        # Altair condition for logos
-        logo_cond = (
-            (alt.datum["Logo URL"] != None) &
-            (alt.datum["Logo URL"] != "")
-        )
-        logo_size = 30
-        points_with_logo = (
-            alt.Chart(scatter_df2)
-                .transform_filter(logo_cond)
-                .mark_image(width=logo_size, height=logo_size)
-                .encode(
-                    x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max])),
-                    y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max])),
-                    url="Logo URL:N",
-                    tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
-                )
-        )
-        points_no_logo = (
-            alt.Chart(scatter_df2)
-                .transform_filter(~logo_cond)
-                .mark_circle(size=100, color="steelblue")
-                .encode(
-                    x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max]), axis=alt.Axis(title="Offensive Power Rating")),
-                    y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max]), axis=alt.Axis(title="Defensive Power Rating")),
-                    tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
-                )
-        )
-        chart = points_with_logo + points_no_logo
-
-        # --- Render side by side (desktop), stacked (mobile) ---
+        
+                # Render
         if not is_mobile():
-            left_col, right_col = st.columns([1, 1])
+            # On desktop, make width same as win dist table (left side)
             with left_col:
                 st.markdown("#### Conference Standings")
                 st.markdown("".join(standings_html), unsafe_allow_html=True)
-            with right_col:
-                st.markdown("#### Offensive vs Defensive Power Rating")
-                st.altair_chart(chart, use_container_width=True)
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
-            st.markdown("#### Offensive vs Defensive Power Rating")
-            st.altair_chart(chart, use_container_width=True)
-      
-    # --- NEAREST TEAMS MAP (same as before) ---
-    N_NEIGHBORS = 10
+        
+    # --- (1) Build df_ranking_clean ---
 
-    sel_rows = df_teams[df_teams["school"] == selected_team]
-    if sel_rows.empty:
-        st.error(f"No entry in Teams for '{selected_team}'.")
-        st.stop()
-    sel_row = sel_rows.iloc[0]
-
-    neighbors = df_teams[df_teams["school"] != selected_team].copy()
-    neighbors = neighbors[neighbors["Logo URL"].notnull() & neighbors["Logo URL"].str.startswith("http")]
-
-    # Haversine
-    def haversine(lat1, lon1, lat2, lon2):
-        R = 3958.8  # miles
-        lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
-        dlat = lat2 - lat1
-        dlon = lon2 - lon1
-        a = np.sin(dlat/2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2.0)**2
-        c = 2 * np.arcsin(np.sqrt(a))
-        return R * c
-
-    neighbors["distance"] = haversine(sel_row["lat"], sel_row["lon"], neighbors["lat"], neighbors["lon"])
-    neighbors = neighbors.sort_values("distance").head(N_NEIGHBORS)
-
-    # Build map df
-    plot_df = pd.concat([
-        pd.DataFrame([sel_row]).assign(selected=True),
-        neighbors.assign(selected=False)
-    ])
-
-    # --- Folium Map (NON-SCROLLABLE) ---
-    import folium
-    from streamlit_folium import st_folium
-
-    def add_logo_marker(map_object, lat, lon, logo_url, tooltip_text):
-        icon = folium.CustomIcon(
-            logo_url,
-            icon_size=(52, 52),
-            icon_anchor=(26, 52)
-        )
-        folium.Marker(
-            location=(lat, lon),
-            icon=icon,
-            tooltip=tooltip_text
-        ).add_to(map_object)
-
-    center_lat = sel_row["lat"]
-    center_lon = sel_row["lon"]
-    folium_map = folium.Map(
-        location=[center_lat, center_lon],
-        zoom_start=6,
-        width="100%",
-        height="420",
-        scrollWheelZoom=False,    # <-- disables scroll zoom!
-        dragging=False,           # <-- disables panning!
-        zoom_control=False        # <-- disables zoom controls!
-    )
-    for _, row in plot_df.iterrows():
-        logo_url = row["Logo URL"] if pd.notnull(row["Logo URL"]) and str(row["Logo URL"]).startswith("http") \
-            else "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
-        add_logo_marker(
-            folium_map,
-            row["lat"],
-            row["lon"],
-            logo_url,
-            row["school"]
-        )
-
-    # --- STADIUM TABLE FUNCTION ---
-    def render_stadium_table(sel_row, team_name):
-        stat_fields = [
-            ("Stadium", "home_venue"),
-            ("Capacity", "venue_capacity"),
-            ("City", "city"),
-            ("State", "state"),
-            ("Elevation", "elevation"),
-        ]
-        rows_html = ""
-        for label, col in stat_fields:
-            val = sel_row.get(col, "")
-            if col == "venue_capacity" and pd.notnull(val):
-                try:
-                    val = f"{int(val):,}"
-                except Exception:
-                    pass
-            if col == "elevation" and pd.notnull(val):
-                try:
-                    val = f"{float(val):,.1f}"
-                except Exception:
-                    pass
-            rows_html += f"<tr><td style='padding:6px 12px; font-weight:600;'>{label}</td><td style='padding:6px 12px; text-align:right;'>{val}</td></tr>"
-        table_html = f"""
-        <div style='max-width:340px; margin:12px auto;'>
-        <table style='width:100%; border-collapse:collapse; box-shadow:0 1px 4px #b7b7b7;'>
-          <tr>
-            <th colspan='2' style='background:#012a60; color:#fff; font-size:17px; font-weight:700; padding:7px; text-align:center;'>
-                {team_name}
-            </th>
-          </tr>
-          {rows_html}
-        </table>
-        </div>
-        """
-        st.markdown(table_html, unsafe_allow_html=True)
-
-    # --- DISPLAY: MAP + STADIUM INFO ---
-    if is_mobile():
-        # Mobile: Map first, then stadium info below
-        st.markdown("### Nearest Teams Map")
-        st_folium(folium_map, width=340, height=360)
-        st.markdown("### Stadium Info")
-        render_stadium_table(sel_row, selected_team)
+    # Load the Rankings sheet (or use your previous df_ranking)
+    df_ranking = load_sheet(data_path, "Ranking", header=1)
+    df_ranking["Team"] = df_ranking["Team"].astype(str).str.strip()
+    
+    # Find the correct columns (in case columns have shifted)
+    def first_col_index(cols, name):
+        return [i for i, c in enumerate(cols) if c == name][0]
+    
+    cols = df_ranking.columns.tolist()
+    team_idx = first_col_index(cols, "Team")
+    power_idx = first_col_index(cols, "Power Rating")
+    off_idx = first_col_index(cols, "Off. Power Rating")
+    def_idx = first_col_index(cols, "Def. Power Rating")
+    
+    df_ranking_clean = df_ranking.iloc[:, [team_idx, power_idx, off_idx, def_idx]].copy()
+    df_ranking_clean.columns = ["Team", "Power Rating", "Off. Power Rating", "Def. Power Rating"]
+    
+    for col in ["Power Rating", "Off. Power Rating", "Def. Power Rating"]:
+        df_ranking_clean[col] = pd.to_numeric(df_ranking_clean[col], errors="coerce")
+    df_ranking_clean = df_ranking_clean.dropna(subset=["Power Rating", "Off. Power Rating", "Def. Power Rating"])
+    
+    df_ranking_clean = df_ranking_clean.sort_values("Power Rating", ascending=False).reset_index(drop=True)
+    
+    # --- (2) Now, get selected_idx safely ---
+    
+    if selected_team in df_ranking_clean["Team"].values:
+        selected_idx = df_ranking_clean.index[df_ranking_clean["Team"] == selected_team][0]
     else:
-        # Desktop: Side-by-side columns
+        st.warning(f"Selected team '{selected_team}' not found in ranking.")
+        selected_idx = 0  # fallback
+    
+    N = 5  # neighborhood size
+    num_teams = len(df_ranking_clean)
+    
+    if selected_idx < N:
+        start = 0
+        end = min(2 * N + 1, num_teams)
+    elif selected_idx > num_teams - N - 1:
+        start = max(0, num_teams - (2 * N + 1))
+        end = num_teams
+    else:
+        start = selected_idx - N
+        end = selected_idx + N + 1
+    
+    df_neighbors = df_ranking_clean.iloc[start:end].copy()
+    
+    # Prepare Off/Def/Team/Logo URL for Altair
+    scatter_df2 = df_neighbors[["Off. Power Rating", "Def. Power Rating", "Team"]].copy()
+    scatter_df2.columns = ["Off", "Def", "Team"]
+    # --- normalize to uppercase keys for the join ---
+    scatter_df2["Team_key"] = (
+        scatter_df2["Team"]
+          .astype(str)
+          .str.strip()
+          .str.upper()
+    )
+    
+    # make sure your logos_df["Team"] is also uppercase (you did this once already)
+    # logos_df["Team"] = logos_df["Team"].str.strip().str.upper()
+    
+    # build a lookup dict for speed / clarity
+    logo_lookup = logos_df.set_index("Team")["Logo URL"].to_dict()
+    
+    # map it onto scatter_df2
+    scatter_df2["Logo URL"] = scatter_df2["Team_key"].map(logo_lookup)
+
+    # --- Compute true min/max for both axes ---
+    off_vals = scatter_df2["Off"]
+    def_vals = scatter_df2["Def"]
+    off_min, off_max = off_vals.min(), off_vals.max()
+    def_min, def_max = def_vals.min(), def_vals.max()
+    
+    # --- Define logo condition: non-null and non-empty URL ---
+    logo_cond = (
+        (alt.datum["Logo URL"] != None) &
+        (alt.datum["Logo URL"] != "")
+    )
+    
+    # --- Fallback circles for points without a logo ---
+    points_no_logo = (
+        alt.Chart(scatter_df2)
+           .transform_filter(~logo_cond)
+           .mark_circle(size=100, color="steelblue")
+           .encode(
+               x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max]), axis=alt.Axis(title="Offensive Power Rating")),
+               y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max]), axis=alt.Axis(title="Defensive Power Rating")),
+               tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
+           )
+    )
+    
+    # --- Logo images for points with a valid URL ---
+    logo_size = 30  # adjust as needed
+    points_with_logo = (
+        alt.Chart(scatter_df2)
+           .transform_filter(logo_cond)
+           .mark_image(width=logo_size, height=logo_size)
+           .encode(
+               x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max])),
+               y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max])),
+               url="Logo URL:N",
+               tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
+           )
+    )
+    
+    # --- Combine layers: logos on top then circles
+    chart = points_with_logo + points_no_logo
+    
+    # --- Render in two‐column layout on desktop, full‐width on mobile ---
+    if not is_mobile():
         left_col, right_col = st.columns([1, 1])
         with left_col:
-            st.markdown("### Nearest Teams Map")
-            st_folium(folium_map, width=650, height=420)
+            st.markdown("#### Conference Standings")
+            st.markdown("".join(standings_html), unsafe_allow_html=True)
         with right_col:
-            st.markdown("### Stadium Info")
-            render_stadium_table(sel_row, selected_team)
-
-            
+            st.markdown("#### Offensive vs Defensive Power Rating")
+            st.altair_chart(chart, use_container_width=True)
+    else:
+        st.markdown("#### Offensive vs Defensive Power Rating")
+        st.altair_chart(chart, use_container_width=True)
+        
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
     import altair as alt
