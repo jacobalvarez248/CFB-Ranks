@@ -1766,15 +1766,21 @@ elif tab == "Team Dashboards":
                 
         standings_html.append("</tbody></table></div>")
         
-        # Render
+        # -- Side-by-side table and scatterplot (DESKTOP), stacked (MOBILE) --
         if not is_mobile():
-            # On desktop, make width same as win dist table (left side)
+            left_col, right_col = st.columns([1, 1])
             with left_col:
                 st.markdown("#### Conference Standings")
                 st.markdown("".join(standings_html), unsafe_allow_html=True)
+            with right_col:
+                st.markdown("#### Offensive vs Defensive Power Rating")
+                st.altair_chart(chart, use_container_width=True)
         else:
             st.markdown("#### Conference Standings")
             st.markdown("".join(standings_html), unsafe_allow_html=True)
+            st.markdown("#### Offensive vs Defensive Power Rating")
+            st.altair_chart(chart, use_container_width=True)
+
         
     # --- (1) Build df_ranking_clean ---
 
