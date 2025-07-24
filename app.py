@@ -1916,6 +1916,12 @@ elif tab == "Team Dashboards":
     N_NEIGHBORS = 10  # or however many you want to show
     
     # sel_row should already be your selected team row from df_teams
+    sel_rows = df_teams[df_teams["school"] == selected_team]
+    if sel_rows.empty:
+        st.error(f"No entry in Teams for '{selected_team}'.")
+        st.stop()
+    sel_row = sel_rows.iloc[0]
+
     neighbors = df_teams[df_teams["school"] != selected_team].copy()
     
     # Filter neighbors for those with a logo URL
