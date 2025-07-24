@@ -2023,19 +2023,13 @@ elif tab == "Team Dashboards":
             st.pydeck_chart(map_deck, use_container_width=True, height=map_height)
             st.markdown(render_info_table(sel_row), unsafe_allow_html=True)
         else:
-            # Overlay the table in the corner of the map
-            st.markdown(
-                f"""
-                <div style="position:relative; width:100%; height:{map_height+10}px; margin-bottom:10px;">
-                    <div style="position:absolute; top:17px; left:22px; z-index:10;">
-                        {render_info_table(sel_row)}
-                    </div>
-                    <div style="width:100%;">
-                """,
-                unsafe_allow_html=True
-            )
-            st.pydeck_chart(map_deck, use_container_width=True, height=map_height)
-            st.markdown("</div></div>", unsafe_allow_html=True)
+            # Side-by-side: info card left, map right
+            cols = st.columns([2, 8])
+            with cols[0]:
+                st.markdown(render_info_table(sel_row), unsafe_allow_html=True)
+            with cols[1]:
+                st.pydeck_chart(map_deck, use_container_width=True, height=map_height)
+
             
 elif tab == "Charts & Graphs":
     st.header("📈 Charts & Graphs")
