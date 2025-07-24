@@ -1979,16 +1979,15 @@ elif tab == "Team Dashboards":
     
         # First, build icon_mapping dictionary for all teams in plot_df
         icon_mapping = {
-            row["icon_name"]: {
-                "url": row["Logo URL"] if pd.notnull(row["Logo URL"]) else "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png",
-                "width": 60,
-                "height": 60,
-                "anchorY": 30
-            }
-            for _, row in plot_df.iterrows()
+        row["icon_name"]: {
+            "url": row["Logo URL"],
+            "width": 60,
+            "height": 60,
+            "anchorY": 60  # (bottom of the icon)
         }
+        for _, row in plot_df.iterrows()
+    }
 
-        st.write(plot_df[["school", "icon_name", "lat", "lon", "Logo URL"]])
 
         icon_layer = pdk.Layer(
             "IconLayer",
