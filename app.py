@@ -1961,6 +1961,7 @@ elif tab == "Team Dashboards":
     # Fallback if logo missing
     teams_df['logo_url'] = teams_df['logo_url'].fillna(
         "https://upload.wikimedia.org/wikipedia/commons/a/ac/No_image_available.svg"
+    )
     # Ensure lat/lon columns
     if 'lat' not in teams_df.columns or 'lon' not in teams_df.columns:
         def parse_location(loc):
