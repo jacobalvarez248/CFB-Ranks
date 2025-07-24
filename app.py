@@ -1901,7 +1901,7 @@ elif tab == "Team Dashboards":
     if not team_info.empty:
         row = team_info.iloc[0]
     
-        # Blue header bar (uses full_name)
+        # 1) Blue header bar
         st.markdown(
             f"""
             <div style="background-color:#002060;padding:8px;border-radius:4px;margin-top:24px;">
@@ -1911,7 +1911,7 @@ elif tab == "Team Dashboards":
             unsafe_allow_html=True
         )
     
-        # Prepare rows (elevation with one decimal)
+        # 2) Prepare rows (format elevation to 1 decimal)
         rows = [
             ("Full Name", row["full_name"]),
             ("Stadium",    row["home_venue"]),
@@ -1921,7 +1921,7 @@ elif tab == "Team Dashboards":
             ("Elevation",  f"{row['elevation']:.1f}"),
         ]
     
-        # Build HTML table
+        # 3) Build up the HTML for all <tr>... rows inside a Python string
         html_rows = ""
         for label, value in rows:
             html_rows += f"""
@@ -1937,14 +1937,16 @@ elif tab == "Team Dashboards":
             </tr>
             """
     
+        # 4) Wrap those rows in a <table>... string
         html_table = f"""
         <table style="width:100%; border-collapse:collapse; margin-top:24px;">
           {html_rows}
         </table>
         """
     
-        # Render the table
+        # 5) Finally render it
         st.markdown(html_table, unsafe_allow_html=True)
+
 
 
 
