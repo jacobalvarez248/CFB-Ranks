@@ -1961,32 +1961,32 @@ elif tab == "Team Dashboards":
           {html_rows}
         </table>
         """
-            <table style="width:100%; border-collapse:collapse; margin-top:24px;">
-              <tr>
-                <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Full Name</th>
-                <td style="padding:6px;">Air Force Falcons</td>
-              </tr>
-              <tr>
-                <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Stadium</th>
-                <td style="padding:6px;">Falcon Stadium</td>
-              </tr>
-              <tr>
-                <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Capacity</th>
-                <td style="padding:6px;">46,692</td>
-              </tr>
-              <tr>
-                <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">City</th>
-                <td style="padding:6px;">Colorado Springs</td>
-              </tr>
-              <tr>
-                <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">State</th>
-                <td style="padding:6px;">CO</td>
-              </tr>
-              <tr>
-                <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Elevation</th>
-                <td style="padding:6px;">2024.9</td>
-              </tr>
-            </table>
+        <table style="width:100%; border-collapse:collapse; margin-top:24px;">
+          <tr>
+            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Full Name</th>
+            <td style="padding:6px;">Air Force Falcons</td>
+          </tr>
+          <tr>
+            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Stadium</th>
+            <td style="padding:6px;">Falcon Stadium</td>
+          </tr>
+          <tr>
+            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Capacity</th>
+            <td style="padding:6px;">46,692</td>
+          </tr>
+          <tr>
+            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">City</th>
+            <td style="padding:6px;">Colorado Springs</td>
+          </tr>
+          <tr>
+            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">State</th>
+            <td style="padding:6px;">CO</td>
+          </tr>
+          <tr>
+            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Elevation</th>
+            <td style="padding:6px;">2024.9</td>
+          </tr>
+        </table>
 
         st.markdown(html_table, unsafe_allow_html=True)
 
