@@ -1903,36 +1903,36 @@ elif tab == "Team Dashboards":
 
         # flush‑left HTML inside the f‑string, but keep these four spaces on each line
         st.markdown(f"""
-<div style="background-color:#002060; padding:8px; border-radius:4px; margin-top:24px;">
-  <h4 style="color:white; margin:0;">{row['full_name']}</h4>
-</div>
-""", unsafe_allow_html=True)
-
-        info = {
-            "Stadium":   row["home_venue"],
-            "Capacity":  f"{row['venue_capacity']:,}",
-            "City":      row["city"],
-            "State":     row["state"],
-            "Elevation": f"{row['elevation']:.1f}",
-        }
-
-        html = """
-<div style="margin-top:24px;">
-  <table style="width:100%; border-collapse:collapse; border-left:1px solid #ddd; border-right:1px solid #ddd; border-bottom:1px solid #ddd;">
-    <tbody>
-"""
-        for key, val in info.items():
-            html += f"""
-    <tr>
-      <td style="background-color:#002060; color:white; padding:8px; font-weight:600; width:35%;">{key}</td>
-      <td style="background-color:white; color:#222; padding:8px; width:65%;">{val}</td>
-    </tr>
-"""
-        html += """
-    </tbody>
-  </table>
-</div>
-"""
+    <div style="background-color:#002060; padding:8px; border-radius:4px; margin-top:24px;">
+      <h4 style="color:white; margin:0;">{row['full_name']}</h4>
+    </div>
+    """, unsafe_allow_html=True)
+    
+            info = {
+                "Stadium":   row["home_venue"],
+                "Capacity":  f"{row['venue_capacity']:,}",
+                "City":      row["city"],
+                "State":     row["state"],
+                "Elevation": f"{row['elevation']:.1f}",
+            }
+    
+            html = """
+    <div style="margin-top:24px;">
+      <table style="width:100%; border-collapse:collapse; border-left:1px solid #ddd; border-right:1px solid #ddd; border-bottom:1px solid #ddd;">
+        <tbody>
+    """
+            for key, val in info.items():
+                html += f"""
+        <tr>
+          <td style="background-color:#002060; color:white; padding:8px; font-weight:600; width:35%;">{key}</td>
+          <td style="background-color:white; color:#222; padding:8px; width:65%;">{val}</td>
+        </tr>
+    """
+            html += """
+        </tbody>
+      </table>
+    </div>
+    """
         st.markdown(html, unsafe_allow_html=True)
 
 
