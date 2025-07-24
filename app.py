@@ -1895,44 +1895,34 @@ elif tab == "Team Dashboards":
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
 
-    st.write("🏷️ Inserting stadium info for:", selected_team)
-
     # --- TEAM INFO TABLE ---
     # grab the matching row from the Teams sheet
-    team_info = teams_df[teams_df["full_name"] == selected_team]
-    st.write("Matched rows:", team_info.shape[0])
-    st.write(team_info)    # this will show you the DataFrame (or empty)
+    team_info = teams_df[teams_df["school"] == selected_team]
 
+    
     if not team_info.empty:
         row = team_info.iloc[0]
-        stadium  = row["home_venue"]
-        capacity = row["venue_capacity"]
-        city     = row["city"]
-        state    = row["state"]
-        elevation= row["elevation"]
     
-        # blue header bar
+        # Blue header bar, but use the official full_name here
         st.markdown(
             f"""
             <div style="background-color:#0B2240;padding:8px;border-radius:4px;margin-top:24px;">
-              <h4 style="color:white;margin:0;">{selected_team}</h4>
+              <h4 style="color:white;margin:0;">{row['full_name']}</h4>
             </div>
             """,
             unsafe_allow_html=True
         )
     
-        # build a 2‑column table
-        info_df = (
-          pd.DataFrame({
-            "Stadium": [stadium],
-            "Capacity": [f"{capacity:,}"],
-            "City":     [city],
-            "State":    [state],
-            "Elevation":[elevation]
-          })
-          .T
-          .rename(columns={0: ""})
-        )
+        # Build a 1‑column “key / value” table including full_name as the first row
+        info = {
+            "Full Name":  row["full_name"],
+            "Stadium":    row["home_venue"],
+            "Capacity":   f"{row['venue_capacity']:,}",
+            "City":       row["city"],
+            "State":      row["state"],
+            "Elevation":  row["elevation"],
+        }
+        info_df = pd.DataFrame.from_dict(info, orient="index", columns=[""])
         st.table(info_df)
 
 
