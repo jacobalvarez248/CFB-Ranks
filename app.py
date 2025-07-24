@@ -3,6 +3,7 @@ import streamlit as st
 from pathlib import Path
 import altair as alt
 import numpy as np
+import pydeck as pdk
 
 data_path = Path(__file__).parent / "Preseason 2025.xlsm"
 
@@ -863,6 +864,139 @@ elif tab == "Team Dashboards":
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
+
+    # ---------- HELPER FUNCTIONS ----------
+
+    def parse_location(loc_str):
+        """Parse '(lat,long)' string to (lat, lon) floats."""
+        try:
+            lat, lon = map(float, loc_str.strip("()").split(","))
+            return lat, lon
+        except Exception:
+            return np.nan, np.nan
+    
+    def haversine(lat1, lon1, lat2, lon2):
+        """Haversine distance in miles."""
+        R = 3958.8  # Earth radius in miles
+        phi1, phi2 = np.radians(lat1), np.radians(lat2)
+        dphi = np.radians(lat2 - lat1)
+        dlambda = np.radians(lon2 - lon1)
+        a = np.sin(dphi/2)**2 + np.cos(phi1)*np.cos(phi2)*np.sin(dlambda/2)**2
+        return 2*R*np.arcsin(np.sqrt(a))
+    
+    def render_info_table(row):
+        """Generate HTML stadium info card matching the provided style."""
+        style = """
+        <style>
+        .stadium-card { border-collapse:collapse; font-family: 'Segoe UI', Arial, sans-serif; margin-bottom:10px;}
+        .stadium-header { background:#002060; color:white; font-weight:700; padding:6px 14px; font-size:16px; text-align:left; border-radius:4px 4px 0 0;}
+        .stadium-label { background:#002060; color:white; font-weight:600; padding:5px 14px; width:110px; font-size:14px;}
+        .stadium-val { background:white; color:#222; font-weight:600; padding:5px 16px; font-size:14px;}
+        </style>
+        """
+        html = f'''
+        {style}
+        <table class="stadium-card">
+          <tr><th colspan="2" class="stadium-header">{row["full_name"]}</th></tr>
+          <tr><td class="stadium-label">Stadium</td><td class="stadium-val">{row["home_venue"]}</td></tr>
+          <tr><td class="stadium-label">Capacity</td><td class="stadium-val">{int(row["venue_capacity"]):,}</td></tr>
+          <tr><td class="stadium-label">City</td><td class="stadium-val">{row["city"]}</td></tr>
+          <tr><td class="stadium-label">State</td><td class="stadium-val">{row["state"]}</td></tr>
+          <tr><td class="stadium-label">Elevation</td><td class="stadium-val">{float(row["elevation"]):,.1f}</td></tr>
+        </table>
+        '''
+        return html
+    
+    # ---------- LOAD DATA ----------
+    df_teams = load_sheet(data_path, "Teams", header=0)
+    df_teams["lat"], df_teams["lon"] = zip(*df_teams["location"].map(parse_location))
+    
+    # Ensure correct casing for joins
+    df_teams["school_up"] = df_teams["school"].astype(str).str.strip().str.upper()
+    logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
+    df_teams = df_teams.merge(logos_df[["Team", "Logo URL"]], left_on="school_up", right_on="Team", how="left")
+    
+    # -------- SELECTED TEAM ROW --------
+    sel_row = df_teams[df_teams["school"] == selected_team]
+    if sel_row.empty:
+        st.warning(f"Team info not found for '{selected_team}'.")
+    else:
+        sel_row = sel_row.iloc[0]
+        sel_lat, sel_lon = sel_row["lat"], sel_row["lon"]
+    
+        # --------- NEAREST TEAMS ----------
+        df_teams["distance"] = haversine(sel_lat, sel_lon, df_teams["lat"], df_teams["lon"])
+        # Exclude self, sort by distance
+        N_NEIGHBORS = 10  # Or adjust as desired
+        neighbors = df_teams[df_teams["school"] != selected_team].sort_values("distance").head(N_NEIGHBORS)
+        # Re-add selected team to plot, flagged as 'selected'
+        plot_df = pd.concat([
+            pd.DataFrame([sel_row]).assign(selected=True),
+            neighbors.assign(selected=False)
+        ])
+    
+        # ----------- PREPARE ICON LAYER FOR PYDECK -------------
+        plot_df["icon_data"] = plot_df.apply(
+            lambda row: {
+                "url": row["Logo URL"] if pd.notnull(row["Logo URL"]) else "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png",
+                "width": 40,
+                "height": 40,
+                "anchorY": 40
+            }, axis=1
+        )
+    
+        # Ensure unique name for each marker
+        plot_df["icon_name"] = plot_df["school_up"]
+    
+        icon_layer = pdk.Layer(
+            "IconLayer",
+            data=plot_df,
+            get_icon="icon_data",
+            get_position="[lon, lat]",
+            get_size=4,
+            size_scale=8 if is_mobile() else 11,
+            pickable=True,
+            get_color="[0, 32, 96]" if is_mobile() else "[0, 32, 96]",
+            tooltip=True,
+            get_icon="icon_name"
+        )
+    
+        # Center map on selected team, adjust zoom for context
+        view_state = pdk.ViewState(
+            latitude=sel_lat,
+            longitude=sel_lon,
+            zoom=6.1 if not is_mobile() else 5.6,
+            pitch=0
+        )
+    
+        # ----------- MAP DISPLAY (NO SIDE SCROLL) -------------
+        map_height = 360 if is_mobile() else 450
+        map_width = None  # Use container width, Streamlit will handle width
+    
+        map_deck = pdk.Deck(
+            layers=[icon_layer],
+            initial_view_state=view_state,
+            tooltip={"html": "<b>{school}</b>", "style": {"color": "black"}}
+        )
+    
+        if is_mobile():
+            st.pydeck_chart(map_deck, use_container_width=True, height=map_height)
+            st.markdown(render_info_table(sel_row), unsafe_allow_html=True)
+        else:
+            # Overlay the table in the corner of the map
+            st.markdown(
+                f"""
+                <div style="position:relative; width:100%; height:{map_height+10}px; margin-bottom:10px;">
+                    <div style="position:absolute; top:17px; left:22px; z-index:10;">
+                        {render_info_table(sel_row)}
+                    </div>
+                    <div style="width:100%;">
+                """,
+                unsafe_allow_html=True
+            )
+            st.pydeck_chart(map_deck, use_container_width=True, height=map_height)
+            st.markdown("</div></div>", unsafe_allow_html=True)
+        
     # --- LOGO LOOKUP: Team and Conference ---
     logo_url = team_row.get("Logo URL", None)
     if not (isinstance(logo_url, str) and logo_url.startswith("http")):
