@@ -1895,6 +1895,8 @@ elif tab == "Team Dashboards":
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
 
+    st.write("🏷️ Inserting stadium info for:", selected_team)
+
     # --- TEAM INFO TABLE ---
     # grab the matching row from the Teams sheet
     team_info = teams_df[teams_df["full_name"] == selected_team]
