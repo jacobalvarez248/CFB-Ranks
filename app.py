@@ -1525,12 +1525,11 @@ elif tab == "Team Dashboards":
     })
     df_win_dist["Label"] = df_win_dist["Probability"].map(lambda x: f"{x:.1f}%")
 
-    # --- Show table & chart: side by side on desktop, stacked on mobile ---
-    if not is_mobile():
-        left_col, right_col = st.columns([1, 1])
-        with left_col:
-            st.markdown("#### Probability Distribution of Wins After Each Game")
-            st.markdown("".join(table_html), unsafe_allow_html=True)
+    st.markdown("#### Conference Standings")
+    st.markdown("".join(standings_html), unsafe_allow_html=True)
+    st.markdown("#### Offensive vs Defensive Power Rating")
+    st.altair_chart(chart, use_container_width=True)
+
         with right_col:
             st.markdown("#### Win Probability Distribution")
             bar = alt.Chart(df_win_dist).mark_bar(
