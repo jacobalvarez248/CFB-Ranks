@@ -1906,7 +1906,7 @@ elif tab == "Team Dashboards":
         # Blue header bar, but use the official full_name here
         st.markdown(
             f"""
-            <div style="background-color:#0B2240;padding:8px;border-radius:4px;margin-top:24px;">
+            <div style="background-color:#002060;padding:8px;border-radius:4px;margin-top:24px;">
               <h4 style="color:white;margin:0;">{row['full_name']}</h4>
             </div>
             """,
