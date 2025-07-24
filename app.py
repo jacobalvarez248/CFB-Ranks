@@ -2008,12 +2008,14 @@ elif tab == "Team Dashboards":
         zoom_control=False
     )
     
-    # Selected team marker
+    # Selected team marker with custom logo icon (larger/different size if you want)
+    icon = folium.CustomIcon(row['logo_url'], icon_size=(52, 52))
     folium.Marker(
         location=[sel_lat, sel_lon],
         popup=row['full_name'],
-        icon=folium.Icon(color='red', icon='star')
+        icon=icon
     ).add_to(m)
+
     
     # Closest teams: logo markers
     for _, r in closest.iterrows():
