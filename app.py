@@ -858,23 +858,22 @@ elif tab == "Industry Composite Ranking":
 elif tab == "Team Dashboards":
     st.header("🏈 Team Dashboards")
 
-    # --- Load teams with lat/lon (and logo URL) for map ---
+    # Load Teams sheet, including logo URL, location, stadium info
     try:
         df_teams = load_sheet(data_path, "Teams", header=0)
     except Exception:
         st.error("Could not load Teams sheet. Please check your Excel file.")
         st.stop()
-
+    
     # Split location into lat/lon columns
     def to_tuple(x):
         if isinstance(x, str):
             return eval(x)
         return x
-
     if "location" in df_teams.columns:
         df_teams[["lat", "lon"]] = df_teams["location"].apply(lambda x: pd.Series(to_tuple(x)))
 
-    # Merge logos if needed
+    # Merge in logos if needed (standardize for match)
     if "Logo URL" not in df_teams.columns and "school" in df_teams.columns:
         df_teams["school_up"] = df_teams["school"].astype(str).str.strip().str.upper()
         logos_df["Team"] = logos_df["Team"].astype(str).str.strip().str.upper()
@@ -882,17 +881,18 @@ elif tab == "Team Dashboards":
             logos_df[["Team", "Logo URL"]], left_on="school_up", right_on="Team", how="left"
         )
 
-    # --- Select Team ---
+    # --- TEAM SELECTION ---
     team_options = df_expected["Team"].sort_values().unique().tolist()
     selected_team = st.selectbox("Select Team", team_options, index=0, key="team_dash_select")
     team_row = df_expected[df_expected["Team"] == selected_team].iloc[0]
 
-    # --- LOGO LOOKUP: Team and Conference ---
+    # LOGO lookup
     logo_url = team_row.get("Logo URL", None)
     if not (isinstance(logo_url, str) and logo_url.startswith("http")):
         logo_match = logos_df[logos_df["Team"] == selected_team]
         logo_url = logo_match["Logo URL"].iloc[0] if not logo_match.empty else None
 
+    # Conference logo, etc...
     conference = team_row.get("Conference", "")
     conf_logo_url = None
     if conference:
@@ -1736,30 +1736,21 @@ elif tab == "Team Dashboards":
             st.markdown("#### Offensive vs Defensive Power Rating")
             st.altair_chart(chart, use_container_width=True)
       
-    # --- NEAREST TEAMS MAP ---
-
-    # Number of neighbors to display
+    # --- NEAREST TEAMS MAP (same as before) ---
     N_NEIGHBORS = 10
 
-    # Find selected team's row in df_teams (make sure 'school' key matches your main key)
     sel_rows = df_teams[df_teams["school"] == selected_team]
     if sel_rows.empty:
         st.error(f"No entry in Teams for '{selected_team}'.")
         st.stop()
     sel_row = sel_rows.iloc[0]
 
-    # Exclude the selected team itself and only include teams with valid logo URLs
     neighbors = df_teams[df_teams["school"] != selected_team].copy()
     neighbors = neighbors[neighbors["Logo URL"].notnull() & neighbors["Logo URL"].str.startswith("http")]
 
-    # Calculate great-circle (haversine) distance between selected team and others
+    # Haversine
     def haversine(lat1, lon1, lat2, lon2):
-        """
-        Calculate the great-circle distance between two points on Earth.
-        Returns miles.
-        Accepts scalars or pandas Series/arrays.
-        """
-        R = 3958.8  # Radius of earth in miles
+        R = 3958.8  # miles
         lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
         dlat = lat2 - lat1
         dlon = lon2 - lon1
@@ -1770,18 +1761,21 @@ elif tab == "Team Dashboards":
     neighbors["distance"] = haversine(sel_row["lat"], sel_row["lon"], neighbors["lat"], neighbors["lon"])
     neighbors = neighbors.sort_values("distance").head(N_NEIGHBORS)
 
-    # Build plot_df: selected team + its N nearest neighbors
+    # Build map df
     plot_df = pd.concat([
         pd.DataFrame([sel_row]).assign(selected=True),
         neighbors.assign(selected=False)
     ])
 
-    # --- Folium Map Helper for Logo Markers ---
+    # --- Folium Map (NON-SCROLLABLE) ---
+    import folium
+    from streamlit_folium import st_folium
+
     def add_logo_marker(map_object, lat, lon, logo_url, tooltip_text):
         icon = folium.CustomIcon(
             logo_url,
             icon_size=(52, 52),
-            icon_anchor=(26, 52)  # bottom-center
+            icon_anchor=(26, 52)
         )
         folium.Marker(
             location=(lat, lon),
@@ -1789,17 +1783,17 @@ elif tab == "Team Dashboards":
             tooltip=tooltip_text
         ).add_to(map_object)
 
-    # Center the map on the selected team
     center_lat = sel_row["lat"]
     center_lon = sel_row["lon"]
     folium_map = folium.Map(
         location=[center_lat, center_lon],
         zoom_start=6,
         width="100%",
-        height="420"
+        height="420",
+        scrollWheelZoom=False,    # <-- disables scroll zoom!
+        dragging=False,           # <-- disables panning!
+        zoom_control=False        # <-- disables zoom controls!
     )
-
-    # Add markers for selected team (highlighted) and neighbors
     for _, row in plot_df.iterrows():
         logo_url = row["Logo URL"] if pd.notnull(row["Logo URL"]) and str(row["Logo URL"]).startswith("http") \
             else "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
@@ -1811,85 +1805,59 @@ elif tab == "Team Dashboards":
             row["school"]
         )
 
-    # --- Display map in Streamlit ---
-    st.markdown("### Nearest Teams Map")
-        if not is_mobile():
-        st.markdown(
-            '<div style="position:relative; min-height:460px; width:100%;">'
-            f'{stat_card}'
-            '</div>',
-            unsafe_allow_html=True
-        )
-        st_folium(folium_map, width=800, height=420)
-    else:
-        st_folium(folium_map, width=800, height=420)
-        st.markdown(stat_card, unsafe_allow_html=True)
+    # --- STADIUM TABLE FUNCTION ---
+    def render_stadium_table(sel_row, team_name):
+        stat_fields = [
+            ("Stadium", "home_venue"),
+            ("Capacity", "venue_capacity"),
+            ("City", "city"),
+            ("State", "state"),
+            ("Elevation", "elevation"),
+        ]
+        rows_html = ""
+        for label, col in stat_fields:
+            val = sel_row.get(col, "")
+            if col == "venue_capacity" and pd.notnull(val):
+                try:
+                    val = f"{int(val):,}"
+                except Exception:
+                    pass
+            if col == "elevation" and pd.notnull(val):
+                try:
+                    val = f"{float(val):,.1f}"
+                except Exception:
+                    pass
+            rows_html += f"<tr><td style='padding:6px 12px; font-weight:600;'>{label}</td><td style='padding:6px 12px; text-align:right;'>{val}</td></tr>"
+        table_html = f"""
+        <div style='max-width:340px; margin:12px auto;'>
+        <table style='width:100%; border-collapse:collapse; box-shadow:0 1px 4px #b7b7b7;'>
+          <tr>
+            <th colspan='2' style='background:#012a60; color:#fff; font-size:17px; font-weight:700; padding:7px; text-align:center;'>
+                {team_name}
+            </th>
+          </tr>
+          {rows_html}
+        </table>
+        </div>
+        """
+        st.markdown(table_html, unsafe_allow_html=True)
 
-    st_folium(folium_map, width=800, height=420)
-        
-    # --- Stadium / Capacity / Info Table ---
-
-    # Columns you want to show (adjust if needed!)
-    stat_fields = [
-        ("Stadium", "stadium"),
-        ("Capacity", "capacity"),
-        ("Year Opened", "opened"),
-        ("Surface", "surface"),
-        ("Location", "city"),  # or "city, state"
-        # Add more here if you have them!
-    ]
-
-    # Build the info table as a list of (label, value)
-    info_rows = []
-    for label, col in stat_fields:
-        value = sel_row.get(col, "")
-        # Nice formatting for capacity, year, etc.
-        if col == "capacity":
-            try:
-                value = f"{int(value):,}"
-            except:
-                pass
-        if value and not pd.isnull(value):
-            info_rows.append((label, value))
-
-    # Simple fallback if nothing available
-    if not info_rows:
-        info_rows = [("Info", "Not available")]
-
-    # --- Table HTML (Card style for desktop, block for mobile) ---
+    # --- DISPLAY: MAP + STADIUM INFO ---
     if is_mobile():
-        stat_card = (
-            '<div style="width:99vw; max-width:99vw; margin:18px auto 0 auto; '
-            'background:#f8fafb; border-radius:9px; box-shadow:0 2px 8px #ddd; '
-            'padding:12px 10vw 8px 7vw; font-size:14px;">'
-            '<table style="width:100%;">'
-        )
-        for label, value in info_rows:
-            stat_card += f'<tr><td style="font-weight:600; color:#444; padding:3px 0 1px 0; ">{label}</td>' \
-                         f'<td style="padding:3px 0 1px 16px; color:#002060;">{value}</td></tr>'
-        stat_card += '</table></div>'
-        st.markdown(stat_card, unsafe_allow_html=True)
+        # Mobile: Map first, then stadium info below
+        st.markdown("### Nearest Teams Map")
+        st_folium(folium_map, width=340, height=360)
+        st.markdown("### Stadium Info")
+        render_stadium_table(sel_row, selected_team)
     else:
-        # Overlay card at top right of map using CSS absolute positioning
-        stat_card = (
-            '<div style="position:absolute; top:78px; right:56px; z-index:50; '
-            'min-width:290px; background:#fff; border-radius:13px; box-shadow:0 4px 18px #bbb; '
-            'padding:20px 22px 14px 18px; font-size:17px; border:2px solid #002060;">'
-            '<span style="font-size:17px; color:#002060; font-weight:900;">Stadium Info</span>'
-            '<table style="width:100%; margin-top:9px;">'
-        )
-        for label, value in info_rows:
-            stat_card += f'<tr><td style="font-weight:700; color:#222; padding:3px 0 1px 0; ">{label}</td>' \
-                         f'<td style="padding:3px 0 1px 16px; color:#002060;">{value}</td></tr>'
-        stat_card += '</table></div>'
-        # Absolute overlay: wrap in a container for Streamlit layout
-        # You may need to use st.markdown with unsafe_allow_html, and also set container style for relative positioning
-        st.markdown(
-            '<div style="position:relative; min-height:460px; width:100%;">'  # Make sure map sits below
-            f'{stat_card}'
-            '</div>',
-            unsafe_allow_html=True
-        )
+        # Desktop: Side-by-side columns
+        left_col, right_col = st.columns([1, 1])
+        with left_col:
+            st.markdown("### Nearest Teams Map")
+            st_folium(folium_map, width=650, height=420)
+        with right_col:
+            st.markdown("### Stadium Info")
+            render_stadium_table(sel_row, selected_team)
 
             
 elif tab == "Charts & Graphs":
