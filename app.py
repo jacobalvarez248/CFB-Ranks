@@ -1997,7 +1997,7 @@ elif tab == "Team Dashboards":
     sel_lat, sel_lon = row['lat'], row['lon']
     teams_df['distance_km'] = teams_df.apply(
         lambda r: haversine(sel_lat, sel_lon, r['lat'], r['lon']) if r['school'] != selected_team else np.inf, axis=1)
-    closest = teams_df.nsmallest(7, 'distance_km')
+    closest = teams_df.nsmallest(10, 'distance_km')
     
     # Build the map
     m = folium.Map(
