@@ -1981,9 +1981,9 @@ elif tab == "Team Dashboards":
         icon_mapping = {
             row["icon_name"]: {
                 "url": row["Logo URL"] if pd.notnull(row["Logo URL"]) else "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png",
-                "width": 40,
-                "height": 40,
-                "anchorY": 40
+                "width": 60,
+                "height": 60,
+                "anchorY": 30
             }
             for _, row in plot_df.iterrows()
         }
