@@ -1896,14 +1896,12 @@ elif tab == "Team Dashboards":
         st.altair_chart(chart, use_container_width=True)
 
     # --- TEAM INFO TABLE ---
-    # grab the matching row from the Teams sheet
     team_info = teams_df[teams_df["school"] == selected_team]
-
     
     if not team_info.empty:
         row = team_info.iloc[0]
     
-        # Blue header bar, but use the official full_name here
+        # Blue header bar (uses full_name)
         st.markdown(
             f"""
             <div style="background-color:#002060;padding:8px;border-radius:4px;margin-top:24px;">
@@ -1913,82 +1911,41 @@ elif tab == "Team Dashboards":
             unsafe_allow_html=True
         )
     
-        # Build a 1‑column “key / value” table including full_name as the first row
-        info = {
-            "Full Name":  row["full_name"],
-            "Stadium":    row["home_venue"],
-            "Capacity":   f"{row['venue_capacity']:,}",
-            "City":       row["city"],
-            "State":      row["state"],
-            "Elevation":  row["elevation"],
-        }
-        # --- Custom HTML table for styled key/value pairs ---
-        # 1️⃣ Format elevation with one decimal
-        elev = f"{row['elevation']:.1f}"
-        
-        # 2️⃣ Build up each row
+        # Prepare rows (elevation with one decimal)
         rows = [
             ("Full Name", row["full_name"]),
             ("Stadium",    row["home_venue"]),
             ("Capacity",   f"{row['venue_capacity']:,}"),
             ("City",       row["city"]),
             ("State",      row["state"]),
-            ("Elevation",  elev),
+            ("Elevation",  f"{row['elevation']:.1f}"),
         ]
-        
-        # 3️⃣ Render HTML table with inline CSS
+    
+        # Build HTML table
         html_rows = ""
         for label, value in rows:
             html_rows += f"""
             <tr>
               <th style="
                   background-color:#002060;
-                  color: white;
-                  text-align: left;
-                  padding: 6px;
-                  width: 30%;
+                  color:white;
+                  text-align:left;
+                  padding:6px;
+                  width:30%;
                 ">{label}</th>
               <td style="padding:6px;">{value}</td>
             </tr>
             """
-        
+    
         html_table = f"""
-        <table style="
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 24px;
-        ">
+        <table style="width:100%; border-collapse:collapse; margin-top:24px;">
           {html_rows}
         </table>
         """
-        <table style="width:100%; border-collapse:collapse; margin-top:24px;">
-          <tr>
-            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Full Name</th>
-            <td style="padding:6px;">Air Force Falcons</td>
-          </tr>
-          <tr>
-            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Stadium</th>
-            <td style="padding:6px;">Falcon Stadium</td>
-          </tr>
-          <tr>
-            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Capacity</th>
-            <td style="padding:6px;">46,692</td>
-          </tr>
-          <tr>
-            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">City</th>
-            <td style="padding:6px;">Colorado Springs</td>
-          </tr>
-          <tr>
-            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">State</th>
-            <td style="padding:6px;">CO</td>
-          </tr>
-          <tr>
-            <th style="background-color:#002060; color:white; text-align:left; padding:6px; width:30%;">Elevation</th>
-            <td style="padding:6px;">2024.9</td>
-          </tr>
-        </table>
-
+    
+        # Render the table
         st.markdown(html_table, unsafe_allow_html=True)
+
 
 
 
