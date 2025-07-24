@@ -49,7 +49,7 @@ df_schedule = load_sheet(data_path, "Schedule",      header=0)
 logos_df    = load_sheet(data_path, "Logos",         header=1)
 
 # — Add Teams sheet for stadium info —
-teams_df    = load_sheet(data_path, "Teams",         header=1)
+teams_df    = load_sheet(data_path, "Teams",         header=0)
 
 
 # --- Standardize columns: Remove leading/trailing whitespace ---
