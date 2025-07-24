@@ -1922,6 +1922,25 @@ elif tab == "Team Dashboards":
     neighbors = neighbors[neighbors["Logo URL"].notnull() & neighbors["Logo URL"].str.startswith("http")]
     
     # Sort by distance to selected team
+
+    def haversine(lat1, lon1, lat2, lon2):
+        """
+        Calculate the great-circle distance between two points 
+        on the earth (specified in decimal degrees).
+        Returns miles.
+        Accepts scalars or pandas Series/arrays.
+        """
+        R = 3958.8  # Radius of earth in miles
+    
+        lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+    
+        a = np.sin(dlat/2.0)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2.0)**2
+        c = 2 * np.arcsin(np.sqrt(a))
+        return R * c
+
     neighbors["distance"] = haversine(sel_row["lat"], sel_row["lon"], neighbors["lat"], neighbors["lon"])
     neighbors = neighbors.sort_values("distance").head(N_NEIGHBORS)
     
