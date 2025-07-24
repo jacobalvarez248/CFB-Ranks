@@ -1530,42 +1530,42 @@ elif tab == "Team Dashboards":
     st.markdown("#### Offensive vs Defensive Power Rating")
     st.altair_chart(chart, use_container_width=True)
 
-        with right_col:
-            st.markdown("#### Win Probability Distribution")
-            bar = alt.Chart(df_win_dist).mark_bar(
-                color="#002060"
-            ).encode(
-                x=alt.X("Wins:O", axis=alt.Axis(
-                    title="Wins",
-                    labelAngle=0,
-                    labelColor="black",   # <-- Axis tick text
-                    titleColor="black"    # <-- Axis label
-                )),
-                y=alt.Y("Probability:Q", axis=alt.Axis(
-                    title="Probability (%)",
-                    labelColor="black",
-                    titleColor="black"
-                )),
-                tooltip=[
-                    alt.Tooltip("Wins:O", title="Wins"),
-                    alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
-                ]
-            )
-            text = bar.mark_text(
-                align='center',
-                baseline='bottom',
-                dy=-2,
-                color='black',
-                fontSize=10
-            ).encode(
-                text="Label"
-            )
-            final_chart = (bar + text).properties(
-                width=350,
-                height=515,
-                title=""
-            )
-            st.altair_chart(final_chart, use_container_width=True)
+    with right_col:
+        st.markdown("#### Win Probability Distribution")
+        bar = alt.Chart(df_win_dist).mark_bar(
+            color="#002060"
+        ).encode(
+            x=alt.X("Wins:O", axis=alt.Axis(
+                title="Wins",
+                labelAngle=0,
+                labelColor="black",   # <-- Axis tick text
+                titleColor="black"    # <-- Axis label
+            )),
+            y=alt.Y("Probability:Q", axis=alt.Axis(
+                title="Probability (%)",
+                labelColor="black",
+                titleColor="black"
+            )),
+            tooltip=[
+                alt.Tooltip("Wins:O", title="Wins"),
+                alt.Tooltip("Probability:Q", format=".1f", title="Probability (%)"),
+            ]
+        )
+        text = bar.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-2,
+            color='black',
+            fontSize=10
+        ).encode(
+            text="Label"
+        )
+        final_chart = (bar + text).properties(
+            width=350,
+            height=515,
+            title=""
+        )
+        st.altair_chart(final_chart, use_container_width=True)
     else:
         st.markdown("#### Probability Distribution of Wins After Each Game")
         st.markdown("".join(table_html), unsafe_allow_html=True)
