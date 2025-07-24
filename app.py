@@ -1885,18 +1885,13 @@ elif tab == "Team Dashboards":
     # --- Combine layers: logos on top then circles
     chart = points_with_logo + points_no_logo
     
-    # --- Render in two‐column layout on desktop, full‐width on mobile ---
-    if not is_mobile():
-        left_col, right_col = st.columns([1, 1])
-        with left_col:
-            st.markdown("#### Conference Standings")
-            st.markdown("".join(standings_html), unsafe_allow_html=True)
-        with right_col:
-            st.markdown("#### Offensive vs Defensive Power Rating")
-            st.altair_chart(chart, use_container_width=True)
-    else:
-        st.markdown("#### Offensive vs Defensive Power Rating")
-        st.altair_chart(chart, use_container_width=True)
+    # --- Render: Standings table, then scatterplot below it (always stacked) ---
+    st.markdown("#### Conference Standings")
+    st.markdown("".join(standings_html), unsafe_allow_html=True)
+    
+    st.markdown("#### Offensive vs Defensive Power Rating")
+    st.altair_chart(chart, use_container_width=True)
+
 
     # --- TEAM INFO TABLE ---
     team_info = teams_df[teams_df["school"] == selected_team]
