@@ -1900,6 +1900,9 @@ elif tab == "Team Dashboards":
     # --- TEAM INFO TABLE ---
     # grab the matching row from the Teams sheet
     team_info = teams_df[teams_df["full_name"] == selected_team]
+    st.write("Matched rows:", team_info.shape[0])
+    st.write(team_info)    # this will show you the DataFrame (or empty)
+
     if not team_info.empty:
         row = team_info.iloc[0]
         stadium  = row["home_venue"]
