@@ -864,7 +864,19 @@ elif tab == "Team Dashboards":
         df_teams = load_sheet(data_path, "Teams", header=0)
     except Exception:
         st.error("Could not load Teams sheet. Please check your Excel file.")
+    # Split location into lat/lon columns
+    df_teams[["lat", "lon"]] = df_teams["location"].apply(
+        lambda x: pd.Series(eval(x) if isinstance(x, str) else x)
+    )
+    # ---- ADD THIS: Split location column into lat/lon ----
+    def to_tuple(x):
+        if isinstance(x, str):
+            return eval(x)
+        return x
     
+    if "location" in df_teams.columns:
+        df_teams[["lat", "lon"]] = df_teams["location"].apply(lambda x: pd.Series(to_tuple(x)))
+
     # Clean up columns and merge in logos if needed
     if "Logo URL" not in df_teams.columns and "school" in df_teams.columns:
         # Try to merge in from logos_df if needed
