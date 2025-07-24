@@ -1895,12 +1895,32 @@ elif tab == "Team Dashboards":
     else:
         st.markdown("#### Offensive vs Defensive Power Rating")
         st.altair_chart(chart, use_container_width=True)
+
+    # --- 1. Prepare plot_df (selected team + N nearest neighbors) ---
+    N_NEIGHBORS = 10  # or however many you want to show
     
+    # sel_row should already be your selected team row from df_teams
+    neighbors = df_teams[df_teams["school"] != selected_team].copy()
+    
+    # Filter neighbors for those with a logo URL
+    neighbors = neighbors[neighbors["Logo URL"].notnull() & neighbors["Logo URL"].str.startswith("http")]
+    
+    # Sort by distance to selected team
+    neighbors["distance"] = haversine(sel_row["lat"], sel_row["lon"], neighbors["lat"], neighbors["lon"])
+    neighbors = neighbors.sort_values("distance").head(N_NEIGHBORS)
+    
+    # Build plot_df: selected team + nearest neighbors
+    plot_df = pd.concat([
+        pd.DataFrame([sel_row]).assign(selected=True),
+        neighbors.assign(selected=False)
+    ])
+    
+    # --- 2. Folium Map ---
     def add_logo_marker(map_object, lat, lon, logo_url, tooltip_text):
         icon = folium.CustomIcon(
             logo_url,
-            icon_size=(50, 50),  # adjust as needed
-            icon_anchor=(25, 50) # anchor bottom-center
+            icon_size=(52, 52),
+            icon_anchor=(26, 52)  # anchor bottom center
         )
         folium.Marker(
             location=(lat, lon),
@@ -1909,19 +1929,31 @@ elif tab == "Team Dashboards":
         ).add_to(map_object)
     
     # Center map on selected team
-    center_lat = plot_df.iloc[0]["lat"]
-    center_lon = plot_df.iloc[0]["lon"]
+    center_lat = sel_row["lat"]
+    center_lon = sel_row["lon"]
     
-    # Create the map
-    folium_map = folium.Map(location=[center_lat, center_lon], zoom_start=6, width="100%", height="420")
+    folium_map = folium.Map(
+        location=[center_lat, center_lon],
+        zoom_start=6,
+        width="100%",
+        height="420"
+    )
     
-    # Add all logos as markers
+    # Add each marker
     for _, row in plot_df.iterrows():
-        logo_url = row["Logo URL"] if pd.notnull(row["Logo URL"]) else "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
-        add_logo_marker(folium_map, row["lat"], row["lon"], logo_url, row["school"])
+        logo_url = row["Logo URL"] if pd.notnull(row["Logo URL"]) and str(row["Logo URL"]).startswith("http") \
+            else "https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/NCAA_Division_I_FCS_logo.svg/250px-NCAA_Division_I_FCS_logo.svg.png"
+        add_logo_marker(
+            folium_map,
+            row["lat"],
+            row["lon"],
+            logo_url,
+            row["school"]
+        )
     
-    # Display in Streamlit (will be fully responsive and interactive!)
-    st_data = st_folium(folium_map, width=800, height=420)
+    # --- 3. Display Map in Streamlit ---
+    st.markdown("### Nearest Teams Map")
+    st_folium(folium_map, width=800, height=420)    
         
 
             
