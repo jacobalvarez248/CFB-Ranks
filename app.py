@@ -1901,17 +1901,22 @@ elif tab == "Team Dashboards":
     if not team_info.empty:
         row = team_info.iloc[0]
     
-        # 1) Blue header bar
+        # 1) Header bar
         st.markdown(
             f"""
-            <div style="background-color:#002060;padding:8px;border-radius:4px;margin-top:24px;">
-              <h4 style="color:white;margin:0;">{row['full_name']}</h4>
+            <div style="background-color:#002060;
+                        padding:8px;
+                        border-radius:4px;
+                        margin-top:24px;">
+              <h4 style="color:white;margin:0;">
+                {row['full_name']}
+              </h4>
             </div>
             """,
             unsafe_allow_html=True
         )
     
-        # 2) Prepare rows (format elevation to 1 decimal)
+        # 2) Prepare each label/value, formatting elevation to 1 decimal
         rows = [
             ("Full Name", row["full_name"]),
             ("Stadium",    row["home_venue"]),
@@ -1921,7 +1926,7 @@ elif tab == "Team Dashboards":
             ("Elevation",  f"{row['elevation']:.1f}"),
         ]
     
-        # 3) Build up the HTML for all <tr>... rows inside a Python string
+        # 3) Build up all the <tr> rows inside a single Python string
         html_rows = ""
         for label, value in rows:
             html_rows += f"""
@@ -1932,23 +1937,28 @@ elif tab == "Team Dashboards":
                   text-align:left;
                   padding:6px;
                   width:30%;
-                ">{label}</th>
-              <td style="padding:6px;">{value}</td>
+                ">
+                {label}
+              </th>
+              <td style="padding:6px;">
+                {value}
+              </td>
             </tr>
             """
     
-        # 4) Wrap those rows in a <table>... string
+        # 4) Wrap those rows in the <table> tag—again, all inside one f‑string
         html_table = f"""
-        <table style="width:100%; border-collapse:collapse; margin-top:24px;">
+        <table style="
+            width:100%;
+            border-collapse:collapse;
+            margin-top:24px;
+        ">
           {html_rows}
         </table>
         """
     
-        # 5) Finally render it
+        # 5) Send that complete string to Streamlit
         st.markdown(html_table, unsafe_allow_html=True)
-
-
-
 
 
 elif tab == "Charts & Graphs":
