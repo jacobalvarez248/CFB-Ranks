@@ -1862,8 +1862,8 @@ elif tab == "Team Dashboards":
            .transform_filter(~logo_cond)
            .mark_circle(size=100, color="steelblue")
            .encode(
-               x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max]), axis=alt.Axis(title="Offensive Power Rating")),
-               y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max], reverse=True), axis=alt.Axis(title="Defensive Power Rating")),
+               x=alt.X("Off:Q", scale=alt.Scale(domain=[off_min, off_max]), axis=alt.Axis(title="Offensive Power Rating",titleColor="black", labelColor="black")),
+               y=alt.Y("Def:Q", scale=alt.Scale(domain=[def_min, def_max], reverse=True), axis=alt.Axis(title="Defensive Power Rating", titleColor="black", labelColor="black")),
                tooltip=["Team:N", alt.Tooltip("Off:Q", format=".1f", title="Off Rtg"), alt.Tooltip("Def:Q", format=".1f", title="Def Rtg")]
            )
     )
